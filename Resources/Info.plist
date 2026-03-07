@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>dev.hewig.ghosttile</string>
+    <key>CFBundleName</key>
+    <string>GhostTile</string>
+    <key>CFBundleDisplayName</key>
+    <string>GhostTile</string>
+    <key>CFBundleExecutable</key>
+    <string>GhostTile</string>
+    <key>CFBundleVersion</key>
+    <string>15</string>
+    <key>CFBundleShortVersionString</key>
+    <string>2.0.0</string>
+    <key>CFBundleIconFile</key>
+    <string>appIcon</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>
