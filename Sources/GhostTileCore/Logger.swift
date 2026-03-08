@@ -16,6 +16,9 @@ public enum Log {
         return dir.appendingPathComponent("ghosttile.log")
     }()
 
+    private static let maxLogSize: UInt64 = 1_000_000 // 1 MB
+    private static let maxRotatedLogs = 2
+
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
@@ -40,17 +43,44 @@ public enum Log {
     private static func write(_ level: String, _ message: String) {
         let timestamp = dateFormatter.string(from: Date())
         let line = "[\(timestamp)] [\(level)] \(message)\n"
-        if let data = line.data(using: .utf8) {
-            if FileManager.default.fileExists(atPath: logFileURL.path) {
-                if let handle = try? FileHandle(forWritingTo: logFileURL) {
-                    handle.seekToEndOfFile()
-                    handle.write(data)
-                    handle.closeFile()
-                }
-            } else {
-                try? data.write(to: logFileURL)
+        guard let data = line.data(using: .utf8) else { return }
+
+        if FileManager.default.fileExists(atPath: logFileURL.path) {
+            rotateIfNeeded()
+            if let handle = try? FileHandle(forWritingTo: logFileURL) {
+                handle.seekToEndOfFile()
+                handle.write(data)
+                handle.closeFile()
+            }
+        } else {
+            try? data.write(to: logFileURL)
+        }
+    }
+
+    private static func rotateIfNeeded() {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: logFileURL.path),
+              let size = attrs[.size] as? UInt64,
+              size > maxLogSize
+        else { return }
+
+        let fm = FileManager.default
+        let base = logFileURL.path
+
+        // Remove oldest
+        let oldest = "\(base).\(maxRotatedLogs)"
+        try? fm.removeItem(atPath: oldest)
+
+        // Shift existing rotated logs
+        for i in stride(from: maxRotatedLogs - 1, through: 1, by: -1) {
+            let src = "\(base).\(i)"
+            let dst = "\(base).\(i + 1)"
+            if fm.fileExists(atPath: src) {
+                try? fm.moveItem(atPath: src, toPath: dst)
             }
         }
+
+        // Rotate current → .1
+        try? fm.moveItem(atPath: base, toPath: "\(base).1")
     }
 
     public static var logPath: String { logFileURL.path }

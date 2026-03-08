@@ -14,6 +14,7 @@ class AppViewModel: ObservableObject {
         var isHidden: Bool
         var isSIPProtected: Bool
         var isRunning: Bool
+        var isHiddenFromDock: Bool
     }
 
     @Published var apps: [AppItem] = []
@@ -21,6 +22,7 @@ class AppViewModel: ObservableObject {
     @Published var showError = false
     @Published var errorMessage = ""
     @Published var dockVisible = false
+    @Published var sudoCommand: String?
 
     var hiddenCount: Int { apps.filter(\.isHidden).count }
     var hiddenApps: [AppItem] { apps.filter(\.isHidden) }
@@ -29,7 +31,20 @@ class AppViewModel: ObservableObject {
     }
 
     private var observers: [NSObjectProtocol] = []
+    private var configDirectoryMonitor: DispatchSourceFileSystemObject?
     private var configFileMonitor: DispatchSourceFileSystemObject?
+
+    var cliPath: String {
+        let installed = "/usr/local/bin/ghosttile"
+        if FileManager.default.fileExists(atPath: installed) { return installed }
+        let execURL = Bundle.main.executableURL
+            ?? URL(fileURLWithPath: ProcessInfo.processInfo.arguments[0])
+        let bundled = execURL.deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Resources/ghosttile-cli").path
+        if FileManager.default.fileExists(atPath: bundled) { return bundled }
+        return "ghosttile"
+    }
 
     init() {
         // Restore saved dock visibility preference
@@ -74,26 +89,54 @@ class AppViewModel: ObservableObject {
     deinit {
         let nc = NSWorkspace.shared.notificationCenter
         for observer in observers { nc.removeObserver(observer) }
+        configDirectoryMonitor?.cancel()
         configFileMonitor?.cancel()
     }
 
     private func watchConfigFile() {
-        // Ensure config dir exists
         try? FileManager.default.createDirectory(
             atPath: Config.configDir, withIntermediateDirectories: true)
+        watchConfigDirectory()
+        refreshConfigFileMonitor()
+    }
 
-        // Watch the config directory for changes (file may be recreated)
+    private func watchConfigDirectory() {
+        configDirectoryMonitor?.cancel()
+
         let dirFD = open(Config.configDir, O_EVTONLY)
         guard dirFD >= 0 else { return }
 
         let source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: dirFD, eventMask: .write, queue: .main
+            fileDescriptor: dirFD, eventMask: [.write, .rename, .delete], queue: .main
+        )
+        source.setEventHandler { [weak self] in
+            Log.info("Config directory changed on disk, updating watcher")
+            self?.refreshConfigFileMonitor()
+            self?.refresh()
+        }
+        source.setCancelHandler { close(dirFD) }
+        source.resume()
+        configDirectoryMonitor = source
+    }
+
+    private func refreshConfigFileMonitor() {
+        configFileMonitor?.cancel()
+        configFileMonitor = nil
+
+        guard FileManager.default.fileExists(atPath: Config.configPath) else { return }
+
+        let fileFD = open(Config.configPath, O_EVTONLY)
+        guard fileFD >= 0 else { return }
+
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fileFD, eventMask: [.write, .rename, .delete], queue: .main
         )
         source.setEventHandler { [weak self] in
             Log.info("Config file changed on disk, refreshing")
             self?.refresh()
+            self?.refreshConfigFileMonitor()
         }
-        source.setCancelHandler { close(dirFD) }
+        source.setCancelHandler { close(fileFD) }
         source.resume()
         configFileMonitor = source
     }
@@ -129,7 +172,8 @@ class AppViewModel: ObservableObject {
                 category: AppCategory(string: categoryStr),
                 isHidden: config.hidden[bundleId] != nil,
                 isSIPProtected: AppManager.isSIPProtected(appPath),
-                isRunning: true
+                isRunning: true,
+                isHiddenFromDock: app.activationPolicy == .accessory
             )
         }
 
@@ -152,7 +196,8 @@ class AppViewModel: ObservableObject {
                 category: AppCategory(string: categoryStr),
                 isHidden: true,
                 isSIPProtected: false,
-                isRunning: false
+                isRunning: false,
+                isHiddenFromDock: true
             ))
         }
 
@@ -194,16 +239,32 @@ class AppViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Toggle managed app visibility via distributed notification
+    // MARK: - Show/Hide managed app via distributed notification
 
-    func toggleAppVisibility(_ app: AppItem) {
+    func showAppInDock(_ app: AppItem) {
         guard app.isRunning else { return }
-        let name = "\(app.id).ghosttile.toggle"
-        Log.info("Sending toggle notification: \(name)")
+        let name = "\(app.id).ghosttile.show"
+        Log.info("Sending show notification: \(name)")
         DistributedNotificationCenter.default().postNotificationName(
             NSNotification.Name(name), object: nil, userInfo: nil,
             deliverImmediately: true
         )
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.refresh()
+        }
+    }
+
+    func hideAppFromDock(_ app: AppItem) {
+        guard app.isRunning else { return }
+        let name = "\(app.id).ghosttile.hide"
+        Log.info("Sending hide notification: \(name)")
+        DistributedNotificationCenter.default().postNotificationName(
+            NSNotification.Name(name), object: nil, userInfo: nil,
+            deliverImmediately: true
+        )
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.refresh()
+        }
     }
 
     // MARK: - Remove managed app (restore + remove from config)
@@ -225,8 +286,7 @@ class AppViewModel: ObservableObject {
             } catch {
                 Log.error("Remove failed for \(app.name): \(error)")
                 DispatchQueue.main.async {
-                    self?.errorMessage = error.localizedDescription
-                    self?.showError = true
+                    self?.sudoCommand = "sudo \(self?.cliPath ?? "ghosttile") restore \(app.id)"
                 }
             }
 
@@ -239,13 +299,36 @@ class AppViewModel: ObservableObject {
     /// Hide an app by its file URL (dropped from Finder/Dock)
     func hideByURL(_ url: URL) {
         guard let bundle = Bundle(url: url),
-              let bundleId = bundle.bundleIdentifier
+              let bundleId = bundle.bundleIdentifier,
+              let execURL = bundle.executableURL
         else { return }
 
+        // Already managed
+        let config = Config.load()
+        if config.hidden[bundleId] != nil { return }
+
+        let appPath = url.path
+        if AppManager.isSIPProtected(appPath) || AppManager.isAppleFirstParty(appPath) {
+            errorMessage = "\(bundle.infoDictionary?["CFBundleName"] as? String ?? bundleId) cannot be hidden."
+            showError = true
+            return
+        }
+
         if let existing = apps.first(where: { $0.id == bundleId }) {
-            if !existing.isHidden && !existing.isSIPProtected {
-                hideRunningApp(existing)
-            }
+            hideRunningApp(existing)
+        } else {
+            // App not running — build AppItem and hide
+            let name = bundle.infoDictionary?["CFBundleName"] as? String
+                ?? FileManager.default.displayName(atPath: appPath)
+            let icon = NSWorkspace.shared.icon(forFile: appPath)
+            let item = AppItem(
+                id: bundleId, name: name, icon: icon,
+                appPath: appPath, binaryPath: execURL.path,
+                category: .other, isHidden: false,
+                isSIPProtected: false, isRunning: false,
+                isHiddenFromDock: false
+            )
+            hideRunningApp(item)
         }
     }
 
@@ -336,12 +419,14 @@ class AppViewModel: ObservableObject {
             bundleId: bundleId, name: name,
             appPath: appPath, binaryPath: binaryPath)
         if try AppManager.needsSudo(info) {
-            Log.info("Blocked: \(name) has hardened runtime and needs sudo")
-            throw GhostTileError(
-                "\(name) has hardened runtime and requires sudo to re-sign. Install the CLI in Settings, then run:\n\nsudo ghosttile hide \(bundleId)"
-            )
+            Log.info("Blocked: \(name) needs manual step via CLI")
+            DispatchQueue.main.async { [weak self] in
+                self?.sudoCommand = "sudo \(self?.cliPath ?? "ghosttile") manage \(bundleId)"
+                self?.loading.remove(bundleId)
+            }
+            return
         }
-        let dylibPath = try Dylib.ensureCompiled()
+        let dylibPath = try Dylib.ensureDylib()
         if try AppManager.needsPreparation(info) {
             try AppManager.prepare(info)
         }

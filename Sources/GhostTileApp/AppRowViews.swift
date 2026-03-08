@@ -59,6 +59,7 @@ struct RunningAppRow: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+        .contentShape(Rectangle())
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(hovering ? Color.primary.opacity(0.04) : Color.clear)
@@ -73,7 +74,8 @@ struct RunningAppRow: View {
 struct ManagedAppRow: View {
     let app: AppViewModel.AppItem
     let isLoading: Bool
-    let onToggle: () -> Void
+    let onShow: () -> Void
+    let onHide: () -> Void
     let onShowInFinder: () -> Void
     let onRemove: () -> Void
 
@@ -93,13 +95,13 @@ struct ManagedAppRow: View {
 
                 HStack(spacing: 4) {
                     Circle()
-                        .fill(app.isRunning ? .green : .secondary.opacity(0.4))
+                        .fill(app.isRunning ? (app.isHiddenFromDock ? .orange : .green) : .secondary.opacity(0.4))
                         .frame(width: 6, height: 6)
-                    if app.category != .other {
-                        Text(app.category.description)
+                    if app.isRunning {
+                        Text(app.isHiddenFromDock ? "Hidden from Dock" : "Visible in Dock")
                             .font(.system(size: 11))
                     } else {
-                        Text(app.isRunning ? "Running" : "Not Running")
+                        Text("Not Running")
                             .font(.system(size: 11))
                     }
                 }
@@ -113,19 +115,34 @@ struct ManagedAppRow: View {
                 ProgressView()
                     .controlSize(.small)
             } else if app.isRunning {
-                Button {
-                    onToggle()
-                } label: {
-                    Image(systemName: "eye.slash")
-                        .font(.system(size: 12))
+                HStack(spacing: 4) {
+                    Button {
+                        onShow()
+                    } label: {
+                        Image(systemName: "eye")
+                            .font(.system(size: 11))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .help("Show in Dock")
+                    .disabled(!app.isHiddenFromDock)
+
+                    Button {
+                        onHide()
+                    } label: {
+                        Image(systemName: "eye.slash")
+                            .font(.system(size: 11))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .help("Hide from Dock")
+                    .disabled(app.isHiddenFromDock)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .help("Toggle Dock visibility")
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+        .contentShape(Rectangle())
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(hovering ? Color.primary.opacity(0.04) : Color.clear)

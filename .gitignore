@@ -8,6 +8,7 @@ DerivedData/
 
 # App bundle output
 GhostTile.app/
+dist/
 
 # macOS
 .DS_Store

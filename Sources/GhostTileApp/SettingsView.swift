@@ -95,7 +95,7 @@ struct SettingsView: View {
                                     .font(.system(size: 11))
                                     .foregroundStyle(.green)
                             case .notInstalled:
-                                Text("Required for hiding hardened runtime apps")
+                                Text("Required for hiding some protected apps")
                                     .font(.system(size: 11))
                                     .foregroundStyle(.secondary)
                             case .failed(let msg):

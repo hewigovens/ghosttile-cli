@@ -23,16 +23,20 @@ public enum AppManager {
 
         let q = query.lowercased()
 
-        if let app = apps.first(where: { $0.bundleIdentifier!.lowercased() == q }) {
-            return info(from: app)
+        if let app = apps.first(where: {
+            guard let bundleId = $0.bundleIdentifier else { return false }
+            return bundleId.lowercased() == q
+        }) {
+            return try info(from: app)
         }
 
         let matches = apps.filter {
-            $0.bundleIdentifier!.lowercased().contains(q)
+            guard let bundleId = $0.bundleIdentifier else { return false }
+            return bundleId.lowercased().contains(q)
                 || ($0.localizedName?.lowercased().contains(q) ?? false)
         }
 
-        if matches.count == 1 { return info(from: matches[0]) }
+        if matches.count == 1 { return try info(from: matches[0]) }
 
         if matches.count > 1 {
             let list = matches.map {
@@ -47,13 +51,22 @@ public enum AppManager {
             "No running app matching '\(query)'. Run 'ghosttile list' to see running apps.")
     }
 
-    public static func info(from app: NSRunningApplication) -> AppInfo {
-        let bundle = Bundle(url: app.bundleURL!)!
+    public static func info(from app: NSRunningApplication) throws -> AppInfo {
+        guard let bundleId = app.bundleIdentifier,
+              let bundleURL = app.bundleURL,
+              let bundle = Bundle(url: bundleURL),
+              let executableURL = bundle.executableURL
+        else {
+            throw GhostTileError(
+                "Could not inspect app metadata for '\(app.localizedName ?? "Unknown app")'."
+            )
+        }
+
         return AppInfo(
-            bundleId: app.bundleIdentifier!,
-            name: app.localizedName ?? app.bundleIdentifier!,
-            appPath: app.bundleURL!.path,
-            binaryPath: bundle.executableURL!.path
+            bundleId: bundleId,
+            name: app.localizedName ?? bundleId,
+            appPath: bundleURL.path,
+            binaryPath: executableURL.path
         )
     }
 
@@ -180,7 +193,7 @@ public enum AppManager {
             } catch {
                 Log.error("Failed to re-sign bundle for \(app.name): \(error)")
                 throw GhostTileError(
-                    "\(app.name) has hardened runtime and cannot be re-signed from the GUI. Install the CLI in Settings, then run: sudo ghosttile hide \(app.bundleId)"
+                    "\(app.name) requires a manual step. Run in Terminal: sudo ghosttile hide \(app.bundleId)"
                 )
             }
         }

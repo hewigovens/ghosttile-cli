@@ -8,7 +8,7 @@ struct OnboardingView: View {
     @State private var iconScale: CGFloat = 0.6
     @State private var iconOpacity: Double = 0
 
-    private let totalSteps = 2
+    private let totalSteps = 3
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,6 +17,7 @@ struct OnboardingView: View {
                 switch step {
                 case 0: welcomeStep
                 case 1: howItWorksStep
+                case 2: permissionsStep
                 default: EmptyView()
                 }
             }
@@ -153,7 +154,7 @@ struct OnboardingView: View {
                     icon: "eye.slash.fill",
                     color: .purple,
                     title: "App hides from Dock & Cmd+Tab",
-                    subtitle: "Re-signed with lightweight injection"
+                    subtitle: "Best effort, works with many apps"
                 )
                 StepRow(
                     number: 3,
@@ -170,7 +171,67 @@ struct OnboardingView: View {
         .padding(.horizontal, 40)
     }
 
+    // MARK: - Step 3: Permissions
+
+    private var permissionsStep: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            Text("Permissions Required")
+                .font(.system(size: 20, weight: .bold))
+
+            Text("GhostTile needs App Management permission to modify app binaries. Please add both apps below:")
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 10)
+
+            VStack(alignment: .leading, spacing: 12) {
+                PermissionRow(
+                    icon: "eye.slash.circle.fill",
+                    color: .blue,
+                    title: "GhostTile",
+                    subtitle: "Prepares apps for hiding"
+                )
+                Divider()
+                PermissionRow(
+                    icon: "terminal.fill",
+                    color: .purple,
+                    title: "Terminal",
+                    subtitle: "Runs commands for protected apps"
+                )
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.primary.opacity(0.03))
+            )
+            .padding(.horizontal, 10)
+
+            VStack(spacing: 8) {
+                Text("System Settings → Privacy & Security → App Management")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+
+                Button("Open System Settings") {
+                    openAppManagementSettings()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 40)
+    }
+
     // MARK: - Helpers
+
+    private func openAppManagementSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles") {
+            NSWorkspace.shared.open(url)
+        }
+    }
 
     @ViewBuilder
     private var oldIcon: some View {
@@ -228,6 +289,30 @@ struct FeaturePill: View {
                 .fill(Color.accentColor.opacity(0.1))
         )
         .foregroundColor(.accentColor)
+    }
+}
+
+struct PermissionRow: View {
+    let icon: String
+    let color: Color
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 22))
+                .foregroundColor(color)
+                .frame(width: 30)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+                Text(subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }
 

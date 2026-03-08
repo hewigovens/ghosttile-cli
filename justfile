@@ -9,6 +9,9 @@ build:
     echo "Building {{app}}..."
     swift build -c release --product GhostTileApp
     swift build -c release --product ghosttile
+    echo "Compiling ghosthide.dylib..."
+    xcrun clang -dynamiclib -arch arm64 -arch x86_64 -framework Cocoa \
+        -o .build/ghosthide.dylib Resources/ghosthide.m
     rm -rf "{{app}}"
     mkdir -p "{{app}}/Contents/MacOS" "{{app}}/Contents/Resources"
     cp .build/release/GhostTileApp "{{app}}/Contents/MacOS/GhostTile"
@@ -18,6 +21,7 @@ build:
     cp Resources/ghost-icon.png "{{app}}/Contents/Resources/"
     cp Resources/appIcon-old.png "{{app}}/Contents/Resources/"
     cp Resources/appIcon-new.png "{{app}}/Contents/Resources/"
+    cp .build/ghosthide.dylib "{{app}}/Contents/Resources/"
     codesign --force --sign - "{{app}}"
     cp .build/release/ghosttile "{{app}}/Contents/Resources/ghosttile-cli"
     echo "Built {{app}} ($(du -sh "{{app}}" | cut -f1))"
@@ -40,5 +44,16 @@ install: build
     cp -r "{{app}}" /Applications/
     @echo "Installed to /Applications/{{app}}"
 
+version := "2.0.0"
+
+dist: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p dist
+    cd dist && rm -f GhostTile-{{version}}.zip
+    ditto -c -k --keepParent "../{{app}}" "GhostTile-{{version}}.zip"
+    echo "Created dist/GhostTile-{{version}}.zip ($(du -sh "GhostTile-{{version}}.zip" | cut -f1))"
+    shasum -a 256 "GhostTile-{{version}}.zip"
+
 clean:
-    rm -rf .build "{{app}}"
+    rm -rf .build "{{app}}" dist

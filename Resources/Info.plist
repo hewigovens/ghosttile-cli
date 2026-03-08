@@ -24,5 +24,7 @@
     <string>13.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>GhostTile needs permission to open Terminal for running commands with elevated privileges.</string>
 </dict>
 </plist>

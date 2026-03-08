@@ -21,14 +21,17 @@ struct MainWindowView: View {
         }
         .frame(minWidth: 640, maxWidth: 800, minHeight: 400, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
-        .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
-            handleFileDrop(providers)
-        }
         .onAppear { vm.refresh() }
         .alert("Error", isPresented: $vm.showError) {
             Button("OK") {}
         } message: {
             Text(vm.errorMessage)
+        }
+        .sheet(isPresented: Binding(
+            get: { vm.sudoCommand != nil },
+            set: { if !$0 { vm.sudoCommand = nil } }
+        )) {
+            SudoCommandSheet(command: vm.sudoCommand ?? "")
         }
     }
 
@@ -47,10 +50,13 @@ struct MainWindowView: View {
                 Spacer()
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 2) {
-                        ForEach(vm.visibleApps) { app in
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(vm.visibleApps.enumerated()), id: \.element.id) { index, app in
                             RunningAppRow(app: app, isLoading: vm.loading.contains(app.id)) {
                                 vm.hideRunningApp(app)
+                            }
+                            if index < vm.visibleApps.count - 1 {
+                                Divider().padding(.leading, 78)
                             }
                         }
                     }
@@ -78,17 +84,21 @@ struct MainWindowView: View {
                 Spacer()
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 2) {
-                        ForEach(vm.hiddenApps) { app in
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(vm.hiddenApps.enumerated()), id: \.element.id) { index, app in
                             ManagedAppRow(
                                 app: app,
                                 isLoading: vm.loading.contains(app.id),
-                                onToggle: { vm.toggleAppVisibility(app) },
+                                onShow: { vm.showAppInDock(app) },
+                                onHide: { vm.hideAppFromDock(app) },
                                 onShowInFinder: {
                                     NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: app.appPath)
                                 },
                                 onRemove: { vm.removeApp(app) }
                             )
+                            if index < vm.hiddenApps.count - 1 {
+                                Divider().padding(.leading, 78)
+                            }
                         }
                     }
                     .padding(8)
@@ -96,6 +106,9 @@ struct MainWindowView: View {
             }
         }
         .frame(minWidth: 280)
+        .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
+            handleFileDrop(providers)
+        }
     }
 
     private func columnHeader<T: View>(icon: String, title: String, @ViewBuilder trailing: () -> T) -> some View {
