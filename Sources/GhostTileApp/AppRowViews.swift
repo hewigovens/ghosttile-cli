@@ -12,10 +12,7 @@ struct RunningAppRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(nsImage: app.icon)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 56, height: 56)
+            iconTile
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(app.name)
@@ -62,10 +59,26 @@ struct RunningAppRow: View {
         .contentShape(Rectangle())
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(hovering ? Color.primary.opacity(0.04) : Color.clear)
+                .fill(hovering ? Color.primary.opacity(0.07) : Color.primary.opacity(0.025))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(Color.primary.opacity(hovering ? 0.08 : 0.04), lineWidth: 1)
         )
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.15), value: hovering)
+    }
+
+    private var iconTile: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.primary.opacity(0.04))
+            Image(nsImage: app.icon)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 44, height: 44)
+        }
+        .frame(width: 56, height: 56)
     }
 }
 
@@ -83,10 +96,7 @@ struct ManagedAppRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(nsImage: app.icon)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 56, height: 56)
+            iconTile
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(app.name)
@@ -145,7 +155,11 @@ struct ManagedAppRow: View {
         .contentShape(Rectangle())
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(hovering ? Color.primary.opacity(0.04) : Color.clear)
+                .fill(hovering ? Color.primary.opacity(0.07) : Color.primary.opacity(0.025))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(Color.primary.opacity(hovering ? 0.08 : 0.04), lineWidth: 1)
         )
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.15), value: hovering)
@@ -154,5 +168,17 @@ struct ManagedAppRow: View {
             Divider()
             Button("Remove") { onRemove() }
         }
+    }
+
+    private var iconTile: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.primary.opacity(0.04))
+            Image(nsImage: app.icon)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 44, height: 44)
+        }
+        .frame(width: 56, height: 56)
     }
 }

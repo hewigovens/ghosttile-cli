@@ -88,8 +88,12 @@ extension GhostTile {
             print("Restoring \(hiddenApp.name)...")
             try AppManager.restoreBinary(bundleId, binaryPath: hiddenApp.binaryPath, appPath: hiddenApp.appPath)
             try Config.removeHidden(bundleId)
-            try AppManager.launchNormal(hiddenApp.appPath)
-            print("\(hiddenApp.name) restored and visible in Dock.")
+            if !running.isEmpty {
+                try AppManager.launchNormal(hiddenApp.appPath)
+                print("\(hiddenApp.name) restored and visible in Dock.")
+            } else {
+                print("\(hiddenApp.name) restored.")
+            }
         }
     }
 
@@ -146,10 +150,10 @@ extension GhostTile {
             let config = Config.load()
             let apps =
                 NSWorkspace.shared.runningApplications
-                .filter {
-                    $0.bundleIdentifier != nil
-                        && ($0.activationPolicy == .regular
-                            || config.hidden[$0.bundleIdentifier!] != nil)
+                .filter { app in
+                    guard let bundleId = app.bundleIdentifier else { return false }
+                    return app.activationPolicy == .regular
+                        || config.hidden[bundleId] != nil
                 }
                 .sorted { ($0.localizedName ?? "") < ($1.localizedName ?? "") }
 
@@ -161,10 +165,10 @@ extension GhostTile {
             let maxName = max(apps.map { ($0.localizedName ?? "").count }.max() ?? 0, 12)
 
             for app in apps {
+                guard let id = app.bundleIdentifier else { continue }
                 let name =
                     (app.localizedName ?? "Unknown")
                     .padding(toLength: maxName + 2, withPad: " ", startingAt: 0)
-                let id = app.bundleIdentifier!
                 let tag = config.hidden[id] != nil ? "  [managed]" : ""
                 print("  \(name)\(id)\(tag)")
             }
@@ -186,12 +190,14 @@ extension GhostTile {
                 let running = NSRunningApplication.runningApplications(
                     withBundleIdentifier: bundleId)
                 let status: String
-                if running.isEmpty {
-                    status = "not running"
-                } else if running.first!.activationPolicy == .accessory {
-                    status = "pid \(running.first!.processIdentifier), hidden"
+                if let process = running.first {
+                    if process.activationPolicy == .accessory {
+                        status = "pid \(process.processIdentifier), hidden"
+                    } else {
+                        status = "pid \(process.processIdentifier), visible"
+                    }
                 } else {
-                    status = "pid \(running.first!.processIdentifier), visible"
+                    status = "not running"
                 }
                 let name = app.name.padding(toLength: 20, withPad: " ", startingAt: 0)
                 print("  \(name) \(bundleId)  [\(status)]")

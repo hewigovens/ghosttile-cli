@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "GhostTile",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS("15.0")],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
         .package(url: "https://github.com/hewigovens/LSAppCategory", branch: "main"),

@@ -2,15 +2,17 @@ default:
     @just --list
 
 app := "GhostTile.app"
+deployment_target := "15.0"
 
 build:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Building {{app}}..."
-    swift build -c release --product GhostTileApp
-    swift build -c release --product ghosttile
+    MACOSX_DEPLOYMENT_TARGET={{deployment_target}} swift build -c release --product GhostTileApp
+    MACOSX_DEPLOYMENT_TARGET={{deployment_target}} swift build -c release --product ghosttile
     echo "Compiling ghosthide.dylib..."
     xcrun clang -dynamiclib -arch arm64 -arch x86_64 -framework Cocoa \
+        -mmacosx-version-min={{deployment_target}} \
         -o .build/ghosthide.dylib Resources/ghosthide.m
     rm -rf "{{app}}"
     mkdir -p "{{app}}/Contents/MacOS" "{{app}}/Contents/Resources"
@@ -27,7 +29,7 @@ build:
     echo "Built {{app}} ($(du -sh "{{app}}" | cut -f1))"
 
 build-cli:
-    swift build -c release --product ghosttile
+    MACOSX_DEPLOYMENT_TARGET={{deployment_target}} swift build -c release --product ghosttile
 
 run: kill build
     open "{{app}}"

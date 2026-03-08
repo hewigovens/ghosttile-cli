@@ -4,6 +4,9 @@ import LSAppCategory
 import os.log
 
 class AppViewModel: ObservableObject {
+    private static let postOperationRefreshDelay: TimeInterval = 1.5
+    private static let startupNotificationProbeDelay: TimeInterval = 0.75
+
     struct AppItem: Identifiable {
         let id: String
         let name: String
@@ -233,9 +236,7 @@ class AppViewModel: ObservableObject {
                 }
             }
 
-            DispatchQueue.main.async { self?.loading.remove(app.id) }
-            Thread.sleep(forTimeInterval: 1.5)
-            DispatchQueue.main.async { self?.refresh() }
+            self?.completeOperation(for: app.id)
         }
     }
 
@@ -243,28 +244,12 @@ class AppViewModel: ObservableObject {
 
     func showAppInDock(_ app: AppItem) {
         guard app.isRunning else { return }
-        let name = "\(app.id).ghosttile.show"
-        Log.info("Sending show notification: \(name)")
-        DistributedNotificationCenter.default().postNotificationName(
-            NSNotification.Name(name), object: nil, userInfo: nil,
-            deliverImmediately: true
-        )
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.refresh()
-        }
+        sendDockVisibilityNotification(bundleId: app.id, hidden: false)
     }
 
     func hideAppFromDock(_ app: AppItem) {
         guard app.isRunning else { return }
-        let name = "\(app.id).ghosttile.hide"
-        Log.info("Sending hide notification: \(name)")
-        DistributedNotificationCenter.default().postNotificationName(
-            NSNotification.Name(name), object: nil, userInfo: nil,
-            deliverImmediately: true
-        )
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.refresh()
-        }
+        sendDockVisibilityNotification(bundleId: app.id, hidden: true)
     }
 
     // MARK: - Remove managed app (restore + remove from config)
@@ -274,15 +259,18 @@ class AppViewModel: ObservableObject {
         Log.info("Removing \(app.name) (\(app.id)) from managed apps")
 
         loading.insert(app.id)
+        let wasRunning = app.isRunning
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
-                if app.isRunning {
+                if wasRunning {
                     try AppManager.quit(app.id)
                 }
                 try AppManager.restoreBinary(app.id, binaryPath: app.binaryPath, appPath: app.appPath)
                 try Config.removeHidden(app.id)
-                try AppManager.launchNormal(app.appPath)
+                if wasRunning {
+                    try AppManager.launchNormal(app.appPath)
+                }
             } catch {
                 Log.error("Remove failed for \(app.name): \(error)")
                 DispatchQueue.main.async {
@@ -290,9 +278,10 @@ class AppViewModel: ObservableObject {
                 }
             }
 
-            DispatchQueue.main.async { self?.loading.remove(app.id) }
-            Thread.sleep(forTimeInterval: 1.5)
-            DispatchQueue.main.async { self?.refresh() }
+            self?.completeOperation(
+                for: app.id,
+                refreshDelay: wasRunning ? Self.postOperationRefreshDelay : 0
+            )
         }
     }
 
@@ -362,9 +351,7 @@ class AppViewModel: ObservableObject {
                 }
             }
 
-            DispatchQueue.main.async { self?.loading.remove(bundleId) }
-            Thread.sleep(forTimeInterval: 1.5)
-            DispatchQueue.main.async { self?.refresh() }
+            self?.completeOperation(for: bundleId)
         }
     }
 
@@ -373,34 +360,11 @@ class AppViewModel: ObservableObject {
         guard !config.hidden.isEmpty else { return }
         Log.info("Reapplying hidden state for \(config.hidden.count) app(s)")
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            for (bundleId, hiddenApp) in config.hidden {
-                let running = NSRunningApplication.runningApplications(
-                    withBundleIdentifier: bundleId)
-                guard let proc = running.first,
-                      proc.activationPolicy == .regular
-                else { continue }
-
-                DispatchQueue.main.async { self?.loading.insert(bundleId) }
-
-                do {
-                    try self?.hideApp(
-                        bundleId: bundleId, name: hiddenApp.name,
-                        appPath: hiddenApp.appPath, binaryPath: hiddenApp.binaryPath
-                    )
-                } catch {
-                    DispatchQueue.main.async {
-                        self?.errorMessage = error.localizedDescription
-                        self?.showError = true
-                    }
-                }
-
-                DispatchQueue.main.async { self?.loading.remove(bundleId) }
-            }
-
-            Thread.sleep(forTimeInterval: 1.5)
-            DispatchQueue.main.async { self?.refresh() }
+        for (bundleId, hiddenApp) in config.hidden {
+            reapplyHiddenAtStartup(bundleId: bundleId, hiddenApp: hiddenApp)
         }
+
+        scheduleRefresh(after: 0.5)
     }
 
     // MARK: - Core hide logic
@@ -437,6 +401,88 @@ class AppViewModel: ObservableObject {
             app: HiddenApp(
                 name: name, appPath: appPath,
                 binaryPath: binaryPath, prepared: true))
+    }
+
+    private func completeOperation(for bundleId: String, refreshDelay: TimeInterval = postOperationRefreshDelay) {
+        DispatchQueue.main.async { [weak self] in
+            self?.loading.remove(bundleId)
+        }
+        scheduleRefresh(after: refreshDelay)
+    }
+
+    private func reapplyHiddenAtStartup(bundleId: String, hiddenApp: HiddenApp) {
+        let running = NSRunningApplication.runningApplications(
+            withBundleIdentifier: bundleId)
+        guard let process = running.first else { return }
+
+        if process.activationPolicy == .accessory {
+            Log.info("\(hiddenApp.name) is already hidden on startup")
+            return
+        }
+
+        Log.info("Probing \(hiddenApp.name) with hide notification on startup")
+        sendDockVisibilityNotification(bundleId: bundleId, hidden: true, refreshDelay: 0)
+
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(
+            deadline: .now() + Self.startupNotificationProbeDelay
+        ) { [weak self] in
+            guard let self else { return }
+
+            let updated = NSRunningApplication.runningApplications(
+                withBundleIdentifier: bundleId)
+            guard let current = updated.first else {
+                self.scheduleRefresh(after: 0)
+                return
+            }
+
+            if current.activationPolicy == .accessory {
+                Log.info("\(hiddenApp.name) responded to startup hide notification")
+                self.scheduleRefresh(after: 0)
+                return
+            }
+
+            Log.info("\(hiddenApp.name) still visible on startup, reapplying injection")
+            DispatchQueue.main.async {
+                self.loading.insert(bundleId)
+            }
+
+            do {
+                try self.hideApp(
+                    bundleId: bundleId,
+                    name: hiddenApp.name,
+                    appPath: hiddenApp.appPath,
+                    binaryPath: hiddenApp.binaryPath
+                )
+            } catch {
+                DispatchQueue.main.async {
+                    self.errorMessage = error.localizedDescription
+                    self.showError = true
+                }
+            }
+
+            self.completeOperation(for: bundleId)
+        }
+    }
+
+    private func sendDockVisibilityNotification(
+        bundleId: String,
+        hidden: Bool,
+        refreshDelay: TimeInterval = 0.5
+    ) {
+        let action = hidden ? "hide" : "show"
+        let name = "\(bundleId).ghosttile.\(action)"
+        Log.info("Sending \(action) notification: \(name)")
+        DistributedNotificationCenter.default().postNotificationName(
+            NSNotification.Name(name), object: nil, userInfo: nil,
+            deliverImmediately: true
+        )
+        scheduleRefresh(after: refreshDelay)
+    }
+
+    private func scheduleRefresh(after delay: TimeInterval = 0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            self?.refresh()
+        }
     }
 
     func toggleSelfDock(openWindow: (() -> Void)? = nil) {

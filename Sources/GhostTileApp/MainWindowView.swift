@@ -5,22 +5,30 @@ import SwiftUI
 struct MainWindowView: View {
     @ObservedObject var vm: AppViewModel
     @State private var dropTargeted = false
+    private let runningColumnWidth: CGFloat = 280
+    private let managedColumnWidth: CGFloat = 320
+    private var windowWidth: CGFloat { runningColumnWidth + managedColumnWidth + 36 }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            HStack(spacing: 0) {
+            windowBackground
+
+            HStack(spacing: 12) {
                 runningColumn
-                Divider()
                 managedColumn
             }
+            .padding(12)
 
             oldAppIcon
                 .frame(width: 32, height: 32)
-                .opacity(0.15)
-                .padding(12)
+                .opacity(0.1)
+                .padding(18)
         }
-        .frame(minWidth: 640, maxWidth: 800, minHeight: 400, maxHeight: .infinity)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(width: windowWidth)
+        .frame(minHeight: 420, maxHeight: .infinity)
+        .background(
+            WindowWidthLock(width: windowWidth, minHeight: 420)
+        )
         .onAppear { vm.refresh() }
         .alert("Error", isPresented: $vm.showError) {
             Button("OK") {}
@@ -39,7 +47,9 @@ struct MainWindowView: View {
 
     private var runningColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
-            columnHeader(icon: "app.badge.fill", title: "Running") { EmptyView() }
+            columnHeader(icon: "app.badge.fill", title: "Running", count: vm.visibleApps.count) {
+                EmptyView()
+            }
             Divider()
             if vm.visibleApps.isEmpty {
                 Spacer()
@@ -60,16 +70,17 @@ struct MainWindowView: View {
                             }
                         }
                     }
-                    .padding(8)
+                    .padding(10)
                 }
             }
         }
-        .frame(minWidth: 280)
+        .frame(width: runningColumnWidth)
+        .background(columnBackground())
     }
 
     private var managedColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
-            columnHeader(icon: "eye.slash.fill", title: "Managed") {
+            columnHeader(icon: "eye.slash.fill", title: "Managed", count: vm.hiddenApps.count) {
                 Button { selectAppToHide() } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 12, weight: .medium))
@@ -101,21 +112,39 @@ struct MainWindowView: View {
                             }
                         }
                     }
-                    .padding(8)
+                    .padding(10)
                 }
             }
         }
-        .frame(minWidth: 280)
+        .frame(width: managedColumnWidth)
+        .background(columnBackground(isDropTargeted: dropTargeted))
         .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
             handleFileDrop(providers)
         }
     }
 
-    private func columnHeader<T: View>(icon: String, title: String, @ViewBuilder trailing: () -> T) -> some View {
+    private func columnHeader<T: View>(
+        icon: String,
+        title: String,
+        count: Int,
+        @ViewBuilder trailing: () -> T
+    ) -> some View {
         HStack {
-            Label(title, systemImage: icon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.primary)
+            HStack(spacing: 8) {
+                Label(title, systemImage: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.primary)
+
+                Text("\(count)")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule()
+                            .fill(Color.primary.opacity(0.07))
+                    )
+            }
             Spacer()
             trailing()
         }
@@ -140,6 +169,46 @@ struct MainWindowView: View {
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var windowBackground: some View {
+        ZStack {
+            Color(nsColor: .windowBackgroundColor)
+
+            LinearGradient(
+                colors: [
+                    Color.blue.opacity(0.1),
+                    Color.blue.opacity(0.03),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            Circle()
+                .fill(Color.blue.opacity(0.1))
+                .frame(width: 320, height: 320)
+                .blur(radius: 90)
+                .offset(x: -140, y: -190)
+
+            Circle()
+                .fill(Color.blue.opacity(0.05))
+                .frame(width: 260, height: 260)
+                .blur(radius: 70)
+                .offset(x: 180, y: 220)
+        }
+    }
+
+    private func columnBackground(isDropTargeted: Bool = false) -> some View {
+        RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .fill(Color(nsColor: .controlBackgroundColor))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(
+                        isDropTargeted ? Color.accentColor.opacity(0.24) : Color.primary.opacity(0.07),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(color: .black.opacity(0.04), radius: 14, y: 6)
     }
 
     // MARK: - Helpers
@@ -197,5 +266,54 @@ struct MainWindowView: View {
             }
         }
         return true
+    }
+}
+
+private struct WindowWidthLock: NSViewRepresentable {
+    let width: CGFloat
+    let minHeight: CGFloat
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(width: width, minHeight: minHeight)
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        NSView()
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            guard let window = nsView.window else { return }
+            context.coordinator.width = width
+            context.coordinator.minHeight = minHeight
+            if window.delegate !== context.coordinator {
+                window.delegate = context.coordinator
+            }
+
+            let currentHeight = max(window.frame.height, minHeight)
+            if abs(window.frame.width - width) > 0.5 {
+                var frame = window.frame
+                frame.size.width = width
+                frame.size.height = currentHeight
+                window.setFrame(frame, display: true)
+            }
+
+            window.minSize = NSSize(width: width, height: minHeight)
+            window.maxSize = NSSize(width: width, height: .greatestFiniteMagnitude)
+        }
+    }
+
+    final class Coordinator: NSObject, NSWindowDelegate {
+        var width: CGFloat
+        var minHeight: CGFloat
+
+        init(width: CGFloat, minHeight: CGFloat) {
+            self.width = width
+            self.minHeight = minHeight
+        }
+
+        func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+            NSSize(width: width, height: max(frameSize.height, minHeight))
+        }
     }
 }

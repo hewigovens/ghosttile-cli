@@ -1,3 +1,4 @@
+import AppKit
 import GhostTileCore
 import ServiceManagement
 import SwiftUI
@@ -23,175 +24,269 @@ struct SettingsView: View {
     }
 
     private let cliInstallPath = "/usr/local/bin/ghosttile"
+    private var displayLogPath: String {
+        (Log.logPath as NSString).abbreviatingWithTildeInPath
+    }
+    private var cliStatusText: String {
+        switch cliStatus {
+        case .checking:
+            return "Checking"
+        case .installed:
+            return "Installed"
+        case .notInstalled:
+            return "Optional"
+        case .failed:
+            return "Needs Attention"
+        }
+    }
+    private var cliStatusColor: Color {
+        switch cliStatus {
+        case .checking:
+            return .secondary
+        case .installed:
+            return .green
+        case .notInstalled:
+            return .orange
+        case .failed:
+            return .red
+        }
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // General
-            VStack(alignment: .leading, spacing: 12) {
-                Text("General")
-                    .font(.system(size: 13, weight: .semibold))
+        ZStack {
+            settingsBackground
 
-                VStack(alignment: .leading, spacing: 16) {
-                    settingsRow(
-                        title: "Show GhostTile in Dock",
-                        subtitle: "Display GhostTile icon in the Dock",
-                        toggle: Binding(
-                            get: { showInDock },
-                            set: { newValue in
-                                showInDock = newValue
-                                if newValue {
-                                    NSApp.setActivationPolicy(.regular)
-                                    NSApp.activate(ignoringOtherApps: true)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    sectionCard(
+                        title: "General",
+                        symbol: "slider.horizontal.3"
+                    ) {
+                        VStack(spacing: 0) {
+                            settingsRow(
+                                title: "Show GhostTile in Dock",
+                                symbol: "dock.rectangle",
+                                toggle: Binding(
+                                    get: { showInDock },
+                                    set: { newValue in
+                                        showInDock = newValue
+                                        if newValue {
+                                            NSApp.setActivationPolicy(.regular)
+                                            NSApp.activate(ignoringOtherApps: true)
+                                        } else {
+                                            NSApp.setActivationPolicy(.accessory)
+                                        }
+                                    }
+                                )
+                            )
+
+                            Divider().padding(.leading, 42)
+
+                            settingsRow(
+                                title: "Auto-hide apps on launch",
+                                symbol: "arrow.triangle.2.circlepath",
+                                toggle: $autoHideOnLaunch
+                            )
+
+                            Divider().padding(.leading, 42)
+
+                            settingsRow(
+                                title: "Launch at login",
+                                symbol: "power.circle",
+                                toggle: Binding(
+                                    get: { launchAtLogin },
+                                    set: { setLaunchAtLogin($0) }
+                                )
+                            )
+                        }
+                    }
+
+                    sectionCard(
+                        title: "Command Line",
+                        symbol: "terminal"
+                    ) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(alignment: .top, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(spacing: 8) {
+                                        Text("GhostTile CLI")
+                                            .font(.system(size: 13, weight: .semibold))
+                                        statusPill(text: cliStatusText, color: cliStatusColor)
+                                    }
+
+                                    switch cliStatus {
+                                    case .checking:
+                                        Text("Checking current installation status.")
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(.secondary)
+                                    case .installed:
+                                        Text("Installed at \(cliInstallPath)")
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(.secondary)
+                                    case .notInstalled:
+                                        Text("Optional, but needed for some hardened or protected apps.")
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(.secondary)
+                                    case .failed(let msg):
+                                        Text(msg)
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(.red)
+                                            .textSelection(.enabled)
+                                    }
+                                }
+
+                                Spacer()
+
+                                if case .installed = cliStatus {
+                                    Button("Uninstall") { uninstallCLI() }
+                                        .controlSize(.small)
+                                } else if case .checking = cliStatus {
+                                    ProgressView().controlSize(.small)
                                 } else {
-                                    NSApp.setActivationPolicy(.accessory)
+                                    Button("Install") { installCLI() }
+                                        .buttonStyle(.borderedProminent)
+                                        .controlSize(.small)
                                 }
                             }
-                        )
-                    )
 
-                    Divider()
-
-                    settingsRow(
-                        title: "Auto-hide apps on launch",
-                        subtitle: "Re-hide apps that relaunch after update or crash",
-                        toggle: $autoHideOnLaunch
-                    )
-
-                    Divider()
-
-                    settingsRow(
-                        title: "Launch at login",
-                        subtitle: "Start GhostTile automatically when you log in",
-                        toggle: Binding(
-                            get: { launchAtLogin },
-                            set: { setLaunchAtLogin($0) }
-                        )
-                    )
-                }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(.primary.opacity(0.03))
-                )
-            }
-
-            // CLI
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Command Line")
-                    .font(.system(size: 13, weight: .semibold))
-
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Install CLI tool")
-                                .font(.system(size: 13))
-                            switch cliStatus {
-                            case .checking:
-                                Text("Checking…")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                            case .installed:
-                                Text("Installed at \(cliInstallPath)")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.green)
-                            case .notInstalled:
-                                Text("Required for hiding some protected apps")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                            case .failed(let msg):
-                                Text(msg)
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.red)
-                                    .textSelection(.enabled)
+                            if case .failed = cliStatus {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Manual install")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(.secondary)
+                                    Text("sudo cp \"\(bundledCLIPath ?? "...")\" \(cliInstallPath)")
+                                        .font(.system(size: 11, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                        .textSelection(.enabled)
+                                }
+                                .padding(10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(Color.primary.opacity(0.04))
+                                )
                             }
                         }
-                        Spacer()
-                        if case .installed = cliStatus {
-                            Button("Uninstall") { uninstallCLI() }
-                                .controlSize(.small)
-                        } else if case .checking = cliStatus {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Button("Install") { installCLI() }
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.small)
-                        }
                     }
 
-                    if case .failed = cliStatus {
-                        Divider()
-                        HStack(spacing: 4) {
-                            Text("Run manually:")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                            Text("sudo cp \"\(bundledCLIPath ?? "...")\" \(cliInstallPath)")
-                                .font(.system(size: 11, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .textSelection(.enabled)
+                    sectionCard(
+                        title: "About",
+                        symbol: "info.circle"
+                    ) {
+                        VStack(spacing: 0) {
+                            infoRow(
+                                title: "Version",
+                                value: {
+                                    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.0.0"
+                                    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+                                    return "\(version) (\(build))"
+                                }(),
+                                symbol: "shippingbox"
+                            )
+
+                            Divider().padding(.leading, 42)
+
+                            infoRow(
+                                title: "Log",
+                                value: displayLogPath,
+                                symbol: "doc.text.magnifyingglass"
+                            )
+                            .contentShape(Rectangle())
+                            .onTapGesture(count: 2, perform: openLogInConsole)
+                            .help("Double-click to open the current log in Console")
                         }
                     }
                 }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(.primary.opacity(0.03))
-                )
+                .padding(24)
             }
-
-            // About
-            VStack(alignment: .leading, spacing: 12) {
-                Text("About")
-                    .font(.system(size: 13, weight: .semibold))
-
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Version")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text({
-                            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.0.0"
-                            let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
-                            return "\(version) (\(build))"
-                        }())
-                            .font(.system(size: 12, design: .monospaced))
-                    }
-                    Divider()
-                    HStack {
-                        Text("Config")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("~/.config/ghosttile/")
-                            .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(.primary.opacity(0.03))
-                )
-            }
-
-            Spacer()
         }
-        .padding(24)
-        .frame(width: 400, height: 520)
+        .frame(width: 430, height: 560)
         .onAppear {
             syncLaunchAtLoginState()
             checkCLIInstalled()
         }
     }
 
-    private func settingsRow(title: String, subtitle: String, toggle: Binding<Bool>) -> some View {
-        HStack {
+    private var settingsBackground: some View {
+        ZStack {
+            Color(nsColor: .windowBackgroundColor)
+
+            LinearGradient(
+                colors: [
+                    Color.blue.opacity(0.06),
+                    Color.clear,
+                    Color.green.opacity(0.05),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            Circle()
+                .fill(Color.blue.opacity(0.05))
+                .frame(width: 240, height: 240)
+                .blur(radius: 55)
+                .offset(x: -170, y: -180)
+
+            Circle()
+                .fill(Color.orange.opacity(0.05))
+                .frame(width: 220, height: 220)
+                .blur(radius: 55)
+                .offset(x: 170, y: 180)
+        }
+    }
+
+    private func sectionCard<Content: View>(
+        title: String,
+        symbol: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: symbol)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.primary.opacity(0.06))
+                    )
+
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+            }
+
+            content()
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.04), radius: 12, y: 5)
+    }
+
+    private func settingsRow(
+        title: String,
+        symbol: String,
+        toggle: Binding<Bool>
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.primary.opacity(0.05))
+                )
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 13))
-                Text(subtitle)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 13, weight: .medium))
             }
             Spacer()
             Toggle("", isOn: toggle)
@@ -199,6 +294,48 @@ struct SettingsView: View {
                 .controlSize(.small)
                 .labelsHidden()
         }
+    }
+
+    private func infoRow(
+        title: String,
+        value: String,
+        symbol: String
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.primary.opacity(0.05))
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+            }
+
+            Spacer()
+
+            Text(value)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+    }
+
+    private func statusPill(text: String, color: Color) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(color.opacity(0.12))
+            )
     }
 
     private func checkCLIInstalled() {
@@ -269,6 +406,22 @@ struct SettingsView: View {
     private func syncLaunchAtLoginState() {
         if #available(macOS 13.0, *) {
             launchAtLogin = SMAppService.mainApp.status == .enabled
+        }
+    }
+
+    private func openLogInConsole() {
+        if !FileManager.default.fileExists(atPath: Log.logPath) {
+            FileManager.default.createFile(atPath: Log.logPath, contents: Data())
+        }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-a", "Console", Log.logPath]
+
+        do {
+            try process.run()
+        } catch {
+            Log.error("Failed to open log in Console: \(error)")
         }
     }
 }

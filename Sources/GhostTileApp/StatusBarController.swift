@@ -57,9 +57,12 @@ class StatusBarController: NSObject, NSMenuDelegate {
             for app in managed {
                 let item = makeItem(app.name, action: #selector(activateApp(_:)))
                 item.representedObject = app.id
-                let img = app.icon.copy() as! NSImage
-                img.size = NSSize(width: 16, height: 16)
-                item.image = img
+                if let img = app.icon.copy() as? NSImage {
+                    img.size = NSSize(width: 16, height: 16)
+                    item.image = img
+                } else {
+                    item.image = app.icon
+                }
                 menu.addItem(item)
             }
         }
