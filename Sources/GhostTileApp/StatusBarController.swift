@@ -39,6 +39,8 @@ class StatusBarController: NSObject, NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
         menu.removeAllItems()
 
+        menu.addItem(makeItem("Show Main Window", action: #selector(showMainWindow)))
+
         let dockTitle = vm.dockVisible ? "Hide from Dock" : "Show in Dock"
         menu.addItem(makeItem(dockTitle, action: #selector(toggleDock)))
 
@@ -91,6 +93,20 @@ class StatusBarController: NSObject, NSMenuDelegate {
     @objc private func toggleDock() {
         vm.toggleSelfDock {
             for window in NSApp.windows where window.identifier?.rawValue.contains("main") == true {
+                window.makeKeyAndOrderFront(nil)
+                return
+            }
+        }
+    }
+
+    @objc private func showMainWindow() {
+        vm.refresh()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak vm] in
+            vm?.refresh()
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        for window in NSApp.windows {
+            if window.identifier?.rawValue.contains("main") == true || window.title == "GhostTile" {
                 window.makeKeyAndOrderFront(nil)
                 return
             }
