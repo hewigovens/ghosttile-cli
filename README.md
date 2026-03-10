@@ -8,34 +8,6 @@ It ships as both:
 
 GhostTile works by preparing compatible apps for `DYLD_INSERT_LIBRARIES`, launching them with a small injected helper library, and then controlling Dock visibility through distributed notifications.
 
-## Workflow
-
-```mermaid
-flowchart LR
-    A["Select app in GUI or CLI"] --> B["Resolve bundle and executable"]
-    B --> C{"Needs preparation?"}
-    C -- "Yes" --> D["Backup binary"]
-    D --> E["Re-sign with DYLD entitlements"]
-    C -- "No" --> F["Quit running instance"]
-    E --> F
-    F --> G["Launch with ghosthide.dylib"]
-    G --> H["Persist managed app config"]
-    H --> I["Send show/hide notifications"]
-    H --> J["Restore original binary on removal"]
-
-    classDef entry fill:#dbeafe,stroke:#2563eb,color:#1e3a8a,stroke-width:1px;
-    classDef decision fill:#fef3c7,stroke:#d97706,color:#92400e,stroke-width:1px;
-    classDef action fill:#e0f2fe,stroke:#0891b2,color:#164e63,stroke-width:1px;
-    classDef state fill:#dcfce7,stroke:#16a34a,color:#166534,stroke-width:1px;
-    classDef exit fill:#f3e8ff,stroke:#9333ea,color:#6b21a8,stroke-width:1px;
-
-    class A entry;
-    class C decision;
-    class B,D,E,F,G action;
-    class H,I state;
-    class J exit;
-```
-
 ## Architecture
 
 ```mermaid
@@ -102,6 +74,34 @@ flowchart TD
     class CORELIB,AM,CFG,LOG,HELPER,DYLIB,NOTIFIER core;
     class GHOSTHIDE runtime;
     class TARGET,FILES,NOTIFY,APPLESCRIPT os;
+```
+
+## Workflow
+
+```mermaid
+flowchart LR
+    A["Select app in GUI or CLI"] --> B["Resolve bundle and executable"]
+    B --> C{"Needs preparation?"}
+    C -- "Yes" --> D["Backup binary"]
+    D --> E["Re-sign with DYLD entitlements"]
+    C -- "No" --> F["Quit running instance"]
+    E --> F
+    F --> G["Launch with ghosthide.dylib"]
+    G --> H["Persist managed app config"]
+    H --> I["Send show/hide notifications"]
+    H --> J["Restore original binary on removal"]
+
+    classDef entry fill:#dbeafe,stroke:#2563eb,color:#1e3a8a,stroke-width:1px;
+    classDef decision fill:#fef3c7,stroke:#d97706,color:#92400e,stroke-width:1px;
+    classDef action fill:#e0f2fe,stroke:#0891b2,color:#164e63,stroke-width:1px;
+    classDef state fill:#dcfce7,stroke:#16a34a,color:#166534,stroke-width:1px;
+    classDef exit fill:#f3e8ff,stroke:#9333ea,color:#6b21a8,stroke-width:1px;
+
+    class A entry;
+    class C decision;
+    class B,D,E,F,G action;
+    class H,I state;
+    class J exit;
 ```
 
 ## Requirements
