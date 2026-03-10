@@ -112,10 +112,7 @@ extension GhostTile {
                 return
             }
 
-            let name = "\(bundleId).ghosttile.hide"
-            DistributedNotificationCenter.default().postNotificationName(
-                NSNotification.Name(name), object: nil, userInfo: nil,
-                deliverImmediately: true)
+            ManagedAppNotifications.post(bundleId: bundleId, action: .hide)
             print("\(hiddenApp.name) hidden from Dock.")
         }
     }
@@ -135,10 +132,7 @@ extension GhostTile {
                 return
             }
 
-            let name = "\(bundleId).ghosttile.show"
-            DistributedNotificationCenter.default().postNotificationName(
-                NSNotification.Name(name), object: nil, userInfo: nil,
-                deliverImmediately: true)
+            ManagedAppNotifications.post(bundleId: bundleId, action: .show)
             print("\(hiddenApp.name) shown in Dock.")
         }
     }

@@ -469,12 +469,9 @@ class AppViewModel: ObservableObject {
         hidden: Bool,
         refreshDelay: TimeInterval = 0.5
     ) {
-        let action = hidden ? "hide" : "show"
-        let name = "\(bundleId).ghosttile.\(action)"
-        Log.info("Sending \(action) notification: \(name)")
-        DistributedNotificationCenter.default().postNotificationName(
-            NSNotification.Name(name), object: nil, userInfo: nil,
-            deliverImmediately: true
+        ManagedAppNotifications.post(
+            bundleId: bundleId,
+            action: hidden ? .hide : .show
         )
         scheduleRefresh(after: refreshDelay)
     }
