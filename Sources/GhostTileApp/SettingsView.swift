@@ -155,7 +155,7 @@ struct SettingsView: View {
                                             .font(.system(size: 11))
                                             .foregroundStyle(.secondary)
                                     case .installed:
-                                        Text("Installed at \(cliInstallPath) with companion dylib.")
+                                        Text("Installed at \(cliInstallPath) with support files.")
                                             .font(.system(size: 11))
                                             .foregroundStyle(.secondary)
                                     case .notInstalled:
@@ -190,18 +190,12 @@ struct SettingsView: View {
 
                             if case .failed = cliStatus {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Manual install")
+                                    Text("Manual recovery")
                                         .font(.system(size: 11, weight: .semibold))
                                         .foregroundStyle(.secondary)
-                                    Text(
-                                        """
-                                        sudo cp "\(bundledCLIPath ?? "...")" \(cliInstallPath)
-                                        sudo cp "\(bundledDylibPath ?? "...")" \(cliDylibInstallPath)
-                                        """
-                                    )
-                                        .font(.system(size: 11, design: .monospaced))
+                                    Text("Use Reinstall CLI to restore the bundled support files.")
+                                        .font(.system(size: 11))
                                         .foregroundStyle(.secondary)
-                                        .textSelection(.enabled)
                                 }
                                 .padding(10)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -420,7 +414,7 @@ struct SettingsView: View {
         if cliInstalled && dylibInstalled {
             cliStatus = .installed
         } else if cliInstalled || dylibInstalled {
-            cliStatus = .failed("CLI install is incomplete. Reinstall the CLI to restore ghosthide.dylib.")
+            cliStatus = .failed("CLI install is incomplete. Reinstall the CLI to restore the support files.")
         } else {
             cliStatus = .notInstalled
         }
