@@ -283,6 +283,7 @@
 ### Implemented
 
 - Added `Install CLI` and `Reinstall CLI` flows in Settings backed by the bundled CLI binary.
+- The installed CLI now brings along the companion `ghosthide.dylib`, so runtime app management no longer depends on `xcrun clang`.
 - Added `ghosttile manage --force-prepare`.
 - Added `just resign <app>` and `just resign-all` to re-run preparation against one or all managed apps.
 
@@ -315,7 +316,6 @@
 ## Later Work
 
 - Live validation against apps that aggressively re-promote themselves to the Dock.
-- Decide whether to remove the runtime `xcrun clang` fallback and rely solely on the bundled `ghosthide.dylib`.
 - Further Raycast UX polish now that the CLI contract is stable.
 
 ## Execution Order

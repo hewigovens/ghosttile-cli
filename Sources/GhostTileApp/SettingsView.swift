@@ -14,17 +14,26 @@ struct SettingsView: View {
         case checking, notInstalled, installed, failed(String)
     }
 
-    private var bundledCLIPath: String? {
+    private var bundledResourceDirectory: URL {
         let execURL = Bundle.main.executableURL
             ?? URL(fileURLWithPath: ProcessInfo.processInfo.arguments[0])
-        let path = execURL.deletingLastPathComponent()
+        return execURL.deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("Resources")
-            .appendingPathComponent("ghosttile-cli").path
+    }
+
+    private var bundledCLIPath: String? {
+        let path = bundledResourceDirectory.appendingPathComponent("ghosttile-cli").path
+        return FileManager.default.fileExists(atPath: path) ? path : nil
+    }
+
+    private var bundledDylibPath: String? {
+        let path = bundledResourceDirectory.appendingPathComponent("ghosthide.dylib").path
         return FileManager.default.fileExists(atPath: path) ? path : nil
     }
 
     private let cliInstallPath = "/usr/local/bin/ghosttile"
+    private let cliDylibInstallPath = "/usr/local/bin/ghosthide.dylib"
     private var displayLogPath: String {
         (Log.logPath as NSString).abbreviatingWithTildeInPath
     }
@@ -146,7 +155,7 @@ struct SettingsView: View {
                                             .font(.system(size: 11))
                                             .foregroundStyle(.secondary)
                                     case .installed:
-                                        Text("Installed at \(cliInstallPath)")
+                                        Text("Installed at \(cliInstallPath) with companion dylib.")
                                             .font(.system(size: 11))
                                             .foregroundStyle(.secondary)
                                     case .notInstalled:
@@ -184,7 +193,12 @@ struct SettingsView: View {
                                     Text("Manual install")
                                         .font(.system(size: 11, weight: .semibold))
                                         .foregroundStyle(.secondary)
-                                    Text("sudo cp \"\(bundledCLIPath ?? "...")\" \(cliInstallPath)")
+                                    Text(
+                                        """
+                                        sudo cp "\(bundledCLIPath ?? "...")" \(cliInstallPath)
+                                        sudo cp "\(bundledDylibPath ?? "...")" \(cliDylibInstallPath)
+                                        """
+                                    )
                                         .font(.system(size: 11, design: .monospaced))
                                         .foregroundStyle(.secondary)
                                         .textSelection(.enabled)
@@ -400,7 +414,16 @@ struct SettingsView: View {
     }
 
     private func checkCLIInstalled() {
-        cliStatus = FileManager.default.fileExists(atPath: cliInstallPath) ? .installed : .notInstalled
+        let cliInstalled = FileManager.default.fileExists(atPath: cliInstallPath)
+        let dylibInstalled = FileManager.default.fileExists(atPath: cliDylibInstallPath)
+
+        if cliInstalled && dylibInstalled {
+            cliStatus = .installed
+        } else if cliInstalled || dylibInstalled {
+            cliStatus = .failed("CLI install is incomplete. Reinstall the CLI to restore ghosthide.dylib.")
+        } else {
+            cliStatus = .notInstalled
+        }
     }
 
     private var cliActionTitle: String {
@@ -414,14 +437,24 @@ struct SettingsView: View {
 
     private func uninstallCLI() {
         do {
-            try FileManager.default.removeItem(atPath: cliInstallPath)
+            if FileManager.default.fileExists(atPath: cliInstallPath) {
+                try FileManager.default.removeItem(atPath: cliInstallPath)
+            }
+            if FileManager.default.fileExists(atPath: cliDylibInstallPath) {
+                try FileManager.default.removeItem(atPath: cliDylibInstallPath)
+            }
             cliStatus = .notInstalled
             return
         } catch {
             Log.info("Direct CLI uninstall failed: \(error)")
         }
         do {
-            try HelperClient.removeFile(atPath: cliInstallPath)
+            if FileManager.default.fileExists(atPath: cliInstallPath) {
+                try HelperClient.removeFile(atPath: cliInstallPath)
+            }
+            if FileManager.default.fileExists(atPath: cliDylibInstallPath) {
+                try HelperClient.removeFile(atPath: cliDylibInstallPath)
+            }
             cliStatus = .notInstalled
         } catch {
             Log.error("CLI uninstall failed: \(error)")
@@ -430,8 +463,10 @@ struct SettingsView: View {
     }
 
     private func installCLI() {
-        guard let src = bundledCLIPath else {
-            cliStatus = .failed("CLI binary not found in app bundle")
+        guard let cliSource = bundledCLIPath,
+              let dylibSource = bundledDylibPath
+        else {
+            cliStatus = .failed("CLI resources not found in app bundle")
             return
         }
 
@@ -440,7 +475,11 @@ struct SettingsView: View {
             if FileManager.default.fileExists(atPath: cliInstallPath) {
                 try FileManager.default.removeItem(atPath: cliInstallPath)
             }
-            try FileManager.default.copyItem(atPath: src, toPath: cliInstallPath)
+            if FileManager.default.fileExists(atPath: cliDylibInstallPath) {
+                try FileManager.default.removeItem(atPath: cliDylibInstallPath)
+            }
+            try FileManager.default.copyItem(atPath: cliSource, toPath: cliInstallPath)
+            try FileManager.default.copyItem(atPath: dylibSource, toPath: cliDylibInstallPath)
             cliStatus = .installed
             return
         } catch {
@@ -449,7 +488,8 @@ struct SettingsView: View {
 
         // Fall back to admin cp
         do {
-            try HelperClient.copyFile(from: src, to: cliInstallPath)
+            try HelperClient.copyFile(from: cliSource, to: cliInstallPath)
+            try HelperClient.copyFile(from: dylibSource, to: cliDylibInstallPath)
             cliStatus = .installed
         } catch {
             Log.error("CLI install failed: \(error)")

@@ -107,7 +107,6 @@ flowchart LR
 ## Requirements
 
 - macOS 15 or newer
-- Xcode / Command Line Tools with SwiftPM support
 - App Management permission for the GUI app
 - Terminal App Management permission for some protected apps when using the CLI fallback flow
 
@@ -134,10 +133,9 @@ The status bar menu also lets you:
 - Open Settings
 - Activate managed apps
 - Show or hide a managed app in the Dock
-- Reveal a managed app in Finder
 - Remove a managed app from GhostTile
 
-In Settings, you can also assign a global shortcut for opening the Overview panel.
+In Settings, you can also assign global shortcuts for opening the main window and the Overview panel.
 Inside Overview, you can search, move selection with the arrow keys, press Return to open the selected app, and press Escape to dismiss.
 
 ## CLI Usage
@@ -164,6 +162,8 @@ Available subcommands:
 - `status`: show all managed apps and their current state. Use `ghosttile status --json` for machine-readable output.
 - `focus`: bring a running app to the front
 
+When installing the CLI from GhostTile Settings, the app also installs the companion `ghosthide.dylib` next to the binary so the CLI can launch managed apps without requiring developer tools at runtime.
+
 ## Raycast Extension
 
 A local Raycast extension scaffold lives in `extensions/raycast`.
@@ -171,6 +171,8 @@ A local Raycast extension scaffold lives in `extensions/raycast`.
 It shells out to the `ghosttile` CLI and uses `ghosttile list --json` plus `ghosttile status --json` for stable machine-readable state.
 
 ## Build From Source
+
+Building from source requires Xcode or Command Line Tools with SwiftPM support.
 
 ### Debug build
 
