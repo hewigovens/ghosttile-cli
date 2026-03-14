@@ -29,18 +29,25 @@ build:
     echo "Built {{app}} ($(du -sh "{{app}}" | cut -f1))"
 
 build-cli:
+    #!/usr/bin/env bash
+    set -euo pipefail
     MACOSX_DEPLOYMENT_TARGET={{deployment_target}} swift build -c release --product ghosttile
+    echo "Compiling ghosthide.dylib for CLI..."
+    xcrun clang -dynamiclib -arch arm64 -arch x86_64 -framework Cocoa \
+        -mmacosx-version-min={{deployment_target}} \
+        -o .build/ghosthide.dylib Resources/ghosthide.m
+    cp .build/ghosthide.dylib .build/release/ghosthide.dylib
 
 resign app:
     #!/usr/bin/env bash
     set -euo pipefail
-    MACOSX_DEPLOYMENT_TARGET={{deployment_target}} swift build -c release --product ghosttile
+    just build-cli
     .build/release/ghosttile manage --force-prepare "{{app}}"
 
 resign-all:
     #!/usr/bin/env bash
     set -euo pipefail
-    MACOSX_DEPLOYMENT_TARGET={{deployment_target}} swift build -c release --product ghosttile
+    just build-cli
     apps_json="$(
         .build/release/ghosttile status --json
     )"
