@@ -1,5 +1,6 @@
 import AppKit
 import GhostTileCore
+import KeyboardShortcuts
 import ServiceManagement
 import SwiftUI
 
@@ -102,6 +103,31 @@ struct SettingsView: View {
                     }
 
                     sectionCard(
+                        title: "Shortcuts",
+                        symbol: "command"
+                    ) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            shortcutRow(
+                                title: "Open Main Window",
+                                symbol: "macwindow",
+                                description: "Bring GhostTile's main workspace forward from anywhere.",
+                                recorder: {
+                                    KeyboardShortcuts.Recorder(for: .openMainWindow)
+                                }
+                            )
+
+                            shortcutRow(
+                                title: "Open Overview",
+                                symbol: "square.grid.2x2",
+                                description: "Show the cached overview panel from anywhere.",
+                                recorder: {
+                                    KeyboardShortcuts.Recorder(for: .openOverview)
+                                }
+                            )
+                        }
+                    }
+
+                    sectionCard(
                         title: "Command Line",
                         symbol: "terminal"
                     ) {
@@ -137,15 +163,19 @@ struct SettingsView: View {
 
                                 Spacer()
 
-                                if case .installed = cliStatus {
-                                    Button("Uninstall") { uninstallCLI() }
-                                        .controlSize(.small)
-                                } else if case .checking = cliStatus {
+                                if case .checking = cliStatus {
                                     ProgressView().controlSize(.small)
                                 } else {
-                                    Button("Install") { installCLI() }
-                                        .buttonStyle(.borderedProminent)
-                                        .controlSize(.small)
+                                    HStack(spacing: 8) {
+                                        if case .installed = cliStatus {
+                                            Button("Uninstall") { uninstallCLI() }
+                                                .controlSize(.small)
+                                        }
+
+                                        Button(cliActionTitle) { installCLI() }
+                                            .buttonStyle(.borderedProminent)
+                                            .controlSize(.small)
+                                    }
                                 }
                             }
 
@@ -200,7 +230,7 @@ struct SettingsView: View {
                 .padding(24)
             }
         }
-        .frame(width: 430, height: 560)
+        .frame(width: 560, height: 700)
         .onAppear {
             syncLaunchAtLoginState()
             checkCLIInstalled()
@@ -296,6 +326,37 @@ struct SettingsView: View {
         }
     }
 
+    private func shortcutRow<Recorder: View>(
+        title: String,
+        symbol: String,
+        description: String,
+        @ViewBuilder recorder: () -> Recorder
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.primary.opacity(0.05))
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+                Text(description)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            recorder()
+                .labelsHidden()
+        }
+    }
+
     private func infoRow(
         title: String,
         value: String,
@@ -340,6 +401,15 @@ struct SettingsView: View {
 
     private func checkCLIInstalled() {
         cliStatus = FileManager.default.fileExists(atPath: cliInstallPath) ? .installed : .notInstalled
+    }
+
+    private var cliActionTitle: String {
+        switch cliStatus {
+        case .installed:
+            return "Reinstall CLI"
+        case .checking, .notInstalled, .failed:
+            return "Install CLI"
+        }
     }
 
     private func uninstallCLI() {

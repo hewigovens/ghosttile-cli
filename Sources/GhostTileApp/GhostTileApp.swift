@@ -26,7 +26,22 @@ struct GhostTileApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var vm = AppViewModel()
     @State private var statusBar: StatusBarController?
+    @State private var overviewController: OverviewWindowController?
     @AppStorage("onboardingComplete") private var onboardingComplete = false
+
+    private func showMainWindow() {
+        vm.refresh()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [vm] in
+            vm.refresh()
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        for window in NSApp.windows {
+            if window.identifier?.rawValue.contains("main") == true || window.title == "GhostTile" {
+                window.makeKeyAndOrderFront(nil)
+                return
+            }
+        }
+    }
 
     var body: some Scene {
         Window("GhostTile", id: "main") {
@@ -38,13 +53,29 @@ struct GhostTileApp: App {
                 }
             }
             .onAppear {
-                if statusBar == nil {
-                    statusBar = StatusBarController(vm: vm)
+                if overviewController == nil {
+                    overviewController = OverviewWindowController(viewModel: vm)
                 }
+                if let overviewController {
+                    ShortcutController.shared.start(
+                        overviewController: overviewController,
+                        showMainWindow: showMainWindow
+                    )
+                }
+                if statusBar == nil {
+                    statusBar = StatusBarController(
+                        vm: vm,
+                        showMainWindow: showMainWindow,
+                        showOverview: {
+                            overviewController?.toggle()
+                        }
+                    )
+                }
+                AttentionNotificationController.shared.start(viewModel: vm)
                 appDelegate.vm = vm
             }
         }
-        .defaultSize(width: 480, height: 520)
+        .defaultSize(width: 1040, height: 760)
         .windowResizability(onboardingComplete ? .contentMinSize : .contentSize)
         .defaultPosition(.center)
 

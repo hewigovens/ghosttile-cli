@@ -6,6 +6,7 @@ import os.log
 class AppViewModel: ObservableObject {
     private static let postOperationRefreshDelay: TimeInterval = 1.5
     private static let startupNotificationProbeDelay: TimeInterval = 0.75
+    private static let attentionNotificationCooldown: TimeInterval = 10
 
     struct AppItem: Identifiable {
         let id: String
@@ -34,6 +35,8 @@ class AppViewModel: ObservableObject {
     }
 
     private var observers: [NSObjectProtocol] = []
+    private var attentionObservers: [String: NSObjectProtocol] = [:]
+    private var lastAttentionNotificationAt: [String: Date] = [:]
     private var configDirectoryMonitor: DispatchSourceFileSystemObject?
     private var configFileMonitor: DispatchSourceFileSystemObject?
 
@@ -92,6 +95,8 @@ class AppViewModel: ObservableObject {
     deinit {
         let nc = NSWorkspace.shared.notificationCenter
         for observer in observers { nc.removeObserver(observer) }
+        let dnc = DistributedNotificationCenter.default()
+        for observer in attentionObservers.values { dnc.removeObserver(observer) }
         configDirectoryMonitor?.cancel()
         configFileMonitor?.cancel()
     }
@@ -205,6 +210,7 @@ class AppViewModel: ObservableObject {
         }
 
         apps = result
+        syncAttentionObservers(bundleIds: Set(config.hidden.keys))
     }
 
     // MARK: - Hide a running app
@@ -250,6 +256,48 @@ class AppViewModel: ObservableObject {
     func hideAppFromDock(_ app: AppItem) {
         guard app.isRunning else { return }
         sendDockVisibilityNotification(bundleId: app.id, hidden: true)
+    }
+
+    func managedApp(bundleId: String) -> AppItem? {
+        hiddenApps.first(where: { $0.id == bundleId })
+    }
+
+    func activateManagedApp(_ app: AppItem) {
+        if let running = NSRunningApplication.runningApplications(withBundleIdentifier: app.id).first {
+            running.activate()
+            return
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            do {
+                try AppManager.launchNormal(app.appPath)
+                self?.scheduleRefresh(after: 0.75)
+            } catch {
+                Log.error("Launch failed for \(app.name): \(error)")
+                DispatchQueue.main.async {
+                    self?.errorMessage = error.localizedDescription
+                    self?.showError = true
+                }
+            }
+        }
+    }
+
+    func revealAppInFinder(_ app: AppItem) {
+        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: app.appPath)])
+    }
+
+    func handleAttentionNotificationClick(bundleId: String) {
+        guard let app = managedApp(bundleId: bundleId) else { return }
+
+        if app.isRunning, app.isHiddenFromDock {
+            showAppInDock(app)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                self?.activateManagedApp(app)
+            }
+            return
+        }
+
+        activateManagedApp(app)
     }
 
     // MARK: - Remove managed app (restore + remove from config)
@@ -480,6 +528,49 @@ class AppViewModel: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             self?.refresh()
         }
+    }
+
+    private func syncAttentionObservers(bundleIds: Set<String>) {
+        let dnc = DistributedNotificationCenter.default()
+
+        for (bundleId, observer) in attentionObservers where !bundleIds.contains(bundleId) {
+            dnc.removeObserver(observer)
+            attentionObservers.removeValue(forKey: bundleId)
+            lastAttentionNotificationAt.removeValue(forKey: bundleId)
+        }
+
+        for bundleId in bundleIds where attentionObservers[bundleId] == nil {
+            let observer = dnc.addObserver(
+                forName: ManagedAppNotifications.name(bundleId: bundleId, action: .attention),
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.handleAttentionSignal(bundleId: bundleId)
+            }
+            attentionObservers[bundleId] = observer
+        }
+    }
+
+    private func handleAttentionSignal(bundleId: String) {
+        guard let app = managedApp(bundleId: bundleId),
+              app.isRunning,
+              app.isHiddenFromDock
+        else { return }
+
+        let now = Date()
+        if let lastShown = lastAttentionNotificationAt[bundleId],
+           now.timeIntervalSince(lastShown) < Self.attentionNotificationCooldown
+        {
+            Log.debug("Skipping duplicate attention notification for \(bundleId)")
+            return
+        }
+
+        lastAttentionNotificationAt[bundleId] = now
+        Log.info("Delivering attention notification for \(bundleId)")
+        AttentionNotificationController.shared.deliverNotification(
+            bundleId: bundleId,
+            appName: app.name
+        )
     }
 
     func toggleSelfDock(openWindow: (() -> Void)? = nil) {

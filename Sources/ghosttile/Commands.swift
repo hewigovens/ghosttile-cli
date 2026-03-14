@@ -6,7 +6,8 @@ extension GhostTile {
     struct Manage: ParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Add an app to the managed list and hide it from Dock.")
-        @Argument(help: "Bundle ID or app name.") var app: String
+        @Flag(name: .long, help: "Force re-preparation before relaunching the app.") var forcePrepare = false
+        @Argument(help: "Bundle ID, app name, or app bundle path.") var app: String
 
         func run() throws {
             let dylibPath = try Dylib.ensureDylib()
@@ -16,7 +17,7 @@ extension GhostTile {
             if config.hidden[resolved.bundleId] != nil {
                 let running = NSRunningApplication.runningApplications(
                     withBundleIdentifier: resolved.bundleId)
-                if running.first?.activationPolicy == .accessory {
+                if running.first?.activationPolicy == .accessory && !forcePrepare {
                     print("\(resolved.name) is already managed and hidden.")
                     return
                 }
@@ -27,7 +28,13 @@ extension GhostTile {
                     "\(resolved.name) is in a SIP-protected location.")
             }
 
-            if try AppManager.needsPreparation(resolved) {
+            let shouldPrepare: Bool
+            if forcePrepare {
+                shouldPrepare = true
+            } else {
+                shouldPrepare = try AppManager.needsPreparation(resolved)
+            }
+            if shouldPrepare {
                 print("Preparing \(resolved.name)...")
                 try AppManager.prepare(resolved)
             }
@@ -139,6 +146,7 @@ extension GhostTile {
 
     struct List: ParsableCommand {
         static let configuration = CommandConfiguration(abstract: "List running apps.")
+        @Flag(name: .long, help: "Output machine-readable JSON.") var json = false
 
         func run() throws {
             let config = Config.load()
@@ -150,6 +158,28 @@ extension GhostTile {
                         || config.hidden[bundleId] != nil
                 }
                 .sorted { ($0.localizedName ?? "") < ($1.localizedName ?? "") }
+
+            let records = apps.compactMap { app -> CLIAppRecord? in
+                guard let bundleId = app.bundleIdentifier,
+                      let info = try? AppManager.info(from: app)
+                else { return nil }
+
+                return CLIAppRecord(
+                    bundleId: bundleId,
+                    name: info.name,
+                    appPath: info.appPath,
+                    binaryPath: info.binaryPath,
+                    managed: config.hidden[bundleId] != nil,
+                    running: true,
+                    hiddenFromDock: app.activationPolicy == .accessory,
+                    pid: app.processIdentifier
+                )
+            }
+
+            if json {
+                try printJSON(records)
+                return
+            }
 
             if apps.isEmpty {
                 print("No running apps.")
@@ -171,30 +201,47 @@ extension GhostTile {
 
     struct Status: ParsableCommand {
         static let configuration = CommandConfiguration(abstract: "Show managed apps.")
+        @Flag(name: .long, help: "Output machine-readable JSON.") var json = false
 
         func run() throws {
             let config = Config.load()
+
+            let records = config.hidden.sorted(by: { $0.value.name < $1.value.name }).map {
+                bundleId, app in
+                let running = NSRunningApplication.runningApplications(
+                    withBundleIdentifier: bundleId)
+                let process = running.first
+                return CLIAppRecord(
+                    bundleId: bundleId,
+                    name: app.name,
+                    appPath: app.appPath,
+                    binaryPath: app.binaryPath,
+                    managed: true,
+                    running: process != nil,
+                    hiddenFromDock: process?.activationPolicy == .accessory,
+                    pid: process?.processIdentifier
+                )
+            }
+
+            if json {
+                try printJSON(records)
+                return
+            }
 
             if config.hidden.isEmpty {
                 print("No managed apps.")
                 return
             }
 
-            for (bundleId, app) in config.hidden.sorted(by: { $0.value.name < $1.value.name }) {
-                let running = NSRunningApplication.runningApplications(
-                    withBundleIdentifier: bundleId)
+            for record in records {
                 let status: String
-                if let process = running.first {
-                    if process.activationPolicy == .accessory {
-                        status = "pid \(process.processIdentifier), hidden"
-                    } else {
-                        status = "pid \(process.processIdentifier), visible"
-                    }
+                if let pid = record.pid {
+                    status = record.hiddenFromDock ? "pid \(pid), hidden" : "pid \(pid), visible"
                 } else {
                     status = "not running"
                 }
-                let name = app.name.padding(toLength: 20, withPad: " ", startingAt: 0)
-                print("  \(name) \(bundleId)  [\(status)]")
+                let name = record.name.padding(toLength: 20, withPad: " ", startingAt: 0)
+                print("  \(name) \(record.bundleId)  [\(status)]")
             }
         }
     }
@@ -215,9 +262,29 @@ extension GhostTile {
                 throw GhostTileError("No running app matching '\(app)'")
             }
 
-            target.activate(options: [.activateIgnoringOtherApps])
+            target.activate()
             print("Activated \(target.localizedName ?? target.bundleIdentifier ?? "app").")
         }
+    }
+}
+
+private struct CLIAppRecord: Encodable {
+    let bundleId: String
+    let name: String
+    let appPath: String
+    let binaryPath: String
+    let managed: Bool
+    let running: Bool
+    let hiddenFromDock: Bool
+    let pid: pid_t?
+}
+
+private func printJSON<T: Encodable>(_ value: T) throws {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+    let data = try encoder.encode(value)
+    if let output = String(data: data, encoding: .utf8) {
+        print(output)
     }
 }
 

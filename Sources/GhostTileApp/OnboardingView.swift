@@ -2,233 +2,351 @@ import AppKit
 import SwiftUI
 
 struct OnboardingView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var isComplete: Bool
+
     @State private var step = 0
     @State private var iconFlipped = false
-    @State private var iconScale: CGFloat = 0.6
-    @State private var iconOpacity: Double = 0
+    @State private var iconScale: CGFloat = 0.78
+    @State private var iconOpacity = 0.0
+    @State private var iconLoopTask: Task<Void, Never>?
 
     private let totalSteps = 3
+    private var isDarkMode: Bool { colorScheme == .dark }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Content
-            Group {
-                switch step {
-                case 0: welcomeStep
-                case 1: howItWorksStep
-                case 2: permissionsStep
-                default: EmptyView()
+        ZStack {
+            onboardingBackground
+
+            VStack(spacing: 14) {
+                topBar
+
+                Group {
+                    switch step {
+                    case 0: welcomeStep
+                    case 1: workflowStep
+                    case 2: permissionsStep
+                    default: EmptyView()
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
+                .id(step)
+
+                footer
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .transition(.asymmetric(
-                insertion: .move(edge: .trailing).combined(with: .opacity),
-                removal: .move(edge: .leading).combined(with: .opacity)
-            ))
-            .id(step)
-
-            Divider()
-
-            // Navigation
-            HStack {
-                // Step indicators
-                HStack(spacing: 6) {
-                    ForEach(0..<totalSteps, id: \.self) { i in
-                        Circle()
-                            .fill(i == step ? Color.accentColor : Color.secondary.opacity(0.3))
-                            .frame(width: 6, height: 6)
-                    }
-                }
-
-                Spacer()
-
-                if step > 0 {
-                    Button("Back") {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            step -= 1
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                }
-
-                if step < totalSteps - 1 {
-                    Button("Continue") {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            step += 1
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.regular)
-                } else {
-                    Button("Get Started") {
-                        UserDefaults.standard.set(true, forKey: "onboardingComplete")
-                        withAnimation {
-                            isComplete = true
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.regular)
-                }
-            }
-            .padding(20)
+            .padding(24)
         }
-        .frame(width: 480, height: 420)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(width: 620, height: 520)
+        .background(OnboardingWindowCenterer())
         .onAppear {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2)) {
-                iconScale = 1.0
-                iconOpacity = 1.0
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.76).delay(0.12)) {
+                iconScale = 1
+                iconOpacity = 1
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                withAnimation(.easeInOut(duration: 0.8)) {
-                    iconFlipped = true
-                }
-            }
+            startIconLoop()
+        }
+        .onDisappear {
+            iconLoopTask?.cancel()
+            iconLoopTask = nil
         }
     }
 
-    // MARK: - Step 1: Welcome
-
-    private var welcomeStep: some View {
-        VStack(spacing: 20) {
-            Spacer()
-
-            // Icon animation: old → new
-            ZStack {
-                if !iconFlipped {
-                    oldIcon
-                        .transition(.opacity)
-                } else {
-                    newIcon
-                        .transition(.scale(scale: 0.8).combined(with: .opacity))
-                }
-            }
-            .frame(width: 120, height: 120)
-            .scaleEffect(iconScale)
-            .opacity(iconOpacity)
-
-            VStack(spacing: 8) {
-                Text("Welcome to GhostTile 2.0")
-                    .font(.system(size: 22, weight: .bold))
-
-                Text("A complete rewrite — modern, fast, and native.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-
-            // What's new pills
-            HStack(spacing: 10) {
-                FeaturePill(icon: "swift", text: "SwiftUI")
-                FeaturePill(icon: "menubar.rectangle", text: "Menu Bar")
-                FeaturePill(icon: "arrow.triangle.2.circlepath", text: "Auto-hide")
-            }
-            .padding(.top, 4)
-
-            Spacer()
-        }
-        .padding(.horizontal, 40)
-    }
-
-    // MARK: - Step 2: How It Works
-
-    private var howItWorksStep: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            Text("How It Works")
-                .font(.system(size: 20, weight: .bold))
-
-            VStack(alignment: .leading, spacing: 16) {
-                StepRow(
-                    number: 1,
-                    icon: "plus.circle.fill",
-                    color: .blue,
-                    title: "Add an app",
-                    subtitle: "Pick from running apps or drag from Finder"
-                )
-                StepRow(
-                    number: 2,
-                    icon: "eye.slash.fill",
-                    color: .purple,
-                    title: "App hides from Dock & Cmd+Tab",
-                    subtitle: "Best effort, works with many apps"
-                )
-                StepRow(
-                    number: 3,
-                    icon: "arrow.clockwise.circle.fill",
-                    color: .green,
-                    title: "Stays hidden automatically",
-                    subtitle: "Survives relaunches, updates, and reboots"
-                )
-            }
-            .padding(.horizontal, 20)
-
-            Spacer()
-        }
-        .padding(.horizontal, 40)
-    }
-
-    // MARK: - Step 3: Permissions
-
-    private var permissionsStep: some View {
-        VStack(spacing: 20) {
-            Spacer()
-
-            Text("Permissions Required")
-                .font(.system(size: 20, weight: .bold))
-
-            Text("GhostTile needs App Management permission to modify app binaries. Please add both apps below:")
-                .font(.system(size: 13))
+    private var topBar: some View {
+        HStack {
+            Text("Step \(step + 1) of \(totalSteps)")
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 10)
 
-            VStack(alignment: .leading, spacing: 12) {
-                PermissionRow(
-                    icon: "eye.slash.circle.fill",
-                    color: .blue,
-                    title: "GhostTile",
-                    subtitle: "Prepares apps for hiding"
-                )
-                Divider()
-                PermissionRow(
-                    icon: "terminal.fill",
-                    color: .purple,
-                    title: "Terminal",
-                    subtitle: "Runs commands for protected apps"
-                )
+            Spacer(minLength: 12)
+
+            HStack(spacing: 8) {
+                onboardingPill(title: "Native", systemImage: "sparkles")
+                onboardingPill(title: "Menu Bar", systemImage: "menubar.rectangle")
+                onboardingPill(title: "CLI", systemImage: "terminal")
             }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(.primary.opacity(0.03))
-            )
-            .padding(.horizontal, 10)
+        }
+    }
 
-            VStack(spacing: 8) {
-                Text("System Settings → Privacy & Security → App Management")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+    private var footer: some View {
+        HStack {
+            HStack(spacing: 6) {
+                ForEach(0..<totalSteps, id: \.self) { index in
+                    Capsule()
+                        .fill(index == step ? Color.accentColor : indicatorFill)
+                        .frame(width: index == step ? 20 : 6, height: 6)
+                }
+            }
 
-                Button("Open System Settings") {
-                    openAppManagementSettings()
+            Spacer()
+
+            if step > 0 {
+                Button("Back") {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        step -= 1
+                    }
                 }
                 .buttonStyle(.bordered)
-                .controlSize(.regular)
             }
 
-            Spacer()
+            if step < totalSteps - 1 {
+                Button("Continue") {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        step += 1
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+            } else {
+                Button("Get Started") {
+                    UserDefaults.standard.set(true, forKey: "onboardingComplete")
+                    withAnimation {
+                        isComplete = true
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+            }
         }
-        .padding(.horizontal, 40)
     }
 
-    // MARK: - Helpers
+    private var welcomeStep: some View {
+        onboardingPanel {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack(spacing: 22) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 30, style: .continuous)
+                            .fill(heroTileFill)
+                            .frame(width: 148, height: 148)
+
+                        Group {
+                            if iconFlipped {
+                                newIcon
+                                    .transition(.scale(scale: 0.86).combined(with: .opacity))
+                            } else {
+                                oldIcon
+                                    .transition(.opacity)
+                            }
+                        }
+                        .frame(width: 120, height: 120)
+                        .scaleEffect(iconScale)
+                        .opacity(iconOpacity)
+                    }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("GhostTile 2 keeps the idea, but drops the old baggage.")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                        Text("The rewrite focuses on a cleaner control surface, modern automation, and a better hidden-app overview.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    FeatureCard(
+                        title: "Managed Set",
+                        subtitle: "Build a stable hidden app collection.",
+                        systemImage: "eye.slash"
+                    )
+                    FeatureCard(
+                        title: "Overview",
+                        subtitle: "Jump back into hidden apps fast.",
+                        systemImage: "square.grid.2x2"
+                    )
+                    FeatureCard(
+                        title: "CLI",
+                        subtitle: "Automate workflows without URL schemes.",
+                        systemImage: "terminal"
+                    )
+                }
+            }
+        }
+    }
+
+    private var workflowStep: some View {
+        onboardingPanel {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("How it works")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+
+                VStack(spacing: 12) {
+                    WorkflowCard(
+                        step: "1",
+                        title: "Add an app",
+                        subtitle: "Use the + button, drag from Finder, or manage it from the CLI.",
+                        systemImage: "plus.circle.fill",
+                        tint: .blue
+                    )
+                    WorkflowCard(
+                        step: "2",
+                        title: "GhostTile hides it from the Dock",
+                        subtitle: "The app stays manageable, and you can still reveal or relaunch it later.",
+                        systemImage: "eye.slash.fill",
+                        tint: .orange
+                    )
+                    WorkflowCard(
+                        step: "3",
+                        title: "Bring it back when you need it",
+                        subtitle: "Use the main window, Overview, menu bar, or global shortcuts to reactivate it.",
+                        systemImage: "arrow.up.forward.app.fill",
+                        tint: .green
+                    )
+                }
+            }
+        }
+    }
+
+    private var permissionsStep: some View {
+        onboardingPanel {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Permissions")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+
+                Text("GhostTile needs App Management to prepare apps safely. Terminal helps with protected apps, and Screen & System Audio Recording enables live Overview previews.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+
+                VStack(spacing: 10) {
+                    PermissionCard(
+                        title: "GhostTile",
+                        subtitle: "Needed to prepare apps for hiding and restoration.",
+                        systemImage: "eye.slash.circle.fill",
+                        tint: .blue
+                    )
+                    PermissionCard(
+                        title: "Terminal",
+                        subtitle: "Needed when a protected app must be handled with `sudo ghosttile …`.",
+                        systemImage: "terminal.fill",
+                        tint: .purple,
+                        actionTitle: "Grant",
+                        action: openAppManagementSettings
+                    )
+                    PermissionCard(
+                        title: "Screen & System Audio Recording",
+                        subtitle: "Lets Overview capture live window thumbnails for managed apps.",
+                        systemImage: "rectangle.on.rectangle",
+                        tint: .orange,
+                        actionTitle: "Grant",
+                        action: openScreenCaptureSettings
+                    )
+                }
+            }
+        }
+    }
+
+    private func onboardingPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .fill(panelFill)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 30, style: .continuous)
+                            .stroke(panelStroke, lineWidth: 1)
+                    )
+            )
+            .shadow(color: .black.opacity(isDarkMode ? 0.12 : 0.05), radius: 24, y: 10)
+    }
+
+    private var onboardingBackground: some View {
+        ZStack {
+            if isDarkMode {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+            } else {
+                Rectangle()
+                    .fill(Color(nsColor: .windowBackgroundColor))
+            }
+
+            LinearGradient(
+                colors: [
+                    Color.blue.opacity(isDarkMode ? 0.12 : 0.07),
+                    Color.clear,
+                    Color.orange.opacity(isDarkMode ? 0.05 : 0.03),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            Circle()
+                .fill(Color.blue.opacity(isDarkMode ? 0.12 : 0.07))
+                .frame(width: 420, height: 420)
+                .blur(radius: 100)
+                .offset(x: -220, y: -200)
+
+            Circle()
+                .fill(Color.orange.opacity(isDarkMode ? 0.08 : 0.04))
+                .frame(width: 300, height: 300)
+                .blur(radius: 90)
+                .offset(x: 230, y: 220)
+
+            oldGhostTileWatermark
+                .frame(width: 110, height: 110)
+                .opacity(isDarkMode ? 0.08 : 0.06)
+                .rotationEffect(.degrees(-10))
+                .offset(x: 225, y: 185)
+        }
+        .ignoresSafeArea()
+    }
+
+    private var panelFill: Color {
+        isDarkMode ? Color.black.opacity(0.18) : Color.white.opacity(0.56)
+    }
+
+    private var panelStroke: Color {
+        isDarkMode ? Color.white.opacity(0.08) : Color.black.opacity(0.06)
+    }
+
+    private var indicatorFill: Color {
+        isDarkMode ? Color.white.opacity(0.18) : Color.black.opacity(0.12)
+    }
+
+    private var heroTileFill: Color {
+        isDarkMode ? Color.white.opacity(0.08) : Color.white.opacity(0.74)
+    }
+
+    private func onboardingPill(title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.system(size: 11, weight: .semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(isDarkMode ? Color.black.opacity(0.14) : Color.white.opacity(0.7))
+            )
+            .overlay(
+                Capsule()
+                    .stroke(panelStroke, lineWidth: 1)
+            )
+    }
+
+    private func startIconLoop() {
+        iconLoopTask?.cancel()
+        iconLoopTask = Task {
+            try? await Task.sleep(for: .seconds(0.9))
+
+            while !Task.isCancelled {
+                await MainActor.run {
+                    withAnimation(.easeInOut(duration: 0.7)) {
+                        iconFlipped.toggle()
+                    }
+                }
+
+                try? await Task.sleep(for: .seconds(1.4))
+            }
+        }
+    }
 
     private func openAppManagementSettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func openScreenCaptureSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
             NSWorkspace.shared.open(url)
         }
     }
@@ -241,7 +359,7 @@ struct OnboardingView: View {
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 24))
-                .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+                .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
         }
     }
 
@@ -253,7 +371,18 @@ struct OnboardingView: View {
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 24))
-                .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+                .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+        }
+    }
+
+    @ViewBuilder
+    private var oldGhostTileWatermark: some View {
+        let url = resourceURL("appIcon-old.png")
+        if let img = NSImage(contentsOf: url) {
+            Image(nsImage: img)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .saturation(isDarkMode ? 0.2 : 0.1)
         }
     }
 
@@ -266,77 +395,134 @@ struct OnboardingView: View {
             .appendingPathComponent("Resources")
             .appendingPathComponent(name)
     }
-
 }
 
-// MARK: - Supporting Views
-
-struct FeaturePill: View {
-    let icon: String
-    let text: String
+private struct FeatureCard: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
 
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 10))
-            Text(text)
-                .font(.system(size: 11, weight: .medium))
+        VStack(alignment: .leading, spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.accentColor)
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+            Text(subtitle)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
         .background(
-            Capsule()
-                .fill(Color.accentColor.opacity(0.1))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white.opacity(0.06))
         )
-        .foregroundColor(.accentColor)
     }
 }
 
-struct PermissionRow: View {
-    let icon: String
-    let color: Color
+private struct WorkflowCard: View {
+    let step: String
     let title: String
     let subtitle: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 22))
-                .foregroundColor(color)
-                .frame(width: 30)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-                Text(subtitle)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-}
-
-struct StepRow: View {
-    let number: Int
-    let icon: String
-    let color: Color
-    let title: String
-    let subtitle: String
+    let systemImage: String
+    let tint: Color
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: icon)
-                .font(.system(size: 24))
-                .foregroundColor(color)
-                .frame(width: 36)
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(tint.opacity(0.12))
+                VStack(spacing: 4) {
+                    Text(step)
+                        .font(.system(size: 16, weight: .bold))
+                    Image(systemName: systemImage)
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .foregroundStyle(tint)
+            }
+            .frame(width: 64, height: 64)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 15, weight: .semibold))
+                Text(subtitle)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+        )
+    }
+}
+
+private struct PermissionCard: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let tint: Color
+    var actionTitle: String? = nil
+    var action: (() -> Void)? = nil
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(tint.opacity(0.12))
+                Image(systemName: systemImage)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(tint)
+            }
+            .frame(width: 52, height: 52)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
                 Text(subtitle)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
+
+            Spacer()
+
+            if let actionTitle, let action {
+                Button(actionTitle, action: action)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+        )
+    }
+}
+
+private struct OnboardingWindowCenterer: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        NSView()
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            guard let window = nsView.window else { return }
+            guard let screen = window.screen ?? NSScreen.main else {
+                window.center()
+                return
+            }
+
+            let visibleFrame = screen.visibleFrame
+            var frame = window.frame
+            frame.origin.x = visibleFrame.midX - (frame.width / 2)
+            frame.origin.y = visibleFrame.midY - (frame.height / 2)
+            window.setFrame(frame, display: false)
         }
     }
 }

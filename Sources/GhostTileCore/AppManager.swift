@@ -17,6 +17,14 @@ public struct AppInfo {
 
 public enum AppManager {
     public static func resolve(_ query: String) throws -> AppInfo {
+        if let app = try resolveBundlePath(query) {
+            return app
+        }
+
+        return try resolveRunningApp(query)
+    }
+
+    public static func resolveRunningApp(_ query: String) throws -> AppInfo {
         let apps = NSWorkspace.shared.runningApplications.filter {
             $0.activationPolicy == .regular && $0.bundleIdentifier != nil
         }
@@ -51,21 +59,61 @@ public enum AppManager {
             "No running app matching '\(query)'. Run 'ghosttile list' to see running apps.")
     }
 
+    public static func resolveBundlePath(_ query: String) throws -> AppInfo? {
+        let expanded = (query as NSString).expandingTildeInPath
+        guard expanded.hasPrefix("/") || query.hasPrefix("~") else { return nil }
+
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: expanded, isDirectory: &isDirectory) else {
+            throw GhostTileError("No app bundle found at '\(query)'.")
+        }
+
+        guard isDirectory.boolValue, expanded.hasSuffix(".app") else {
+            throw GhostTileError("'\(query)' is not a macOS app bundle.")
+        }
+
+        return try info(fromBundleURL: URL(fileURLWithPath: expanded))
+    }
+
     public static func info(from app: NSRunningApplication) throws -> AppInfo {
         guard let bundleId = app.bundleIdentifier,
               let bundleURL = app.bundleURL,
-              let bundle = Bundle(url: bundleURL),
-              let executableURL = bundle.executableURL
+              let bundle = Bundle(url: bundleURL)
         else {
             throw GhostTileError(
                 "Could not inspect app metadata for '\(app.localizedName ?? "Unknown app")'."
             )
         }
 
+        return try info(
+            from: bundle,
+            fallbackName: app.localizedName ?? bundleId,
+            appPath: bundleURL.path
+        )
+    }
+
+    public static func info(fromBundleURL bundleURL: URL) throws -> AppInfo {
+        guard let bundle = Bundle(url: bundleURL) else {
+            throw GhostTileError("Could not load app bundle at '\(bundleURL.path)'.")
+        }
+
+        let fallbackName = bundle.object(forInfoDictionaryKey: kCFBundleNameKey as String) as? String
+            ?? FileManager.default.displayName(atPath: bundleURL.path)
+
+        return try info(from: bundle, fallbackName: fallbackName, appPath: bundleURL.path)
+    }
+
+    private static func info(from bundle: Bundle, fallbackName: String, appPath: String) throws -> AppInfo {
+        guard let bundleId = bundle.bundleIdentifier,
+              let executableURL = bundle.executableURL
+        else {
+            throw GhostTileError("Could not inspect app metadata for '\(fallbackName)'.")
+        }
+
         return AppInfo(
             bundleId: bundleId,
-            name: app.localizedName ?? bundleId,
-            appPath: bundleURL.path,
+            name: fallbackName,
+            appPath: appPath,
             binaryPath: executableURL.path
         )
     }
