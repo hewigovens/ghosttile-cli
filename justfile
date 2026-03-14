@@ -45,7 +45,7 @@ resign-all:
         .build/release/ghosttile status --json
     )"
     app_paths="$(
-        printf '%s' "$apps_json" | /usr/bin/python3 -c 'import json, sys; apps = json.load(sys.stdin); print("\\n".join(app["appPath"] for app in apps if app.get("appPath")))'
+        printf '%s' "$apps_json" | /usr/bin/python3 -c 'import json, sys; apps = json.load(sys.stdin); print("\n".join(app["appPath"] for app in apps if app.get("appPath")))'
     )"
     if [[ -z "$app_paths" ]]; then
         echo "No managed apps."
