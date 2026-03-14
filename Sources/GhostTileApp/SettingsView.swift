@@ -221,8 +221,8 @@ struct SettingsView: View {
                             infoRow(
                                 title: "Version",
                                 value: {
-                                    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.0.0"
-                                    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+                                    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? BuildInfo.version
+                                    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? BuildInfo.build
                                     return "\(version) (\(build))"
                                 }(),
                                 symbol: "shippingbox"
