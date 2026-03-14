@@ -34,6 +34,7 @@ struct SettingsView: View {
 
     private let cliInstallPath = "/usr/local/bin/ghosttile"
     private let cliDylibInstallPath = "/usr/local/bin/ghosthide.dylib"
+    private let expectedCLIVersion = BuildInfo.displayVersion
     private var displayLogPath: String {
         (Log.logPath as NSString).abbreviatingWithTildeInPath
     }
@@ -412,7 +413,18 @@ struct SettingsView: View {
         let dylibInstalled = FileManager.default.fileExists(atPath: cliDylibInstallPath)
 
         if cliInstalled && dylibInstalled {
-            cliStatus = .installed
+            do {
+                let installedVersion = try AppManager.run(cliInstallPath, ["--version"])
+                if installedVersion == expectedCLIVersion {
+                    cliStatus = .installed
+                } else {
+                    cliStatus = .failed(
+                        "Installed CLI is \(installedVersion). This app bundles \(expectedCLIVersion). Reinstall CLI to update it."
+                    )
+                }
+            } catch {
+                cliStatus = .failed("Could not verify installed CLI version. Reinstall CLI to refresh it.")
+            }
         } else if cliInstalled || dylibInstalled {
             cliStatus = .failed("CLI install is incomplete. Reinstall the CLI to restore the support files.")
         } else {
