@@ -42,7 +42,7 @@ resign app:
     #!/usr/bin/env bash
     set -euo pipefail
     just build-cli
-    .build/release/ghosttile manage --force-prepare "{{app}}"
+    sudo .build/release/ghosttile prepare --force "{{app}}"
 
 resign-all:
     #!/usr/bin/env bash
@@ -61,7 +61,7 @@ resign-all:
     while IFS= read -r app_path; do
         [[ -n "$app_path" ]] || continue
         echo "Re-preparing $app_path..."
-        .build/release/ghosttile manage --force-prepare "$app_path"
+        sudo .build/release/ghosttile prepare --force "$app_path"
     done <<< "$app_paths"
 
 run: kill build

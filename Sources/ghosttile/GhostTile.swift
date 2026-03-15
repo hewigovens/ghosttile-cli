@@ -7,6 +7,6 @@ struct GhostTile: ParsableCommand {
         commandName: "ghosttile",
         abstract: "Hide apps from Dock and Cmd+Tab.",
         version: BuildInfo.displayVersion,
-        subcommands: [Manage.self, Restore.self, Hide.self, Show.self, List.self, Status.self, Focus.self]
+        subcommands: [Manage.self, Prepare.self, Restore.self, Hide.self, Show.self, List.self, Status.self, Focus.self]
     )
 }

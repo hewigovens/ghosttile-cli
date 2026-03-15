@@ -66,6 +66,37 @@ extension GhostTile {
         }
     }
 
+    struct Prepare: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Prepare an app for GhostTile without relaunching it.")
+        @Flag(name: .long, help: "Force re-preparation even if the app already appears prepared.") var force = false
+        @Argument(help: "Bundle ID, app name, or app bundle path.") var app: String
+
+        func run() throws {
+            let resolved = try AppManager.resolve(app)
+
+            if AppManager.isSIPProtected(resolved.appPath) {
+                throw GhostTileError("\(resolved.name) is in a SIP-protected location.")
+            }
+
+            let shouldPrepare: Bool
+            if force {
+                shouldPrepare = true
+            } else {
+                shouldPrepare = try AppManager.needsPreparation(resolved)
+            }
+
+            guard shouldPrepare else {
+                print("\(resolved.name) is already prepared.")
+                return
+            }
+
+            print("Preparing \(resolved.name)...")
+            try AppManager.prepare(resolved)
+            print("\(resolved.name) prepared. No relaunch performed.")
+        }
+    }
+
     struct Restore: ParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "Remove an app from the managed list and restore it.")
