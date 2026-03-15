@@ -32,6 +32,13 @@ public enum HelperClient {
         Log.info("Privileged copy succeeded: \(source) -> \(destination)")
     }
 
+    /// Create a directory as root via admin privileges
+    public static func createDirectory(atPath path: String) throws {
+        let command = "/bin/mkdir -p \(shellQuote(path))"
+        try runPrivileged(command)
+        Log.info("Privileged mkdir succeeded: \(path)")
+    }
+
     /// Remove a file as root via admin privileges
     public static func removeFile(atPath path: String) throws {
         let command = "/bin/rm \(shellQuote(path))"

@@ -11,9 +11,14 @@ build:
     MACOSX_DEPLOYMENT_TARGET={{deployment_target}} swift build -c release --product GhostTileApp
     MACOSX_DEPLOYMENT_TARGET={{deployment_target}} swift build -c release --product ghosttile
     echo "Compiling ghosthide.dylib..."
+    ghosthide_debug_flag=""
+    if [[ "${GHOSTHIDE_DEBUG:-0}" == "1" ]]; then
+        ghosthide_debug_flag="-DGHOSTHIDE_DEBUG=1"
+    fi
     xcrun clang -dynamiclib -arch arm64 -arch x86_64 -framework Cocoa \
         -mmacosx-version-min={{deployment_target}} \
-        -o .build/ghosthide.dylib Resources/ghosthide.m
+        ${ghosthide_debug_flag:+$ghosthide_debug_flag} \
+        -o .build/ghosthide.dylib Resources/ghosthide.m Resources/fishhook.c
     rm -rf "{{app}}"
     mkdir -p "{{app}}/Contents/MacOS" "{{app}}/Contents/Resources"
     cp .build/release/GhostTileApp "{{app}}/Contents/MacOS/GhostTile"
@@ -33,9 +38,14 @@ build-cli:
     set -euo pipefail
     MACOSX_DEPLOYMENT_TARGET={{deployment_target}} swift build -c release --product ghosttile
     echo "Compiling ghosthide.dylib for CLI..."
+    ghosthide_debug_flag=""
+    if [[ "${GHOSTHIDE_DEBUG:-0}" == "1" ]]; then
+        ghosthide_debug_flag="-DGHOSTHIDE_DEBUG=1"
+    fi
     xcrun clang -dynamiclib -arch arm64 -arch x86_64 -framework Cocoa \
         -mmacosx-version-min={{deployment_target}} \
-        -o .build/ghosthide.dylib Resources/ghosthide.m
+        ${ghosthide_debug_flag:+$ghosthide_debug_flag} \
+        -o .build/ghosthide.dylib Resources/ghosthide.m Resources/fishhook.c
     cp .build/ghosthide.dylib .build/release/ghosthide.dylib
 
 resign app:

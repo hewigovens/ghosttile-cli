@@ -122,15 +122,20 @@ public enum AppManager {
 
     public static func needsPreparation(_ app: AppInfo) throws -> Bool {
         Log.debug("Checking if \(app.name) (\(app.bundleId)) needs preparation")
-        let output = try run(
-            "/usr/bin/codesign", ["-dvvv", app.binaryPath], captureStderr: true)
-        guard output.contains("runtime") else {
-            Log.debug("\(app.name) has no hardened runtime, no preparation needed")
-            return false
-        }
+        let output = try run("/usr/bin/codesign", ["-dvvv", app.binaryPath], captureStderr: true)
+        let usesRuntime = output.contains("runtime")
+        let helperInstalled = FileManager.default.fileExists(atPath: Dylib.bundleInstallPath(forAppPath: app.appPath))
+        let hasLoadCommand = try MachOEditor.hasGhosthideLoadCommand(in: app.binaryPath)
 
         let entitlements = try extractEntitlements(app.binaryPath)
-        let needs = entitlements["com.apple.security.cs.allow-dyld-environment-variables"] == nil
+        let hasDyldEntitlement =
+            entitlements["com.apple.security.cs.allow-dyld-environment-variables"] != nil
+        let hasLibraryValidationEntitlement =
+            entitlements["com.apple.security.cs.disable-library-validation"] != nil
+
+        let needs = !helperInstalled
+            || !hasLoadCommand
+            || (usesRuntime && (!hasDyldEntitlement || !hasLibraryValidationEntitlement))
         Log.debug("\(app.name) needs preparation: \(needs)")
         return needs
     }
@@ -181,6 +186,15 @@ public enum AppManager {
             Log.info("Restored binary via admin for \(bundleId)")
         }
 
+        let helperPath = Dylib.bundleInstallPath(forAppPath: appPath)
+        if FileManager.default.fileExists(atPath: helperPath) {
+            do {
+                try FileManager.default.removeItem(atPath: helperPath)
+            } catch {
+                try? HelperClient.removeFile(atPath: helperPath)
+            }
+        }
+
         // Re-sign the bundle to match the restored binary
         do {
             try run("/usr/bin/codesign", ["--force", "--sign", "-", appPath])
@@ -202,6 +216,10 @@ public enum AppManager {
         // Back up original binary before modifying
         try backupBinary(app)
 
+        let helperSourcePath = try Dylib.ensureDylib()
+        let helperInstallPath = Dylib.bundleInstallPath(forAppPath: app.appPath)
+        try installHelper(from: helperSourcePath, to: helperInstallPath)
+
         var entitlements = try extractEntitlements(app.binaryPath)
         entitlements["com.apple.security.cs.allow-dyld-environment-variables"] = true
         entitlements["com.apple.security.cs.disable-library-validation"] = true
@@ -212,30 +230,37 @@ public enum AppManager {
         try data.write(to: URL(fileURLWithPath: entPath))
         defer { try? FileManager.default.removeItem(atPath: entPath) }
 
-        // Re-sign binary with DYLD entitlements
+        let tempBinary = NSTemporaryDirectory() + "ghosttile_work_\(UUID().uuidString)"
+        defer { try? FileManager.default.removeItem(atPath: tempBinary) }
+
+        try FileManager.default.copyItem(atPath: app.binaryPath, toPath: tempBinary)
+        try stripSignatureIfPresent(at: tempBinary)
+        _ = try MachOEditor.insertGhosthideLoadCommand(in: tempBinary)
+        try run(
+            "/usr/bin/codesign",
+            ["--force", "--sign", "-", "--entitlements", entPath, tempBinary]
+        )
+        try installPreparedBinary(from: tempBinary, to: app.binaryPath)
+        Log.info("Prepared binary for \(app.name)")
+
         do {
-            try run(
-                "/usr/bin/codesign",
-                ["--force", "--sign", "-", "--entitlements", entPath, app.binaryPath])
-            Log.info("Re-signed binary for \(app.name)")
+            try run("/usr/bin/codesign", ["--force", "--sign", "-", helperInstallPath])
         } catch {
-            Log.info("Direct codesign failed for \(app.name), trying copy-sign-copy approach")
-            try codesignViaCopy(
-                binaryPath: app.binaryPath,
-                extraArgs: ["--entitlements", entPath],
-                label: app.name
-            )
+            try HelperClient.codesign(arguments: ["--force", "--sign", "-", helperInstallPath])
         }
 
         // Re-sign the bundle
         do {
-            try run("/usr/bin/codesign", ["--force", "--sign", "-", app.appPath])
+            try run(
+                "/usr/bin/codesign",
+                ["--force", "--sign", "-", "--preserve-metadata=entitlements", app.appPath]
+            )
             Log.info("Re-signed bundle for \(app.name)")
         } catch {
             Log.info("Direct bundle codesign failed for \(app.name), trying via admin privileges")
             do {
                 try HelperClient.codesign(arguments: [
-                    "--force", "--sign", "-", app.appPath
+                    "--force", "--sign", "-", "--preserve-metadata=entitlements", app.appPath
                 ])
                 Log.info("Re-signed bundle for \(app.name) via admin")
             } catch {
@@ -244,6 +269,48 @@ public enum AppManager {
                     "\(app.name) requires a manual step. Run in Terminal: sudo ghosttile hide \(app.bundleId)"
                 )
             }
+        }
+    }
+
+    private static func stripSignatureIfPresent(at binaryPath: String) throws {
+        do {
+            try run("/usr/bin/codesign", ["--remove-signature", binaryPath])
+        } catch {
+            // Unsigned binaries or already stripped binaries are fine here.
+            Log.info("codesign --remove-signature skipped for \(binaryPath): \(error)")
+        }
+    }
+
+    private static func installPreparedBinary(from source: String, to destination: String) throws {
+        do {
+            try FileManager.default.removeItem(atPath: destination)
+            try FileManager.default.copyItem(atPath: source, toPath: destination)
+        } catch {
+            Log.info("Direct install of prepared binary failed, trying via admin privileges")
+            try HelperClient.copyFile(from: source, to: destination)
+        }
+    }
+
+    private static func installHelper(from source: String, to destination: String) throws {
+        let directory = (destination as NSString).deletingLastPathComponent
+        do {
+            try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+        } catch {
+            try HelperClient.createDirectory(atPath: directory)
+        }
+
+        if FileManager.default.fileExists(atPath: destination) {
+            do {
+                try FileManager.default.removeItem(atPath: destination)
+            } catch {
+                try? HelperClient.removeFile(atPath: destination)
+            }
+        }
+
+        do {
+            try FileManager.default.copyItem(atPath: source, toPath: destination)
+        } catch {
+            try HelperClient.copyFile(from: source, to: destination)
         }
     }
 
@@ -273,10 +340,10 @@ public enum AppManager {
     public static func extractEntitlements(_ binaryPath: String) throws -> [String: Any] {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
-        process.arguments = ["-d", "--entitlements", ":-", binaryPath]
+        process.arguments = ["-d", "--entitlements", "-", binaryPath]
         let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = pipe
         try process.run()
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
@@ -309,12 +376,23 @@ public enum AppManager {
         Thread.sleep(forTimeInterval: 0.5)
     }
 
-    public static func launchHidden(_ app: AppInfo, dylibPath: String) throws {
-        Log.info("Launching \(app.name) hidden with dylib: \(dylibPath)")
+    public static func launchHidden(_ app: AppInfo) throws {
+        Log.info("Launching \(app.name) hidden")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: app.binaryPath)
+        process.environment = ProcessInfo.processInfo.environment
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        process.currentDirectoryURL = URL(fileURLWithPath: "/")
+        try process.run()
+    }
+
+    public static func launchManagedVisible(_ app: AppInfo) throws {
+        Log.info("Launching \(app.name) visible")
         let process = Process()
         process.executableURL = URL(fileURLWithPath: app.binaryPath)
         var env = ProcessInfo.processInfo.environment
-        env["DYLD_INSERT_LIBRARIES"] = dylibPath
+        env["GHOSTHIDE_START_VISIBLE"] = "1"
         process.environment = env
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice

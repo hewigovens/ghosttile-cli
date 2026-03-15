@@ -16,6 +16,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return menu
     }
 
+    func applicationDidBecomeActive(_ notification: Notification) {
+        vm?.refreshForPresentation()
+    }
+
     @objc private func hideFromDock() {
         vm?.toggleSelfDock()
     }
@@ -30,17 +34,15 @@ struct GhostTileApp: App {
     @AppStorage("onboardingComplete") private var onboardingComplete = false
 
     private func showMainWindow() {
-        vm.refresh()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [vm] in
-            vm.refresh()
-        }
         NSApp.activate(ignoringOtherApps: true)
         for window in NSApp.windows {
             if window.identifier?.rawValue.contains("main") == true || window.title == "GhostTile" {
                 window.makeKeyAndOrderFront(nil)
+                vm.refreshForPresentation()
                 return
             }
         }
+        vm.refreshForPresentation()
     }
 
     var body: some Scene {

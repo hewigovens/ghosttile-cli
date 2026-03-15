@@ -38,6 +38,7 @@ class AppViewModel: ObservableObject {
     private var lastAttentionNotificationAt: [String: Date] = [:]
     private var configDirectoryMonitor: DispatchSourceFileSystemObject?
     private var configFileMonitor: DispatchSourceFileSystemObject?
+    private var pendingPresentationRefresh: DispatchWorkItem?
 
     var cliPath: String {
         let installed = "/usr/local/bin/ghosttile"
@@ -212,6 +213,16 @@ class AppViewModel: ObservableObject {
         syncAttentionObservers(bundleIds: Set(config.hidden.keys))
     }
 
+    func refreshForPresentation() {
+        pendingPresentationRefresh?.cancel()
+        refresh()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.refresh()
+        }
+        pendingPresentationRefresh = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45, execute: workItem)
+    }
+
     // MARK: - Hide a running app
 
     func hideRunningApp(_ app: AppItem) {
@@ -269,7 +280,13 @@ class AppViewModel: ObservableObject {
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
-                try AppManager.launchNormal(app.appPath)
+                let info = AppInfo(
+                    bundleId: app.id,
+                    name: app.name,
+                    appPath: app.appPath,
+                    binaryPath: app.binaryPath
+                )
+                try AppManager.launchManagedVisible(info)
                 self?.scheduleRefresh(after: 0.75)
             } catch {
                 Log.error("Launch failed for \(app.name): \(error)")
@@ -422,12 +439,11 @@ class AppViewModel: ObservableObject {
             }
             return
         }
-        let dylibPath = try Dylib.ensureDylib()
         if try AppManager.needsPreparation(info) {
             try AppManager.prepare(info)
         }
         try AppManager.quit(bundleId)
-        try AppManager.launchHidden(info, dylibPath: dylibPath)
+        try AppManager.launchHidden(info)
         try Config.addHidden(
             bundleId,
             app: HiddenApp(

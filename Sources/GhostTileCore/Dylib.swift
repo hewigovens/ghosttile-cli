@@ -1,6 +1,8 @@
 import Foundation
 
 public enum Dylib {
+    public static let installName = MachOEditor.ghosthideInstallName
+
     /// Path to the bundled dylib in the app's Resources or next to the CLI binary.
     public static var bundledPath: String? {
         let execURL = Bundle.main.executableURL
@@ -18,6 +20,11 @@ public enum Dylib {
         if FileManager.default.fileExists(atPath: cliPath) { return cliPath }
 
         return nil
+    }
+
+    public static func bundleInstallPath(forAppPath appPath: String) -> String {
+        URL(fileURLWithPath: appPath)
+            .appendingPathComponent("Contents/Frameworks/ghosthide.dylib").path
     }
 
     /// Returns the packaged dylib path for the app bundle or installed CLI.

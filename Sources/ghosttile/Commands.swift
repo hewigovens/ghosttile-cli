@@ -10,7 +10,6 @@ extension GhostTile {
         @Argument(help: "Bundle ID, app name, or app bundle path.") var app: String
 
         func run() throws {
-            let dylibPath = try Dylib.ensureDylib()
             let resolved = try AppManager.resolve(app)
             let config = Config.load()
 
@@ -41,7 +40,7 @@ extension GhostTile {
 
             print("Restarting \(resolved.name)...")
             try AppManager.quit(resolved.bundleId)
-            try AppManager.launchHidden(resolved, dylibPath: dylibPath)
+            try AppManager.launchHidden(resolved)
 
             try Config.addHidden(
                 resolved.bundleId,
