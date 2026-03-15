@@ -376,29 +376,14 @@ class AppViewModel: ObservableObject {
 
         let config = Config.load()
         guard let hiddenApp = config.hidden[bundleId] else { return }
-        Log.info("Auto-hiding relaunched app: \(hiddenApp.name) (\(bundleId))")
+        Log.info("Sending auto-hide notification for launched managed app: \(hiddenApp.name) (\(bundleId))")
 
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 1.0) {
             [weak self] in
             let running = NSRunningApplication.runningApplications(
                 withBundleIdentifier: bundleId)
             guard let proc = running.first, proc.activationPolicy == .regular else { return }
-
-            DispatchQueue.main.async { self?.loading.insert(bundleId) }
-
-            do {
-                try self?.hideApp(
-                    bundleId: bundleId, name: hiddenApp.name,
-                    appPath: hiddenApp.appPath, binaryPath: hiddenApp.binaryPath
-                )
-            } catch {
-                DispatchQueue.main.async {
-                    self?.errorMessage = error.localizedDescription
-                    self?.showError = true
-                }
-            }
-
-            self?.completeOperation(for: bundleId)
+            self?.sendDockVisibilityNotification(bundleId: bundleId, hidden: true, refreshDelay: 0)
         }
     }
 
