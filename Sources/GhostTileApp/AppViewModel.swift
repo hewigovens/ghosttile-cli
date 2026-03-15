@@ -5,7 +5,6 @@ import os.log
 
 class AppViewModel: ObservableObject {
     private static let postOperationRefreshDelay: TimeInterval = 1.5
-    private static let startupNotificationProbeDelay: TimeInterval = 0.75
     private static let attentionNotificationCooldown: TimeInterval = 10
 
     struct AppItem: Identifiable {
@@ -468,48 +467,8 @@ class AppViewModel: ObservableObject {
             return
         }
 
-        Log.info("Probing \(hiddenApp.name) with hide notification on startup")
+        Log.info("Sending hide notification to \(hiddenApp.name) on startup")
         sendDockVisibilityNotification(bundleId: bundleId, hidden: true, refreshDelay: 0)
-
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(
-            deadline: .now() + Self.startupNotificationProbeDelay
-        ) { [weak self] in
-            guard let self else { return }
-
-            let updated = NSRunningApplication.runningApplications(
-                withBundleIdentifier: bundleId)
-            guard let current = updated.first else {
-                self.scheduleRefresh(after: 0)
-                return
-            }
-
-            if current.activationPolicy == .accessory {
-                Log.info("\(hiddenApp.name) responded to startup hide notification")
-                self.scheduleRefresh(after: 0)
-                return
-            }
-
-            Log.info("\(hiddenApp.name) still visible on startup, reapplying injection")
-            DispatchQueue.main.async {
-                self.loading.insert(bundleId)
-            }
-
-            do {
-                try self.hideApp(
-                    bundleId: bundleId,
-                    name: hiddenApp.name,
-                    appPath: hiddenApp.appPath,
-                    binaryPath: hiddenApp.binaryPath
-                )
-            } catch {
-                DispatchQueue.main.async {
-                    self.errorMessage = error.localizedDescription
-                    self.showError = true
-                }
-            }
-
-            self.completeOperation(for: bundleId)
-        }
     }
 
     private func sendDockVisibilityNotification(
