@@ -1,11 +1,8 @@
 #import <Cocoa/Cocoa.h>
 #import <ApplicationServices/ApplicationServices.h>
-#import <dlfcn.h>
 #import <objc/runtime.h>
 
 static IMP _original_setActivationPolicy = NULL;
-static OSStatus (*_original_TransformProcessType)(const ProcessSerialNumber *psn,
-                                                  ProcessApplicationTransformState transformState) = NULL;
 static BOOL _ghosthide_active = YES;
 static id _ghosthide_badgeObserver = nil;
 
@@ -54,24 +51,10 @@ static void _ghosthide_setActivationPolicy(id self, SEL _cmd,
     }
 }
 
-static OSStatus _call_original_transform(ProcessApplicationTransformState transformState) {
-    ProcessSerialNumber psn = {0, kCurrentProcess};
-    if (_original_TransformProcessType) {
-        return _original_TransformProcessType(&psn, transformState);
-    }
-    return noErr;
-}
-
 static OSStatus _ghosthide_TransformProcessType(const ProcessSerialNumber *psn,
                                                 ProcessApplicationTransformState transformState) {
-    if (_ghosthide_active) {
-        return noErr;
-    }
-
-    if (_original_TransformProcessType) {
-        return _original_TransformProcessType(psn, transformState);
-    }
-
+    (void)psn;
+    (void)transformState;
     return noErr;
 }
 
@@ -90,16 +73,11 @@ static void _ghosthide_apply_hidden_state(BOOL hidden) {
                    @selector(setActivationPolicy:),
                    hidden ? NSApplicationActivationPolicyAccessory
                           : NSApplicationActivationPolicyRegular);
-    _call_original_transform(hidden
-                                 ? kProcessTransformToUIElementApplication
-                                 : kProcessTransformToForegroundApplication);
 }
 
 __attribute__((constructor))
 static void ghosthide_load(void) {
     if (getenv("GHOSTHIDE_DISABLE")) return;
-
-    _original_TransformProcessType = dlsym(RTLD_NEXT, "TransformProcessType");
 
     Method m = class_getInstanceMethod([NSApplication class],
                                        @selector(setActivationPolicy:));
