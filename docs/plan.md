@@ -311,11 +311,17 @@
 ### Implemented
 
 - Ported `TransformProcessType` interception into the bundled injected helper and the inline fallback source.
-- Show, hide, and toggle notifications now drive both activation-policy and process-type transitions.
+- Added persistent helper loading by patching managed binaries with `LC_LOAD_DYLIB @rpath/ghosthide.dylib` and staging the helper in `Contents/Frameworks`.
+- Restored the release helper to the minimal useful hooks:
+  - `setActivationPolicy:`
+  - `activateIgnoringOtherApps:`
+  - `TransformProcessType`
+- Documented the Electron and Dock-click investigation in `docs/hook-debugging.md`.
 
 ## Later Work
 
-- Live validation against apps that aggressively re-promote themselves to the Dock.
+- Add an optional sticky-hidden mode for apps that re-promote themselves from Dock or tray activation.
+- Live validation against more apps that aggressively re-promote themselves to the Dock.
 - Further Raycast UX polish now that the CLI contract is stable.
 
 ## Execution Order

@@ -5,6 +5,11 @@
 #import "fishhook.h"
 
 static IMP _original_setActivationPolicy = NULL;
+static IMP _original_activateIgnoringOtherApps = NULL;
+#if GHOSTHIDE_DEBUG
+static IMP _original_makeKeyAndOrderFront = NULL;
+static IMP _original_runningApplicationActivateWithOptions = NULL;
+#endif
 static OSStatus (*_original_TransformProcessType)(const ProcessSerialNumber *psn,
                                                   ProcessApplicationTransformState transformState) = NULL;
 static BOOL _ghosthide_active = YES;
@@ -83,6 +88,46 @@ static void _ghosthide_setActivationPolicy(id self, SEL _cmd,
                     (long)policy, _ghosthide_active]);
 }
 
+static void _ghosthide_activateIgnoringOtherApps(id self, SEL _cmd, BOOL flag) {
+    _ghosthide_log([NSString stringWithFormat:@"activateIgnoringOtherApps intercepted, flag=%d hidden=%d",
+                    flag, _ghosthide_active]);
+    if (!_ghosthide_active && _original_activateIgnoringOtherApps) {
+        ((void(*)(id, SEL, BOOL))_original_activateIgnoringOtherApps)(self, _cmd, flag);
+    }
+}
+
+#if GHOSTHIDE_DEBUG
+static void _ghosthide_makeKeyAndOrderFront(id self, SEL _cmd, id sender) {
+    NSString *windowTitle = nil;
+    if ([self respondsToSelector:@selector(title)]) {
+        windowTitle = [self performSelector:@selector(title)];
+    }
+    _ghosthide_log([NSString stringWithFormat:@"makeKeyAndOrderFront intercepted, window=%@ sender=%@ hidden=%d",
+                    windowTitle.length > 0 ? windowTitle : @"untitled",
+                    sender ? NSStringFromClass([sender class]) : @"nil",
+                    _ghosthide_active]);
+    if (!_ghosthide_active && _original_makeKeyAndOrderFront) {
+        ((void(*)(id, SEL, id))_original_makeKeyAndOrderFront)(self, _cmd, sender);
+    }
+}
+
+static BOOL _ghosthide_runningApplicationActivateWithOptions(id self, SEL _cmd, NSApplicationActivationOptions options) {
+    NSString *bundleId = nil;
+    if ([self respondsToSelector:@selector(bundleIdentifier)]) {
+        bundleId = [self performSelector:@selector(bundleIdentifier)];
+    }
+    _ghosthide_log([NSString stringWithFormat:@"NSRunningApplication activateWithOptions intercepted, bundle=%@ options=%lu hidden=%d",
+                    bundleId ?: @"unknown",
+                    (unsigned long)options,
+                    _ghosthide_active]);
+    if (_original_runningApplicationActivateWithOptions) {
+        return ((BOOL(*)(id, SEL, NSApplicationActivationOptions))
+                _original_runningApplicationActivateWithOptions)(self, _cmd, options);
+    }
+    return NO;
+}
+#endif
+
 static OSStatus _ghosthide_TransformProcessType(const ProcessSerialNumber *psn,
                                                 ProcessApplicationTransformState transformState) {
     (void)psn;
@@ -96,10 +141,10 @@ static void _ghosthide_hookTransformProcessType(void) {
     _original_TransformProcessType = dlsym(RTLD_DEFAULT, "TransformProcessType");
     _ghosthide_log([NSString stringWithFormat:@"hooking TransformProcessType, original=%p",
                     _original_TransformProcessType]);
-    struct rebinding rebindings[] = {
-        {"TransformProcessType", (void *)_ghosthide_TransformProcessType, (void **)&_original_TransformProcessType},
-    };
-    int result = rebind_symbols(rebindings, 1);
+    struct rebinding rebindings[1];
+    size_t count = 0;
+    rebindings[count++] = (struct rebinding){"TransformProcessType", (void *)_ghosthide_TransformProcessType, (void **)&_original_TransformProcessType};
+    int result = rebind_symbols(rebindings, (int)count);
     _ghosthide_log([NSString stringWithFormat:@"rebind_symbols result=%d replaced=%p",
                     result, _original_TransformProcessType]);
 }
@@ -157,6 +202,35 @@ static void ghosthide_load(void) {
         _ghosthide_log([NSString stringWithFormat:@"hooked setActivationPolicy original=%p",
                         _original_setActivationPolicy]);
     }
+
+    Method activateMethod = class_getInstanceMethod([NSApplication class],
+                                                    @selector(activateIgnoringOtherApps:));
+    if (activateMethod) {
+        _original_activateIgnoringOtherApps = method_getImplementation(activateMethod);
+        method_setImplementation(activateMethod, (IMP)_ghosthide_activateIgnoringOtherApps);
+        _ghosthide_log([NSString stringWithFormat:@"hooked activateIgnoringOtherApps original=%p",
+                        _original_activateIgnoringOtherApps]);
+    }
+
+#if GHOSTHIDE_DEBUG
+    Method makeKeyAndOrderFrontMethod = class_getInstanceMethod([NSWindow class],
+                                                                @selector(makeKeyAndOrderFront:));
+    if (makeKeyAndOrderFrontMethod) {
+        _original_makeKeyAndOrderFront = method_getImplementation(makeKeyAndOrderFrontMethod);
+        method_setImplementation(makeKeyAndOrderFrontMethod, (IMP)_ghosthide_makeKeyAndOrderFront);
+        _ghosthide_log([NSString stringWithFormat:@"hooked makeKeyAndOrderFront original=%p",
+                        _original_makeKeyAndOrderFront]);
+    }
+
+    Method runningActivateMethod = class_getInstanceMethod([NSRunningApplication class],
+                                                           @selector(activateWithOptions:));
+    if (runningActivateMethod) {
+        _original_runningApplicationActivateWithOptions = method_getImplementation(runningActivateMethod);
+        method_setImplementation(runningActivateMethod, (IMP)_ghosthide_runningApplicationActivateWithOptions);
+        _ghosthide_log([NSString stringWithFormat:@"hooked NSRunningApplication activateWithOptions original=%p",
+                        _original_runningApplicationActivateWithOptions]);
+    }
+#endif
 
     _ghosthide_hookTransformProcessType();
 
