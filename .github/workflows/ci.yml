@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - "feature/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-26
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: extensions/raycast/package-lock.json
+
+      - name: Install just
+        run: brew install just
+
+      - name: Build Swift package
+        run: swift build
+
+      - name: Build app bundle
+        run: just build
+
+      - name: Install Raycast extension dependencies
+        working-directory: extensions/raycast
+        run: npm ci
+
+      - name: Typecheck Raycast extension
+        working-directory: extensions/raycast
+        run: npm run typecheck
