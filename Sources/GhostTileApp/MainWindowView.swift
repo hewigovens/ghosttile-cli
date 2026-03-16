@@ -5,6 +5,7 @@ import SwiftUI
 struct MainWindowView: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var vm: AppViewModel
+    @ObservedObject private var sponsorNudge = SponsorNudgeController.shared
 
     @State private var dropTargeted = false
     @State private var query = ""
@@ -47,6 +48,19 @@ struct MainWindowView: View {
             Button("OK") {}
         } message: {
             Text(vm.errorMessage)
+        }
+        .alert("Support GhostTile", isPresented: $sponsorNudge.isPresented) {
+            Button("Sponsor on GitHub") {
+                sponsorNudge.openSponsorsPage()
+            }
+            Button("Not Now", role: .cancel) {
+                sponsorNudge.remindLater()
+            }
+            Button("Don't Ask Again", role: .destructive) {
+                sponsorNudge.stopPrompting()
+            }
+        } message: {
+            Text("If GhostTile is useful in your daily workflow, sponsoring helps fund ongoing macOS compatibility work.")
         }
         .sheet(isPresented: Binding(
             get: { vm.sudoCommand != nil },

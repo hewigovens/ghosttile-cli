@@ -2,29 +2,45 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "ghosttile",
   "title": "GhostTile",
-  "description": "Show / Hide apps from Dock",
-  "icon": "extension-icon.png",
+  "description": "Manage GhostTile apps from Raycast.",
+  "icon": "assets/extension-icon.png",
+  "packageManager": "pnpm@10.8.1",
   "author": "hewigovens",
   "owner": "hewig-dev",
   "platforms": [
-    "macOS",
-    "Windows"
+    "macOS"
   ],
   "categories": [
+    "Developer Tools",
     "Productivity"
   ],
   "license": "MIT",
+  "preferences": [
+    {
+      "name": "ghosttilePath",
+      "type": "textfield",
+      "title": "GhostTile Binary Path",
+      "description": "Optional absolute path to the ghosttile CLI.",
+      "required": false,
+      "placeholder": "/usr/local/bin/ghosttile"
+    }
+  ],
   "commands": [
     {
-      "name": "ghosttile",
-      "title": "ghosttile",
-      "description": "",
+      "name": "managed-apps",
+      "title": "Managed Apps",
+      "subtitle": "GhostTile",
+      "description": "Show and control your managed GhostTile apps.",
+      "keywords": [
+        "gt",
+        "hidden",
+        "dock"
+      ],
       "mode": "view"
     }
   ],
   "dependencies": {
-    "@raycast/api": "^1.104.9",
-    "@raycast/utils": "^1.17.0"
+    "@raycast/api": "^1.104.9"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^2.0.4",
@@ -39,6 +55,7 @@
     "dev": "ray develop",
     "fix-lint": "ray lint --fix",
     "lint": "ray lint",
+    "typecheck": "tsc --noEmit",
     "prepublishOnly": "echo \"\\n\\nIt seems like you are trying to publish the Raycast extension to npm.\\n\\nIf you did intend to publish it to npm, remove the \\`prepublishOnly\\` script and rerun \\`npm publish\\` again.\\nIf you wanted to publish it to the Raycast Store instead, use \\`npm run publish\\` instead.\\n\\n\" && exit 1",
     "publish": "npx @raycast/api@latest publish"
   }

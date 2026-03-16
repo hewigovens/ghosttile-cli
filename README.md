@@ -166,9 +166,9 @@ When installing the CLI from GhostTile Settings, the app also installs the compa
 
 ## Raycast Extension
 
-A local Raycast extension scaffold lives in `extensions/raycast`.
+The active local Raycast extension lives in `extensions/raycast`.
 
-It shells out to the `ghosttile` CLI and uses `ghosttile list --json` plus `ghosttile status --json` for stable machine-readable state.
+It shells out to the `ghosttile` CLI and uses `ghosttile status --json` for stable managed-app state.
 
 ## Build From Source
 

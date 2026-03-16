@@ -101,8 +101,8 @@
 ### Tasks
 
 - Scaffold a local Raycast extension that shells out to `ghosttile`.
-- Use `ghosttile list --json` and `ghosttile status --json` as the integration surface.
-- Expose actions for manage, show, hide, focus, restore, and reveal in Finder.
+- Use `ghosttile status --json` as the integration surface for managed apps.
+- Expose focused actions for managed apps instead of duplicating the full app surface.
 
 ### Files
 
@@ -115,9 +115,10 @@
 
 ### Implemented
 
-- Added a local Raycast extension scaffold in `extensions/raycast`.
+- Added a local Raycast extension in `extensions/raycast`.
 - The extension now treats the installed GhostTile CLI as the canonical backend instead of reaching into workspace build products.
-- Validated the extension package with `npm install` and `npm run typecheck`.
+- Simplified the extension so it only shows managed apps and their relevant actions.
+- Validated the extension package with `pnpm install` and `pnpm run typecheck`.
 
 ## Phase 3: Attention Notifications [Implemented, Needs Validation]
 
@@ -346,7 +347,7 @@
 ### Implemented
 
 - Added shared build metadata so the app and CLI now report the same version and build number.
-- Added a GitHub Actions workflow on `macos-26` that runs `swift build`, `just build`, and Raycast `npm run typecheck`.
+- Added a GitHub Actions workflow on `macos-26` that runs `swift build`, `just build`, and Raycast `pnpm run typecheck`.
 
 ## Later Work
 

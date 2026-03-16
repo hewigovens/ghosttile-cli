@@ -19,21 +19,9 @@ export type GhostTileAppRecord = {
   pid?: number;
 };
 
-export async function loadGhostTileApps(): Promise<{
-  managed: GhostTileAppRecord[];
-  running: GhostTileAppRecord[];
-}> {
-  const [managedOutput, runningOutput] = await Promise.all([
-    runGhosttile(["status", "--json"]),
-    runGhosttile(["list", "--json"]),
-  ]);
-
-  const managed = parseRecords(managedOutput).sort(byName);
-  const running = parseRecords(runningOutput)
-    .filter((app) => !app.managed)
-    .sort(byName);
-
-  return { managed, running };
+export async function loadManagedGhostTileApps(): Promise<GhostTileAppRecord[]> {
+  const output = await runGhosttile(["status", "--json"]);
+  return parseRecords(output).sort(byName);
 }
 
 export async function runGhosttile(args: string[]): Promise<string> {
@@ -61,10 +49,6 @@ export async function runGhosttile(args: string[]): Promise<string> {
   }
 
   throw new Error(formatCommandError(lastError, attempted));
-}
-
-export async function revealInFinder(appPath: string): Promise<void> {
-  await execFileAsync("/usr/bin/open", ["-R", appPath]);
 }
 
 function parseRecords(output: string): GhostTileAppRecord[] {

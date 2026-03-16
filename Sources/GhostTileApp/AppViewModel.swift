@@ -244,6 +244,7 @@ class AppViewModel: ObservableObject {
                     bundleId: app.id, name: app.name,
                     appPath: app.appPath, binaryPath: app.binaryPath
                 )
+                self?.recordSponsorUse()
             } catch {
                 Log.error("Hide failed for \(app.name): \(error)")
                 DispatchQueue.main.async {
@@ -261,11 +262,13 @@ class AppViewModel: ObservableObject {
     func showAppInDock(_ app: AppItem) {
         guard app.isRunning else { return }
         sendDockVisibilityNotification(bundleId: app.id, hidden: false)
+        recordSponsorUse()
     }
 
     func hideAppFromDock(_ app: AppItem) {
         guard app.isRunning else { return }
         sendDockVisibilityNotification(bundleId: app.id, hidden: true)
+        recordSponsorUse()
     }
 
     func managedApp(bundleId: String) -> AppItem? {
@@ -275,6 +278,7 @@ class AppViewModel: ObservableObject {
     func activateManagedApp(_ app: AppItem) {
         if let running = NSRunningApplication.runningApplications(withBundleIdentifier: app.id).first {
             running.activate()
+            recordSponsorUse()
             return
         }
 
@@ -287,6 +291,7 @@ class AppViewModel: ObservableObject {
                     binaryPath: app.binaryPath
                 )
                 try AppManager.launchManagedVisible(info)
+                self?.recordSponsorUse()
                 self?.scheduleRefresh(after: 0.75)
             } catch {
                 Log.error("Launch failed for \(app.name): \(error)")
@@ -335,6 +340,7 @@ class AppViewModel: ObservableObject {
                 if wasRunning {
                     try AppManager.launchNormal(app.appPath)
                 }
+                self?.recordSponsorUse()
             } catch {
                 Log.error("Remove failed for \(app.name): \(error)")
                 DispatchQueue.main.async {
@@ -487,6 +493,12 @@ class AppViewModel: ObservableObject {
     private func scheduleRefresh(after delay: TimeInterval = 0) {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             self?.refresh()
+        }
+    }
+
+    private func recordSponsorUse() {
+        Task { @MainActor in
+            SponsorNudgeController.shared.recordMeaningfulUse()
         }
     }
 

@@ -39,10 +39,12 @@ struct GhostTileApp: App {
             if window.identifier?.rawValue.contains("main") == true || window.title == "GhostTile" {
                 window.makeKeyAndOrderFront(nil)
                 vm.refreshForPresentation()
+                SponsorNudgeController.shared.considerPrompt()
                 return
             }
         }
         vm.refreshForPresentation()
+        SponsorNudgeController.shared.considerPrompt()
     }
 
     var body: some Scene {
@@ -75,6 +77,7 @@ struct GhostTileApp: App {
                 }
                 AttentionNotificationController.shared.start(viewModel: vm)
                 appDelegate.vm = vm
+                SponsorNudgeController.shared.considerPrompt()
             }
         }
         .defaultSize(width: 1040, height: 760)

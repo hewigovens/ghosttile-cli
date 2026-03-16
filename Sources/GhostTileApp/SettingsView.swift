@@ -9,6 +9,8 @@ struct SettingsView: View {
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("showInDock") private var showInDock = false
     @State private var cliStatus: CLIInstallStatus = .checking
+    @State private var versionTapCount = 0
+    @State private var lastVersionTapAt = Date.distantPast
 
     enum CLIInstallStatus {
         case checking, notInstalled, installed, failed(String)
@@ -208,9 +210,10 @@ struct SettingsView: View {
 
                             Divider().padding(.leading, 42)
 
-                            plainInfoRow(
+                            infoRow(
                                 title: "Log",
-                                value: displayLogPath
+                                value: displayLogPath,
+                                symbol: nil
                             )
                             .contentShape(Rectangle())
                             .onTapGesture(count: 2, perform: openLogInConsole)
@@ -232,14 +235,18 @@ struct SettingsView: View {
                                 }(),
                                 symbol: "shippingbox"
                             )
+                            .contentShape(Rectangle())
+                            .onTapGesture(perform: handleVersionTap)
 
                             Divider().padding(.leading, 42)
 
-                            linkRow(
+                            actionRow(
                                 title: "Sponsor on GitHub",
                                 value: "",
                                 symbol: "heart",
-                                url: URL(string: "https://github.com/sponsors/hewigovens")!
+                                action: {
+                                    SponsorNudgeController.shared.openSponsorsPage()
+                                }
                             )
                         }
                     }
@@ -377,17 +384,22 @@ struct SettingsView: View {
     private func infoRow(
         title: String,
         value: String,
-        symbol: String
+        symbol: String?
     ) -> some View {
         HStack(alignment: .center, spacing: 12) {
-            Image(systemName: symbol)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 28)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.primary.opacity(0.05))
-                )
+            if let symbol, !symbol.isEmpty {
+                Image(systemName: symbol)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.primary.opacity(0.05))
+                    )
+            } else {
+                Color.clear
+                    .frame(width: 28, height: 28)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -402,32 +414,14 @@ struct SettingsView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func plainInfoRow(
-        title: String,
-        value: String
-    ) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            Text(title)
-                .font(.system(size: 13, weight: .medium))
-
-            Spacer()
-
-            Text(value)
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-        }
-        .padding(.leading, 40)
-    }
-
-    private func linkRow(
+    private func actionRow(
         title: String,
         value: String,
         symbol: String,
-        url: URL
+        action: @escaping () -> Void
     ) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: symbol)
@@ -446,7 +440,7 @@ struct SettingsView: View {
 
             Spacer()
 
-            Link(destination: url) {
+            Button(action: action) {
                 HStack(spacing: 6) {
                     Text(value)
                         .font(.system(size: 12, weight: .medium))
@@ -600,6 +594,21 @@ struct SettingsView: View {
             try process.run()
         } catch {
             Log.error("Failed to open log in Console: \(error)")
+        }
+    }
+
+    private func handleVersionTap() {
+        let now = Date()
+        if now.timeIntervalSince(lastVersionTapAt) > 1.2 {
+            versionTapCount = 0
+        }
+
+        versionTapCount += 1
+        lastVersionTapAt = now
+
+        if versionTapCount >= 5 {
+            versionTapCount = 0
+            SponsorNudgeController.shared.presentForTesting()
         }
     }
 }
