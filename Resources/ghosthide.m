@@ -6,49 +6,13 @@
 
 static IMP _original_setActivationPolicy = NULL;
 static IMP _original_activateIgnoringOtherApps = NULL;
-#if GHOSTHIDE_DEBUG
-static IMP _original_makeKeyAndOrderFront = NULL;
-static IMP _original_runningApplicationActivateWithOptions = NULL;
-#endif
 static OSStatus (*_original_TransformProcessType)(const ProcessSerialNumber *psn,
                                                   ProcessApplicationTransformState transformState) = NULL;
 static BOOL _ghosthide_active = YES;
 static id _ghosthide_badgeObserver = nil;
 
-#if GHOSTHIDE_DEBUG
-static void _ghosthide_log(NSString *message) {
-    @autoreleasepool {
-        NSString *configDir = [NSHomeDirectory() stringByAppendingPathComponent:@".config/ghosttile"];
-        [[NSFileManager defaultManager] createDirectoryAtPath:configDir
-                                  withIntermediateDirectories:YES
-                                                   attributes:nil
-                                                        error:nil];
-
-        NSString *logPath = [configDir stringByAppendingPathComponent:@"ghosthide.log"];
-        NSString *bundleId = [[NSBundle mainBundle] bundleIdentifier] ?: @"unknown.bundle";
-        NSString *line = [NSString stringWithFormat:@"%@ [%@:%d] %@\n",
-                          [[NSDate date] description],
-                          bundleId,
-                          getpid(),
-                          message];
-        NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:logPath];
-        if (!handle) {
-            [line writeToFile:logPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
-            return;
-        }
-        @try {
-            [handle seekToEndOfFile];
-            [handle writeData:[line dataUsingEncoding:NSUTF8StringEncoding]];
-            [handle closeFile];
-        }
-        @catch (__unused NSException *exception) {
-        }
-    }
-}
-#else
-static void _ghosthide_log(__unused NSString *message) {
-}
-#endif
+static void _ghosthide_log(NSString *message);
+static void _ghosthide_install_debug_hooks(void);
 
 @interface GhostTileBadgeObserver : NSObject
 @property (nonatomic, copy) NSString *bundleId;
@@ -57,9 +21,9 @@ static void _ghosthide_log(__unused NSString *message) {
 @implementation GhostTileBadgeObserver
 
 - (void)observeValueForKeyPath:(NSString *)keyPath
-                      ofObject:(id)object
+                      ofObject:(__unused id)object
                         change:(NSDictionary<NSKeyValueChangeKey, id> *)change
-                       context:(void *)context {
+                       context:(__unused void *)context {
     if (![keyPath isEqualToString:@"badgeLabel"] || !_ghosthide_active) {
         return;
     }
@@ -80,10 +44,53 @@ static void _ghosthide_log(__unused NSString *message) {
 
 @end
 
-static void _ghosthide_setActivationPolicy(id self, SEL _cmd,
-                                            NSApplicationActivationPolicy policy) {
-    (void)self;
-    (void)_cmd;
+static BOOL _ghosthide_start_visible(void) {
+    return getenv("GHOSTHIDE_START_VISIBLE") != NULL;
+}
+
+static NSString *_ghosthide_bundle_id(void) {
+    return [[NSBundle mainBundle] bundleIdentifier] ?: @"unknown.bundle";
+}
+
+static void _ghosthide_swizzle_instance_method(Class cls, SEL selector, IMP replacement, IMP *original, NSString *label) {
+    Method method = class_getInstanceMethod(cls, selector);
+    if (!method) {
+        _ghosthide_log([NSString stringWithFormat:@"missing method for %@", label]);
+        return;
+    }
+
+    *original = method_getImplementation(method);
+    method_setImplementation(method, replacement);
+    _ghosthide_log([NSString stringWithFormat:@"hooked %@ original=%p", label, *original]);
+}
+
+static void _ghosthide_observe_notification(NSDistributedNotificationCenter *center,
+                                            NSString *bundleId,
+                                            NSString *action,
+                                            void (^handler)(void)) {
+    NSString *name = [NSString stringWithFormat:@"%@.ghosttile.%@", bundleId, action];
+    [center addObserverForName:name
+                        object:nil
+                         queue:[NSOperationQueue mainQueue]
+                    usingBlock:^(__unused NSNotification *note) {
+        _ghosthide_log([NSString stringWithFormat:@"received %@ notification", action]);
+        handler();
+    }];
+}
+
+static void _ghosthide_install_badge_observer(NSString *bundleId) {
+    NSDockTile *dockTile = [[NSApplication sharedApplication] dockTile];
+    _ghosthide_badgeObserver = [GhostTileBadgeObserver new];
+    [_ghosthide_badgeObserver setBundleId:bundleId];
+    [dockTile addObserver:_ghosthide_badgeObserver
+               forKeyPath:@"badgeLabel"
+                  options:NSKeyValueObservingOptionNew
+                  context:nil];
+}
+
+static void _ghosthide_setActivationPolicy(__unused id self,
+                                           __unused SEL _cmd,
+                                           NSApplicationActivationPolicy policy) {
     _ghosthide_log([NSString stringWithFormat:@"setActivationPolicy intercepted, requested=%ld hidden=%d",
                     (long)policy, _ghosthide_active]);
 }
@@ -96,44 +103,11 @@ static void _ghosthide_activateIgnoringOtherApps(id self, SEL _cmd, BOOL flag) {
     }
 }
 
-#if GHOSTHIDE_DEBUG
-static void _ghosthide_makeKeyAndOrderFront(id self, SEL _cmd, id sender) {
-    NSString *windowTitle = nil;
-    if ([self respondsToSelector:@selector(title)]) {
-        windowTitle = [self performSelector:@selector(title)];
-    }
-    _ghosthide_log([NSString stringWithFormat:@"makeKeyAndOrderFront intercepted, window=%@ sender=%@ hidden=%d",
-                    windowTitle.length > 0 ? windowTitle : @"untitled",
-                    sender ? NSStringFromClass([sender class]) : @"nil",
-                    _ghosthide_active]);
-    if (!_ghosthide_active && _original_makeKeyAndOrderFront) {
-        ((void(*)(id, SEL, id))_original_makeKeyAndOrderFront)(self, _cmd, sender);
-    }
-}
-
-static BOOL _ghosthide_runningApplicationActivateWithOptions(id self, SEL _cmd, NSApplicationActivationOptions options) {
-    NSString *bundleId = nil;
-    if ([self respondsToSelector:@selector(bundleIdentifier)]) {
-        bundleId = [self performSelector:@selector(bundleIdentifier)];
-    }
-    _ghosthide_log([NSString stringWithFormat:@"NSRunningApplication activateWithOptions intercepted, bundle=%@ options=%lu hidden=%d",
-                    bundleId ?: @"unknown",
-                    (unsigned long)options,
-                    _ghosthide_active]);
-    if (_original_runningApplicationActivateWithOptions) {
-        return ((BOOL(*)(id, SEL, NSApplicationActivationOptions))
-                _original_runningApplicationActivateWithOptions)(self, _cmd, options);
-    }
-    return NO;
-}
-#endif
-
 static OSStatus _ghosthide_TransformProcessType(const ProcessSerialNumber *psn,
                                                 ProcessApplicationTransformState transformState) {
     (void)psn;
     _ghosthide_log([NSString stringWithFormat:@"TransformProcessType intercepted, requested=%u hidden=%d",
                     (unsigned int)transformState, _ghosthide_active]);
-    (void)transformState;
     return noErr;
 }
 
@@ -141,10 +115,13 @@ static void _ghosthide_hookTransformProcessType(void) {
     _original_TransformProcessType = dlsym(RTLD_DEFAULT, "TransformProcessType");
     _ghosthide_log([NSString stringWithFormat:@"hooking TransformProcessType, original=%p",
                     _original_TransformProcessType]);
-    struct rebinding rebindings[1];
-    size_t count = 0;
-    rebindings[count++] = (struct rebinding){"TransformProcessType", (void *)_ghosthide_TransformProcessType, (void **)&_original_TransformProcessType};
-    int result = rebind_symbols(rebindings, (int)count);
+
+    struct rebinding rebinding = {
+        "TransformProcessType",
+        (void *)_ghosthide_TransformProcessType,
+        (void **)&_original_TransformProcessType
+    };
+    int result = rebind_symbols(&rebinding, 1);
     _ghosthide_log([NSString stringWithFormat:@"rebind_symbols result=%d replaced=%p",
                     result, _original_TransformProcessType]);
 }
@@ -188,88 +165,132 @@ static void _ghosthide_apply_hidden_state(BOOL hidden) {
                                    : kProcessTransformToForegroundApplication);
 }
 
+static void _ghosthide_install_core_hooks(void) {
+    _ghosthide_swizzle_instance_method([NSApplication class],
+                                       @selector(setActivationPolicy:),
+                                       (IMP)_ghosthide_setActivationPolicy,
+                                       &_original_setActivationPolicy,
+                                       @"setActivationPolicy");
+    _ghosthide_swizzle_instance_method([NSApplication class],
+                                       @selector(activateIgnoringOtherApps:),
+                                       (IMP)_ghosthide_activateIgnoringOtherApps,
+                                       &_original_activateIgnoringOtherApps,
+                                       @"activateIgnoringOtherApps");
+    _ghosthide_hookTransformProcessType();
+}
+
+static void _ghosthide_configure_notifications(NSString *bundleId) {
+    NSDistributedNotificationCenter *center = [NSDistributedNotificationCenter defaultCenter];
+    _ghosthide_install_badge_observer(bundleId);
+
+    _ghosthide_observe_notification(center, bundleId, @"hide", ^{
+        _ghosthide_apply_hidden_state(YES);
+    });
+    _ghosthide_observe_notification(center, bundleId, @"show", ^{
+        _ghosthide_apply_hidden_state(NO);
+    });
+    _ghosthide_observe_notification(center, bundleId, @"toggle", ^{
+        _ghosthide_apply_hidden_state(!_ghosthide_active);
+    });
+}
+
 __attribute__((constructor))
 static void ghosthide_load(void) {
-    if (getenv("GHOSTHIDE_DISABLE")) return;
-    BOOL startVisible = getenv("GHOSTHIDE_START_VISIBLE") != NULL;
+    if (getenv("GHOSTHIDE_DISABLE")) {
+        return;
+    }
+
     _ghosthide_log(@"ghosthide_load constructor entered");
-
-    Method m = class_getInstanceMethod([NSApplication class],
-                                       @selector(setActivationPolicy:));
-    if (m) {
-        _original_setActivationPolicy = method_getImplementation(m);
-        method_setImplementation(m, (IMP)_ghosthide_setActivationPolicy);
-        _ghosthide_log([NSString stringWithFormat:@"hooked setActivationPolicy original=%p",
-                        _original_setActivationPolicy]);
-    }
-
-    Method activateMethod = class_getInstanceMethod([NSApplication class],
-                                                    @selector(activateIgnoringOtherApps:));
-    if (activateMethod) {
-        _original_activateIgnoringOtherApps = method_getImplementation(activateMethod);
-        method_setImplementation(activateMethod, (IMP)_ghosthide_activateIgnoringOtherApps);
-        _ghosthide_log([NSString stringWithFormat:@"hooked activateIgnoringOtherApps original=%p",
-                        _original_activateIgnoringOtherApps]);
-    }
-
-#if GHOSTHIDE_DEBUG
-    Method makeKeyAndOrderFrontMethod = class_getInstanceMethod([NSWindow class],
-                                                                @selector(makeKeyAndOrderFront:));
-    if (makeKeyAndOrderFrontMethod) {
-        _original_makeKeyAndOrderFront = method_getImplementation(makeKeyAndOrderFrontMethod);
-        method_setImplementation(makeKeyAndOrderFrontMethod, (IMP)_ghosthide_makeKeyAndOrderFront);
-        _ghosthide_log([NSString stringWithFormat:@"hooked makeKeyAndOrderFront original=%p",
-                        _original_makeKeyAndOrderFront]);
-    }
-
-    Method runningActivateMethod = class_getInstanceMethod([NSRunningApplication class],
-                                                           @selector(activateWithOptions:));
-    if (runningActivateMethod) {
-        _original_runningApplicationActivateWithOptions = method_getImplementation(runningActivateMethod);
-        method_setImplementation(runningActivateMethod, (IMP)_ghosthide_runningApplicationActivateWithOptions);
-        _ghosthide_log([NSString stringWithFormat:@"hooked NSRunningApplication activateWithOptions original=%p",
-                        _original_runningApplicationActivateWithOptions]);
-    }
-#endif
-
-    _ghosthide_hookTransformProcessType();
+    _ghosthide_install_core_hooks();
+    _ghosthide_install_debug_hooks();
 
     dispatch_async(dispatch_get_main_queue(), ^{
         _ghosthide_log(@"main queue initialization start");
-        _ghosthide_apply_hidden_state(!startVisible);
-
-        // Listen for show/hide/toggle notifications from GhostTile
-        NSString *bundleId = [[NSBundle mainBundle] bundleIdentifier];
-        NSDistributedNotificationCenter *nc = [NSDistributedNotificationCenter defaultCenter];
-        NSDockTile *dockTile = [[NSApplication sharedApplication] dockTile];
-
-        _ghosthide_badgeObserver = [GhostTileBadgeObserver new];
-        [_ghosthide_badgeObserver setBundleId:bundleId];
-        [dockTile addObserver:_ghosthide_badgeObserver
-                   forKeyPath:@"badgeLabel"
-                      options:NSKeyValueObservingOptionNew
-                      context:nil];
-
-        [nc addObserverForName:[NSString stringWithFormat:@"%@.ghosttile.hide", bundleId]
-            object:nil queue:[NSOperationQueue mainQueue]
-            usingBlock:^(NSNotification *note) {
-                _ghosthide_log(@"received hide notification");
-                _ghosthide_apply_hidden_state(YES);
-            }];
-
-        [nc addObserverForName:[NSString stringWithFormat:@"%@.ghosttile.show", bundleId]
-            object:nil queue:[NSOperationQueue mainQueue]
-            usingBlock:^(NSNotification *note) {
-                _ghosthide_log(@"received show notification");
-                _ghosthide_apply_hidden_state(NO);
-            }];
-
-        [nc addObserverForName:[NSString stringWithFormat:@"%@.ghosttile.toggle", bundleId]
-            object:nil queue:[NSOperationQueue mainQueue]
-            usingBlock:^(NSNotification *note) {
-                _ghosthide_log(@"received toggle notification");
-                _ghosthide_apply_hidden_state(!_ghosthide_active);
-            }];
+        _ghosthide_apply_hidden_state(!_ghosthide_start_visible());
+        _ghosthide_configure_notifications(_ghosthide_bundle_id());
         _ghosthide_log(@"main queue initialization complete");
     });
 }
+
+#if GHOSTHIDE_DEBUG
+static void _ghosthide_log(NSString *message) {
+    @autoreleasepool {
+        NSString *configDir = [NSHomeDirectory() stringByAppendingPathComponent:@".config/ghosttile"];
+        [[NSFileManager defaultManager] createDirectoryAtPath:configDir
+                                  withIntermediateDirectories:YES
+                                                   attributes:nil
+                                                        error:nil];
+
+        NSString *logPath = [configDir stringByAppendingPathComponent:@"ghosthide.log"];
+        NSString *line = [NSString stringWithFormat:@"%@ [%@:%d] %@\n",
+                          [[NSDate date] description],
+                          _ghosthide_bundle_id(),
+                          getpid(),
+                          message];
+        NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:logPath];
+        if (!handle) {
+            [line writeToFile:logPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+            return;
+        }
+        @try {
+            [handle seekToEndOfFile];
+            [handle writeData:[line dataUsingEncoding:NSUTF8StringEncoding]];
+            [handle closeFile];
+        }
+        @catch (__unused NSException *exception) {
+        }
+    }
+}
+
+static IMP _original_makeKeyAndOrderFront = NULL;
+static IMP _original_runningApplicationActivateWithOptions = NULL;
+
+static void _ghosthide_makeKeyAndOrderFront(id self, SEL _cmd, id sender) {
+    NSString *windowTitle = nil;
+    if ([self respondsToSelector:@selector(title)]) {
+        windowTitle = [self performSelector:@selector(title)];
+    }
+    _ghosthide_log([NSString stringWithFormat:@"makeKeyAndOrderFront intercepted, window=%@ sender=%@ hidden=%d",
+                    windowTitle.length > 0 ? windowTitle : @"untitled",
+                    sender ? NSStringFromClass([sender class]) : @"nil",
+                    _ghosthide_active]);
+    if (!_ghosthide_active && _original_makeKeyAndOrderFront) {
+        ((void(*)(id, SEL, id))_original_makeKeyAndOrderFront)(self, _cmd, sender);
+    }
+}
+
+static BOOL _ghosthide_runningApplicationActivateWithOptions(id self, SEL _cmd, NSApplicationActivationOptions options) {
+    NSString *bundleId = nil;
+    if ([self respondsToSelector:@selector(bundleIdentifier)]) {
+        bundleId = [self performSelector:@selector(bundleIdentifier)];
+    }
+    _ghosthide_log([NSString stringWithFormat:@"NSRunningApplication activateWithOptions intercepted, bundle=%@ options=%lu hidden=%d",
+                    bundleId ?: @"unknown",
+                    (unsigned long)options,
+                    _ghosthide_active]);
+    if (_original_runningApplicationActivateWithOptions) {
+        return ((BOOL(*)(id, SEL, NSApplicationActivationOptions))
+                _original_runningApplicationActivateWithOptions)(self, _cmd, options);
+    }
+    return NO;
+}
+
+static void _ghosthide_install_debug_hooks(void) {
+    _ghosthide_swizzle_instance_method([NSWindow class],
+                                       @selector(makeKeyAndOrderFront:),
+                                       (IMP)_ghosthide_makeKeyAndOrderFront,
+                                       &_original_makeKeyAndOrderFront,
+                                       @"makeKeyAndOrderFront");
+    _ghosthide_swizzle_instance_method([NSRunningApplication class],
+                                       @selector(activateWithOptions:),
+                                       (IMP)_ghosthide_runningApplicationActivateWithOptions,
+                                       &_original_runningApplicationActivateWithOptions,
+                                       @"NSRunningApplication activateWithOptions");
+}
+#else
+static void _ghosthide_log(__unused NSString *message) {
+}
+
+static void _ghosthide_install_debug_hooks(void) {
+}
+#endif
