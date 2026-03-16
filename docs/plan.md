@@ -318,6 +318,36 @@
   - `TransformProcessType`
 - Documented the Electron and Dock-click investigation in `docs/hook-debugging.md`.
 
+## Phase 9: Build Metadata and CI [Completed]
+
+### Objectives
+
+- Make it obvious which app and CLI build is installed.
+- Add baseline CI so regressions are caught on GitHub before release.
+
+### Tasks
+
+- Share a single build/version string across the app and CLI.
+- Surface the version and build clearly in Settings and CLI output.
+- Add a GitHub Actions workflow that validates the Swift package, packaged app bundle, and Raycast extension.
+
+### Files
+
+- `Sources/GhostTileCore/BuildInfo.swift`
+- `Sources/ghosttile/GhostTile.swift`
+- `Resources/Info.plist`
+- `.github/workflows/ci.yml`
+
+### Success Criteria
+
+- `ghosttile --version` matches the app build shown in Settings.
+- Pull requests and branch pushes run the same core validation used locally.
+
+### Implemented
+
+- Added shared build metadata so the app and CLI now report the same version and build number.
+- Added a GitHub Actions workflow on `macos-26` that runs `swift build`, `just build`, and Raycast `npm run typecheck`.
+
 ## Later Work
 
 - Add an optional sticky-hidden mode for apps that re-promote themselves from Dock or tray activation.
@@ -335,6 +365,7 @@
 7. Main window and onboarding refresh
 8. CLI maintenance and dev ergonomics
 9. Hidden-app policy enforcement
+10. Build metadata and CI
 
 ## Validation
 

@@ -37,14 +37,14 @@ These hooks were tested during debugging but are not kept in the release helper:
 
 Target app:
 
-- [Legcord source](/Users/hewig/workspace/github/Legcord)
+- [Legcord source](/~/workspace/github/Legcord)
 - Electron version `40.6.0`
 
 Relevant Legcord app code:
 
-- [tray.ts](/Users/hewig/workspace/github/Legcord/src/discord/tray.ts)
+- [tray.ts](/~/workspace/github/Legcord/src/discord/tray.ts)
   - tray click calls `mainWindow.show()`
-- [window.ts](/Users/hewig/workspace/github/Legcord/src/discord/window.ts)
+- [window.ts](/~/workspace/github/Legcord/src/discord/window.ts)
   - app `activate` handler calls `app.show()`
 
 Relevant Electron macOS code that was checked:

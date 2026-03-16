@@ -205,6 +205,16 @@ struct SettingsView: View {
                                         .fill(Color.primary.opacity(0.04))
                                 )
                             }
+
+                            Divider().padding(.leading, 42)
+
+                            plainInfoRow(
+                                title: "Log",
+                                value: displayLogPath
+                            )
+                            .contentShape(Rectangle())
+                            .onTapGesture(count: 2, perform: openLogInConsole)
+                            .help("Double-click to open the current log in Console")
                         }
                     }
 
@@ -225,14 +235,12 @@ struct SettingsView: View {
 
                             Divider().padding(.leading, 42)
 
-                            infoRow(
-                                title: "Log",
-                                value: displayLogPath,
-                                symbol: "doc.text.magnifyingglass"
+                            linkRow(
+                                title: "Sponsor on GitHub",
+                                value: "",
+                                symbol: "heart",
+                                url: URL(string: "https://github.com/sponsors/hewigovens")!
                             )
-                            .contentShape(Rectangle())
-                            .onTapGesture(count: 2, perform: openLogInConsole)
-                            .help("Double-click to open the current log in Console")
                         }
                     }
                 }
@@ -393,6 +401,60 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
+        }
+    }
+
+    private func plainInfoRow(
+        title: String,
+        value: String
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(title)
+                .font(.system(size: 13, weight: .medium))
+
+            Spacer()
+
+            Text(value)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .padding(.leading, 40)
+    }
+
+    private func linkRow(
+        title: String,
+        value: String,
+        symbol: String,
+        url: URL
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.primary.opacity(0.05))
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+            }
+
+            Spacer()
+
+            Link(destination: url) {
+                HStack(spacing: 6) {
+                    Text(value)
+                        .font(.system(size: 12, weight: .medium))
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+            }
+            .buttonStyle(.plain)
         }
     }
 

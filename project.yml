@@ -1,0 +1,106 @@
+name: GhostTile
+options:
+  bundleIdPrefix: dev.hewig
+  deploymentTarget:
+    macOS: "15.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEAD_CODE_STRIPPING: YES
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    STRING_CATALOG_GENERATE_SYMBOLS: YES
+packages:
+  swift-argument-parser:
+    url: https://github.com/apple/swift-argument-parser
+    from: 1.3.0
+  LSAppCategory:
+    url: https://github.com/hewigovens/LSAppCategory
+    branch: main
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    from: 2.3.0
+targets:
+  GhostTileCore:
+    type: library.static
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: Sources/GhostTileCore
+    settings:
+      base:
+        PRODUCT_NAME: GhostTileCore
+        DEFINES_MODULE: YES
+        CLANG_ENABLE_MODULE_VERIFIER: YES
+        SWIFT_INSTALL_OBJC_HEADER: NO
+  GhostTileApp:
+    type: application
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: Sources/GhostTileApp
+    dependencies:
+      - target: GhostTileCore
+      - package: LSAppCategory
+        product: LSAppCategory
+      - package: KeyboardShortcuts
+        product: KeyboardShortcuts
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: GhostTile
+        INFOPLIST_KEY_CFBundleIdentifier: dev.hewig.ghosttile
+        INFOPLIST_KEY_CFBundleName: GhostTile
+        INFOPLIST_KEY_CFBundleShortVersionString: 2.0.0
+        INFOPLIST_KEY_CFBundleVersion: "16"
+        INFOPLIST_KEY_LSMinimumSystemVersion: "15.0"
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_NSAppleEventsUsageDescription: GhostTile needs permission to open Terminal for running commands with elevated privileges.
+        INFOPLIST_KEY_NSHighResolutionCapable: YES
+        PRODUCT_BUNDLE_IDENTIFIER: dev.hewig.ghosttile
+        PRODUCT_NAME: GhostTile
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    postBuildScripts:
+      - path: /bin/sh
+        name: Stage GhostTile Resources
+        inputFiles:
+          - $(PROJECT_DIR)/Resources/appIcon.icns
+          - $(PROJECT_DIR)/Resources/status_menu_v.pdf
+          - $(PROJECT_DIR)/Resources/ghost-icon.png
+          - $(PROJECT_DIR)/Resources/appIcon-old.png
+          - $(PROJECT_DIR)/Resources/appIcon-new.png
+          - $(PROJECT_DIR)/.build/ghosthide.dylib
+          - $(PROJECT_DIR)/.build/release/ghosttile
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/appIcon.icns
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/status_menu_v.pdf
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ghost-icon.png
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/appIcon-old.png
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/appIcon-new.png
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ghosthide.dylib
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ghosttile-cli
+        script: |
+          set -euo pipefail
+          resources_dir="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+          mkdir -p "${resources_dir}"
+          cp "${PROJECT_DIR}/Resources/appIcon.icns" "${resources_dir}/"
+          cp "${PROJECT_DIR}/Resources/status_menu_v.pdf" "${resources_dir}/"
+          cp "${PROJECT_DIR}/Resources/ghost-icon.png" "${resources_dir}/"
+          cp "${PROJECT_DIR}/Resources/appIcon-old.png" "${resources_dir}/"
+          cp "${PROJECT_DIR}/Resources/appIcon-new.png" "${resources_dir}/"
+          cp "${PROJECT_DIR}/.build/ghosthide.dylib" "${resources_dir}/ghosthide.dylib"
+          cp "${PROJECT_DIR}/.build/release/ghosttile" "${resources_dir}/ghosttile-cli"
+  ghosttile:
+    type: tool
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: Sources/ghosttile
+    dependencies:
+      - target: GhostTileCore
+      - package: swift-argument-parser
+        product: ArgumentParser
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.hewig.ghosttile.cli
+        PRODUCT_NAME: ghosttile

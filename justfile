@@ -48,6 +48,12 @@ build-cli:
         -o .build/ghosthide.dylib Resources/ghosthide.m Resources/fishhook.c
     cp .build/ghosthide.dylib .build/release/ghosthide.dylib
 
+generate:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just build-cli
+    xcodegen generate --spec project.yml --project .
+
 resign app:
     #!/usr/bin/env bash
     set -euo pipefail
