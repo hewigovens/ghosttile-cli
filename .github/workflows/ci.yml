@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: "22"
           cache: pnpm
-          cache-dependency-path: extensions/raycast/pnpm-lock.yaml
+          cache-dependency-path: raycast/pnpm-lock.yaml
 
       - name: Install just
         run: brew install just
@@ -45,9 +45,9 @@ jobs:
         run: just build
 
       - name: Install Raycast extension dependencies
-        working-directory: extensions/raycast
+        working-directory: raycast
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck Raycast extension
-        working-directory: extensions/raycast
+        working-directory: raycast
         run: pnpm run typecheck

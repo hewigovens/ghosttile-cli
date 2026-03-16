@@ -3,7 +3,7 @@
   "name": "ghosttile",
   "title": "GhostTile",
   "description": "Manage GhostTile apps from Raycast.",
-  "icon": "assets/extension-icon.png",
+  "icon": "icon.png",
   "packageManager": "pnpm@10.8.1",
   "author": "hewigovens",
   "owner": "hewig-dev",
@@ -31,6 +31,7 @@
       "title": "Managed Apps",
       "subtitle": "GhostTile",
       "description": "Show and control your managed GhostTile apps.",
+      "icon": "icon.png",
       "keywords": [
         "gt",
         "hidden",
