@@ -1,28 +1,11 @@
-import { Action, ActionPanel, Color, Icon, Image, List, Toast, showToast } from "@raycast/api";
-import { useCallback, useEffect, useState } from "react";
-import { GhostTileAppRecord, loadManagedGhostTileApps, runGhosttile } from "./ghosttile";
+import { Action, ActionPanel, List, Toast, showToast } from "@raycast/api";
+import { runGhosttile } from "./ghosttile";
+import { ManagedAppItem } from "./managed-app-item";
+import { ghostTileIcon, summarizeOutput } from "./ghosttile-presentation";
+import { useManagedApps } from "./use-managed-apps";
 
 export default function Command() {
-  const [apps, setApps] = useState<GhostTileAppRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string>();
-
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const nextApps = await loadManagedGhostTileApps();
-      setApps(nextApps);
-      setError(undefined);
-    } catch (refreshError) {
-      setError(refreshError instanceof Error ? refreshError.message : "Failed to load managed GhostTile apps.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const { apps, error, isLoading, refresh } = useManagedApps();
 
   async function runAction(title: string, args: string[]): Promise<void> {
     const toast = await showToast({
@@ -68,110 +51,13 @@ export default function Command() {
       ) : null}
 
       {apps.map((app) => (
-        <List.Item
+        <ManagedAppItem
           key={app.bundleId}
-          id={app.bundleId}
-          title={app.name}
-          subtitle={app.bundleId}
-          icon={appIcon(app)}
-          accessories={[managedAccessory(app)]}
-          actions={
-            <ActionPanel>
-              {app.running ? (
-                <Action
-                  title="Focus App"
-                  icon={Icon.ArrowClockwise}
-                  onAction={() => void runAction(`Focusing ${app.name}`, ["focus", app.bundleId])}
-                />
-              ) : null}
-
-              {app.running && app.hiddenFromDock ? (
-                <Action
-                  title="Show in Dock"
-                  icon={Icon.Eye}
-                  onAction={() => void runAction(`Showing ${app.name}`, ["show", app.bundleId])}
-                />
-              ) : null}
-
-              {app.running && !app.hiddenFromDock ? (
-                <Action
-                  title="Hide from Dock"
-                  icon={Icon.EyeDisabled}
-                  onAction={() => void runAction(`Hiding ${app.name}`, ["hide", app.bundleId])}
-                />
-              ) : null}
-
-              <Action
-                title="Restore App"
-                icon={Icon.Trash}
-                onAction={() => void runAction(`Restoring ${app.name}`, ["restore", app.bundleId])}
-              />
-
-              <Action
-                title="Refresh"
-                icon={Icon.ArrowClockwise}
-                onAction={() => void refresh()}
-              />
-            </ActionPanel>
-          }
+          app={app}
+          onRunAction={(title, args) => void runAction(title, args)}
+          onRefresh={() => void refresh()}
         />
       ))}
     </List>
   );
-}
-
-function managedStateLabel(app: GhostTileAppRecord): string {
-  if (!app.running) {
-    return "Not Running";
-  }
-
-  return app.hiddenFromDock ? "Hidden" : "Visible";
-}
-
-function managedAccessory(app: GhostTileAppRecord): List.Item.Accessory {
-  if (!app.running) {
-    return {
-      icon: { source: Icon.Circle, tintColor: Color.SecondaryText },
-      text: "Not Running",
-    };
-  }
-
-  if (app.hiddenFromDock) {
-    return {
-      icon: { source: Icon.EyeDisabled, tintColor: Color.Orange },
-      text: "Hidden",
-    };
-  }
-
-  return {
-    icon: { source: Icon.AppWindow, tintColor: Color.Green },
-    text: "Visible",
-  };
-}
-
-function appIcon(app: GhostTileAppRecord): Image.ImageLike {
-  if (app.appPath.length > 0) {
-    return {
-      fileIcon: app.appPath,
-      fallback: app.hiddenFromDock ? Icon.EyeDisabled : Icon.AppWindow,
-    };
-  }
-
-  return app.hiddenFromDock ? Icon.EyeDisabled : Icon.AppWindow;
-}
-
-function ghostTileIcon(): Image.ImageLike {
-  return {
-    source: "assets/extension-icon.png",
-    fallback: Icon.EyeDisabled,
-  };
-}
-
-function summarizeOutput(output: string): string | undefined {
-  const lines = output
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
-  return lines.at(-1);
 }

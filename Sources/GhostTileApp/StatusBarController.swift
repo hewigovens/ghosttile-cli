@@ -26,12 +26,7 @@ class StatusBarController: NSObject, NSMenuDelegate {
         statusItem.menu = menu
 
         if let button = statusItem.button {
-            let execURL = Bundle.main.executableURL
-                ?? URL(fileURLWithPath: ProcessInfo.processInfo.arguments[0])
-            let pdfURL = execURL
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .appendingPathComponent("Resources/status_menu_v.pdf")
+            let pdfURL = BundledResources.resourceURL(named: "status_menu_v.pdf")
 
             if let img = NSImage(contentsOf: pdfURL) {
                 img.size = NSSize(width: 18, height: 18)

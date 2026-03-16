@@ -402,12 +402,7 @@ struct MainWindowView: View {
     }
 
     private func resourceURL(_ name: String) -> URL {
-        let execURL = Bundle.main.executableURL
-            ?? URL(fileURLWithPath: ProcessInfo.processInfo.arguments[0])
-        return execURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Resources/\(name)")
+        BundledResources.resourceURL(named: name)
     }
 
     private func filter(_ apps: [AppViewModel.AppItem]) -> [AppViewModel.AppItem] {
