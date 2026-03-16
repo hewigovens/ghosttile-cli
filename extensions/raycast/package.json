@@ -29,6 +29,9 @@
       "title": "GhostTile Apps",
       "subtitle": "GhostTile",
       "description": "Manage hidden and running apps with GhostTile.",
+      "keywords": [
+        "gt"
+      ],
       "mode": "view"
     }
   ],
