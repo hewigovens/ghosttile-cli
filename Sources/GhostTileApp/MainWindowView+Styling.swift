@@ -72,16 +72,6 @@ extension MainWindowView {
             .shadow(color: .black.opacity(isDarkMode ? 0.1 : 0.05), radius: 20, y: 8)
     }
 
-    func sectionHeading(title: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(title)
-                .font(.system(size: 17, weight: .semibold))
-            Text(subtitle)
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
-        }
-    }
-
     func statPill(title: String, value: Int, systemImage: String) -> some View {
         Label {
             HStack(spacing: 4) {

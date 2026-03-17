@@ -33,14 +33,14 @@ final class OverviewThumbnailStore: ObservableObject {
         thumbnails[bundleId]
     }
 
-    func warmCache(for apps: [AppViewModel.AppItem], force: Bool = false) {
+    func warmCache(for apps: [ManagedAppItem], force: Bool = false) {
         refreshCapturePermissionState()
         guard supportsLivePreviews else {
             thumbnails.removeAll()
             return
         }
 
-        let runningApps = apps.compactMap { app -> (AppViewModel.AppItem, pid_t)? in
+        let runningApps = apps.compactMap { app -> (ManagedAppItem, pid_t)? in
             guard app.isRunning,
                   let running = NSRunningApplication.runningApplications(withBundleIdentifier: app.id).first
             else { return nil }

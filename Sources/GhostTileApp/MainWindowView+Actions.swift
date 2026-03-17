@@ -2,16 +2,6 @@ import AppKit
 import UniformTypeIdentifiers
 
 extension MainWindowView {
-    func filter(_ apps: [AppViewModel.AppItem]) -> [AppViewModel.AppItem] {
-        guard !query.isEmpty else { return apps }
-        let needle = query.lowercased()
-        return apps.filter { app in
-            app.name.lowercased().contains(needle)
-                || app.id.lowercased().contains(needle)
-                || app.appPath.lowercased().contains(needle)
-        }
-    }
-
     func selectAppToHide() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.applicationBundle]

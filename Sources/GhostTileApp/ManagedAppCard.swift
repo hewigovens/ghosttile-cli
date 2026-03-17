@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ManagedAppCard: View {
     @Environment(\.colorScheme) private var colorScheme
-    let app: AppViewModel.AppItem
+    let app: ManagedAppItem
     let isLoading: Bool
     let onOpen: () -> Void
     let onPrimaryAction: () -> Void
@@ -219,18 +219,13 @@ struct ManagedAppCard: View {
     }
 
     private func iconTile(size: CGFloat) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(iconTileStrokeColor, lineWidth: 1)
-                )
-            Image(nsImage: app.icon)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: size - 16, height: size - 16)
-        }
-        .frame(width: size, height: size)
+        IconTileView(
+            icon: app.icon,
+            size: size,
+            cornerRadius: 18,
+            iconInset: 16,
+            fill: AnyShapeStyle(.ultraThinMaterial),
+            strokeColor: iconTileStrokeColor
+        )
     }
 }

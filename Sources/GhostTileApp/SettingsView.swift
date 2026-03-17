@@ -1,24 +1,13 @@
 import AppKit
 import GhostTileCore
 import KeyboardShortcuts
-import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("autoHideOnLaunch") var autoHideOnLaunch = true
     @AppStorage("launchAtLogin") var launchAtLogin = false
     @AppStorage("showInDock") var showInDock = false
-    @State var cliStatus: CLIInstallStatus = .checking
-    @State var versionTapCount = 0
-    @State var lastVersionTapAt = Date.distantPast
-
-    enum CLIInstallStatus {
-        case checking, notInstalled, installed, failed(String)
-    }
-
-    let cliInstallPath = "/usr/local/bin/ghosttile"
-    let cliDylibInstallPath = "/usr/local/bin/ghosthide.dylib"
-    let expectedCLIVersion = BuildInfo.displayVersion
+    @StateObject var viewModel = SettingsViewModel()
 
     var body: some View {
         ZStack {
@@ -63,7 +52,7 @@ struct SettingsView: View {
                                 symbol: "power.circle",
                                 toggle: Binding(
                                     get: { launchAtLogin },
-                                    set: { setLaunchAtLogin($0) }
+                                    set: { viewModel.setLaunchAtLogin($0, launchAtLogin: $launchAtLogin) }
                                 )
                             )
                         }
@@ -104,16 +93,16 @@ struct SettingsView: View {
                                     HStack(spacing: 8) {
                                         Text("GhostTile CLI")
                                             .font(.system(size: 13, weight: .semibold))
-                                        statusPill(text: cliStatusText, color: cliStatusColor)
+                                        statusPill(text: viewModel.cliStatusText, color: viewModel.cliStatusColor)
                                     }
 
-                                    switch cliStatus {
+                                    switch viewModel.cliStatus {
                                     case .checking:
                                         Text("Checking current installation status.")
                                             .font(.system(size: 11))
                                             .foregroundStyle(.secondary)
                                     case .installed:
-                                        Text("Installed at \(cliInstallPath) with support files.")
+                                        Text("Installed at \(CLIPaths.installedCLI) with support files.")
                                             .font(.system(size: 11))
                                             .foregroundStyle(.secondary)
                                     case .notInstalled:
@@ -130,23 +119,23 @@ struct SettingsView: View {
 
                                 Spacer()
 
-                                if case .checking = cliStatus {
+                                if case .checking = viewModel.cliStatus {
                                     ProgressView().controlSize(.small)
                                 } else {
                                     HStack(spacing: 8) {
-                                        if case .installed = cliStatus {
-                                            Button("Uninstall") { uninstallCLI() }
+                                        if case .installed = viewModel.cliStatus {
+                                            Button("Uninstall") { viewModel.uninstallCLI() }
                                                 .controlSize(.small)
                                         }
 
-                                        Button(cliActionTitle) { installCLI() }
+                                        Button(viewModel.cliActionTitle) { viewModel.installCLI() }
                                             .buttonStyle(.borderedProminent)
                                             .controlSize(.small)
                                     }
                                 }
                             }
 
-                            if case .failed = cliStatus {
+                            if case .failed = viewModel.cliStatus {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("Manual recovery")
                                         .font(.system(size: 11, weight: .semibold))
@@ -167,11 +156,11 @@ struct SettingsView: View {
 
                             infoRow(
                                 title: "Log",
-                                value: displayLogPath,
+                                value: viewModel.displayLogPath,
                                 symbol: nil
                             )
                             .contentShape(Rectangle())
-                            .onTapGesture(count: 2, perform: openLogInConsole)
+                            .onTapGesture(count: 2, perform: viewModel.openLogInConsole)
                             .help("Double-click to open the current log in Console")
                         }
                     }
@@ -191,7 +180,7 @@ struct SettingsView: View {
                                 symbol: "shippingbox"
                             )
                             .contentShape(Rectangle())
-                            .onTapGesture(perform: handleVersionTap)
+                            .onTapGesture(perform: viewModel.handleVersionTap)
 
                             Divider().padding(.leading, 42)
 
@@ -211,8 +200,8 @@ struct SettingsView: View {
         }
         .frame(width: 560, height: 700)
         .onAppear {
-            syncLaunchAtLoginState()
-            checkCLIInstalled()
+            viewModel.syncLaunchAtLoginState(launchAtLogin: $launchAtLogin)
+            viewModel.checkCLIInstalled()
         }
     }
 }

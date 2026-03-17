@@ -4,20 +4,18 @@ import SwiftUI
 struct OverviewView: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var vm: AppViewModel
+    @StateObject var viewModel: OverviewViewModel
     @ObservedObject var thumbnailStore: OverviewThumbnailStore
     let onDismiss: () -> Void
 
-    @State var query = ""
-    @State var selectedBundleId: String?
     @FocusState var searchFocused: Bool
     var isDarkMode: Bool { colorScheme == .dark }
 
-    var filteredApps: [AppViewModel.AppItem] {
-        guard !query.isEmpty else { return vm.hiddenApps }
-        let needle = query.lowercased()
-        return vm.hiddenApps.filter { app in
-            app.name.lowercased().contains(needle) || app.id.lowercased().contains(needle)
-        }
+    init(vm: AppViewModel, thumbnailStore: OverviewThumbnailStore, onDismiss: @escaping () -> Void) {
+        self.vm = vm
+        self.thumbnailStore = thumbnailStore
+        self.onDismiss = onDismiss
+        _viewModel = StateObject(wrappedValue: OverviewViewModel(store: vm.managedAppsStore))
     }
 
     let columns = [
@@ -55,7 +53,7 @@ struct OverviewView: View {
                                 OverviewCard(
                                     app: app,
                                     thumbnail: thumbnailStore.thumbnail(for: app.id),
-                                    isSelected: app.id == selectedBundleId,
+                                    isSelected: app.id == viewModel.selectedBundleId,
                                     onOpen: {
                                         vm.handleAttentionNotificationClick(bundleId: app.id)
                                         onDismiss()
@@ -76,22 +74,26 @@ struct OverviewView: View {
         }
         .onAppear {
             searchFocused = true
-            if selectedBundleId == nil {
-                selectedBundleId = filteredApps.first?.id
-            }
+            viewModel.ensureInitialSelection()
         }
-        .onChange(of: vm.hiddenApps.map(\.id)) {
-            syncSelection()
+        .onMoveCommand { direction in
+            viewModel.moveSelection(direction)
         }
-        .onChange(of: query) {
-            syncSelection()
-        }
-        .onMoveCommand(perform: moveSelection)
         .onSubmit {
             openSelectedApp()
         }
         .onExitCommand {
             onDismiss()
         }
+    }
+
+    var filteredApps: [ManagedAppItem] {
+        viewModel.filteredApps
+    }
+
+    func openSelectedApp() {
+        guard let app = viewModel.selectedApp() else { return }
+        vm.handleAttentionNotificationClick(bundleId: app.id)
+        onDismiss()
     }
 }

@@ -57,14 +57,14 @@ extension StatusBarController {
         return item
     }
 
-    func makeManagedAppItem(_ app: AppViewModel.AppItem) -> NSMenuItem {
+    func makeManagedAppItem(_ app: ManagedAppItem) -> NSMenuItem {
         let item = NSMenuItem(title: app.name, action: nil, keyEquivalent: "")
         item.image = resizedIcon(app.icon)
         item.submenu = managedAppSubmenu(for: app)
         return item
     }
 
-    func managedAppSubmenu(for app: AppViewModel.AppItem) -> NSMenu {
+    func managedAppSubmenu(for app: ManagedAppItem) -> NSMenu {
         let submenu = NSMenu(title: app.name)
 
         let stateItem = NSMenuItem(title: managedAppStateText(app), action: nil, keyEquivalent: "")
@@ -94,7 +94,7 @@ extension StatusBarController {
         return submenu
     }
 
-    func managedAppStateText(_ app: AppViewModel.AppItem) -> String {
+    func managedAppStateText(_ app: ManagedAppItem) -> String {
         if !app.isRunning {
             return "Not Running"
         }
@@ -109,7 +109,7 @@ extension StatusBarController {
         return image
     }
 
-    func managedApp(from sender: NSMenuItem) -> AppViewModel.AppItem? {
+    func managedApp(from sender: NSMenuItem) -> ManagedAppItem? {
         guard let bundleId = sender.representedObject as? String else { return nil }
         return vm.managedApp(bundleId: bundleId)
     }

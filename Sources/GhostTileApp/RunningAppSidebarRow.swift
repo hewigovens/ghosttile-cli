@@ -3,7 +3,7 @@ import SwiftUI
 
 struct RunningAppSidebarRow: View {
     @Environment(\.colorScheme) private var colorScheme
-    let app: AppViewModel.AppItem
+    let app: ManagedAppItem
     let isLoading: Bool
     let onHide: () -> Void
 
@@ -85,14 +85,12 @@ struct RunningAppSidebarRow: View {
     }
 
     private func iconTile(size: CGFloat) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(iconTileFillColor)
-            Image(nsImage: app.icon)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: size - 12, height: size - 12)
-        }
-        .frame(width: size, height: size)
+        IconTileView(
+            icon: app.icon,
+            size: size,
+            cornerRadius: 14,
+            iconInset: 12,
+            fill: AnyShapeStyle(iconTileFillColor)
+        )
     }
 }

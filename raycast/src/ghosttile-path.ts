@@ -10,7 +10,6 @@ export function ghosttileBinaryCandidates(): string[] {
   return [
     preferences.ghosttilePath?.trim(),
     "/usr/local/bin/ghosttile",
-    "/opt/homebrew/bin/ghosttile",
     "ghosttile",
   ].filter((value): value is string => Boolean(value && value.length > 0));
 }

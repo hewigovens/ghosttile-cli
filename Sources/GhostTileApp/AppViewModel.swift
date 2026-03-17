@@ -1,54 +1,64 @@
 import AppKit
+import Combine
 import GhostTileCore
-import LSAppCategory
 import os.log
 
+@MainActor
 class AppViewModel: ObservableObject {
     static let postOperationRefreshDelay: TimeInterval = 1.5
     static let attentionNotificationCooldown: TimeInterval = 10
 
-    struct AppItem: Identifiable {
-        let id: String
-        let name: String
-        let icon: NSImage
-        let appPath: String
-        let binaryPath: String
-        let category: AppCategory
-        var isHidden: Bool
-        var isSIPProtected: Bool
-        var isRunning: Bool
-        var isHiddenFromDock: Bool
-    }
-
-    @Published var apps: [AppItem] = []
     @Published var loading: Set<String> = []
     @Published var showError = false
     @Published var errorMessage = ""
     @Published var dockVisible = false
     @Published var sudoCommand: String?
 
-    var hiddenCount: Int { apps.filter(\.isHidden).count }
-    var hiddenApps: [AppItem] { apps.filter(\.isHidden) }
-    var visibleApps: [AppItem] {
-        apps.filter { !$0.isHidden && !$0.isSIPProtected && !$0.id.hasPrefix("com.apple.") }
-    }
+    let managedAppsStore: ManagedAppsStore
+    let dockVisibilityController: DockVisibilityController
+    var apps: [ManagedAppItem] { managedAppsStore.apps }
+    var hiddenApps: [ManagedAppItem] { apps.filter(\.isHidden) }
 
     var observers: [NSObjectProtocol] = []
     var attentionObservers: [String: NSObjectProtocol] = [:]
     var lastAttentionNotificationAt: [String: Date] = [:]
-    var configDirectoryMonitor: DispatchSourceFileSystemObject?
-    var configFileMonitor: DispatchSourceFileSystemObject?
     var pendingPresentationRefresh: DispatchWorkItem?
+    var storeSubscriptions: Set<AnyCancellable> = []
 
-    var cliPath: String {
-        let installed = "/usr/local/bin/ghosttile"
-        if FileManager.default.fileExists(atPath: installed) { return installed }
-        let bundled = BundledResources.resourcePath(named: "ghosttile-cli")
-        if FileManager.default.fileExists(atPath: bundled) { return bundled }
-        return "ghosttile"
-    }
+    var cliPath: String { CLIPaths.resolved }
 
     init() {
+        self.managedAppsStore = ManagedAppsStore()
+        self.dockVisibilityController = DockVisibilityController()
+        configureStoreSubscriptions()
+        initializeState()
+    }
+
+    init(
+        managedAppsStore: ManagedAppsStore,
+        dockVisibilityController: DockVisibilityController
+    ) {
+        self.managedAppsStore = managedAppsStore
+        self.dockVisibilityController = dockVisibilityController
+        configureStoreSubscriptions()
+        initializeState()
+    }
+
+    private func configureStoreSubscriptions() {
+        managedAppsStore.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &storeSubscriptions)
+
+        managedAppsStore.$managedBundleIds
+            .sink { [weak self] bundleIds in
+                self?.syncAttentionObservers(bundleIds: bundleIds)
+            }
+            .store(in: &storeSubscriptions)
+    }
+
+    private func initializeState() {
         // Restore saved dock visibility preference
         let savedDockVisible = UserDefaults.standard.object(forKey: "showInDock") as? Bool ?? false
         if savedDockVisible {
@@ -57,6 +67,7 @@ class AppViewModel: ObservableObject {
             NSApp.setActivationPolicy(.accessory)
         }
         dockVisible = savedDockVisible
+        managedAppsStore.startWatching()
         refresh()
         reapplyHidden()
 
@@ -71,10 +82,14 @@ class AppViewModel: ObservableObject {
                     as? NSRunningApplication,
                     let bundleId = app.bundleIdentifier
                 {
-                    self.autoHideIfNeeded(bundleId)
+                    Task { @MainActor [weak self] in
+                        self?.autoHideIfNeeded(bundleId)
+                    }
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.refresh()
+                    Task { @MainActor [weak self] in
+                        self?.refresh()
+                    }
                 }
             })
         observers.append(
@@ -82,10 +97,24 @@ class AppViewModel: ObservableObject {
                 forName: NSWorkspace.didTerminateApplicationNotification,
                 object: nil, queue: .main
             ) { [weak self] _ in
-                self?.refresh()
+                Task { @MainActor [weak self] in
+                    self?.refresh()
+                }
             })
+    }
 
-        watchConfigFile()
+    func refresh() {
+        managedAppsStore.refresh()
+    }
+
+    func refreshForPresentation() {
+        pendingPresentationRefresh?.cancel()
+        refresh()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.refresh()
+        }
+        pendingPresentationRefresh = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45, execute: workItem)
     }
 
     deinit {
@@ -93,7 +122,5 @@ class AppViewModel: ObservableObject {
         for observer in observers { nc.removeObserver(observer) }
         let dnc = DistributedNotificationCenter.default()
         for observer in attentionObservers.values { dnc.removeObserver(observer) }
-        configDirectoryMonitor?.cancel()
-        configFileMonitor?.cancel()
     }
 }

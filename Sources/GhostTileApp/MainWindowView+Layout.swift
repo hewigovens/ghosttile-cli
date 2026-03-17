@@ -10,9 +10,9 @@ extension MainWindowView {
                     .font(.system(size: 30, weight: .bold, design: .rounded))
 
                 HStack(spacing: 8) {
-                    statPill(title: "Managed", value: totalManagedCount, systemImage: "eye.slash")
-                    statPill(title: "Running", value: runningCount, systemImage: "app.badge")
-                    statPill(title: "Active Hidden", value: hiddenRunningCount, systemImage: "bolt.horizontal.circle")
+                    statPill(title: "Managed", value: viewModel.totalManagedCount, systemImage: "eye.slash")
+                    statPill(title: "Running", value: viewModel.runningCount, systemImage: "app.badge")
+                    statPill(title: "Active Hidden", value: viewModel.hiddenRunningCount, systemImage: "bolt.horizontal.circle")
                 }
             }
 
@@ -20,17 +20,12 @@ extension MainWindowView {
 
             VStack(alignment: .trailing, spacing: 10) {
                 HStack(spacing: 10) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
-                        TextField("Search managed or running apps", text: $query)
-                            .textFieldStyle(.plain)
-                            .frame(width: 240)
-                    }
-                    .padding(.horizontal, 13)
-                    .padding(.vertical, 9)
-                    .background(searchFieldBackground)
-                    .overlay(searchFieldStroke)
+                    SearchFieldView(
+                        placeholder: "Search managed or running apps",
+                        text: $viewModel.query,
+                        width: 240,
+                        isDarkMode: isDarkMode
+                    )
 
                     Button("Add App", action: selectAppToHide)
                         .buttonStyle(.borderedProminent)
@@ -43,12 +38,12 @@ extension MainWindowView {
     var managedSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center) {
-                sectionHeading(
+                SectionHeaderView(
                     title: "Managed Apps",
                     subtitle: "Click a card to reveal or launch."
                 )
                 Spacer()
-                if dropTargeted {
+                if viewModel.dropTargeted {
                     Text("Drop to manage")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.accentColor)
@@ -58,7 +53,7 @@ extension MainWindowView {
                 }
             }
 
-            if filteredManagedApps.isEmpty {
+            if viewModel.managedApps.isEmpty {
                 managedEmptyState
             } else {
                 ScrollView {
@@ -69,7 +64,7 @@ extension MainWindowView {
                         ],
                         spacing: 14
                     ) {
-                        ForEach(filteredManagedApps) { app in
+                        ForEach(viewModel.managedApps) { app in
                             ManagedAppCard(
                                 app: app,
                                 isLoading: vm.loading.contains(app.id),
@@ -93,8 +88,8 @@ extension MainWindowView {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .padding(18)
-        .background(sectionBackground(isDropTargeted: dropTargeted))
-        .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
+        .background(sectionBackground(isDropTargeted: viewModel.dropTargeted))
+        .onDrop(of: [.fileURL], isTargeted: $viewModel.dropTargeted) { providers in
             handleFileDrop(providers)
         }
     }
@@ -102,7 +97,7 @@ extension MainWindowView {
     var runningSidebar: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .center) {
-                sectionHeading(title: "Running Apps", subtitle: "Hide active apps quickly.")
+                SectionHeaderView(title: "Running Apps", subtitle: "Hide active apps quickly.")
                 Spacer()
                 Button {
                     vm.refresh()
@@ -115,7 +110,7 @@ extension MainWindowView {
                 .help("Refresh")
             }
 
-            if filteredRunningApps.isEmpty {
+            if viewModel.runningApps.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Nothing available")
                         .font(.system(size: 14, weight: .semibold))
@@ -132,7 +127,7 @@ extension MainWindowView {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 10) {
-                        ForEach(filteredRunningApps) { app in
+                        ForEach(viewModel.runningApps) { app in
                             RunningAppSidebarRow(
                                 app: app,
                                 isLoading: vm.loading.contains(app.id),
@@ -152,17 +147,17 @@ extension MainWindowView {
     }
 
     var managedEmptyState: some View {
-        let emptyTitle = query.isEmpty ? "No managed apps yet" : "No matching managed apps"
-        let emptySubtitle = query.isEmpty
+        let emptyTitle = viewModel.query.isEmpty ? "No managed apps yet" : "No matching managed apps"
+        let emptySubtitle = viewModel.query.isEmpty
             ? "Add an app or drag one in from Finder to start building your hidden set."
             : "Try a different search term or clear the search field."
 
         return VStack(spacing: 18) {
             ghostImage
                 .frame(width: 60, height: 66)
-                .opacity(dropTargeted ? 0.95 : 0.55)
-                .scaleEffect(dropTargeted ? 1.08 : 1)
-                .animation(.spring(response: 0.28), value: dropTargeted)
+                .opacity(viewModel.dropTargeted ? 0.95 : 0.55)
+                .scaleEffect(viewModel.dropTargeted ? 1.08 : 1)
+                .animation(.spring(response: 0.28), value: viewModel.dropTargeted)
 
             VStack(spacing: 6) {
                 Text(emptyTitle)
@@ -175,7 +170,7 @@ extension MainWindowView {
                 .frame(maxWidth: 420)
             }
 
-            if query.isEmpty {
+            if viewModel.query.isEmpty {
                 Button("Add App", action: selectAppToHide)
                     .buttonStyle(.borderedProminent)
             }
@@ -188,25 +183,12 @@ extension MainWindowView {
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(
-                            dropTargeted
+                            viewModel.dropTargeted
                                 ? Color.accentColor.opacity(0.34)
                                 : (isDarkMode ? Color.white.opacity(0.06) : Color.black.opacity(0.06)),
                             style: StrokeStyle(lineWidth: 1.2, dash: [8, 8])
                         )
                 )
         )
-    }
-
-    var searchFieldBackground: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(isDarkMode ? Color.black.opacity(0.14) : Color.white.opacity(0.7))
-    }
-
-    var searchFieldStroke: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .stroke(
-                isDarkMode ? Color.white.opacity(0.08) : Color.black.opacity(0.07),
-                lineWidth: 1
-            )
     }
 }

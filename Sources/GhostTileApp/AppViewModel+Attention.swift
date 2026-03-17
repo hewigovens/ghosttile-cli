@@ -17,7 +17,9 @@ extension AppViewModel {
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
-                self?.handleAttentionSignal(bundleId: bundleId)
+                Task { @MainActor [weak self] in
+                    self?.handleAttentionSignal(bundleId: bundleId)
+                }
             }
             attentionObservers[bundleId] = observer
         }

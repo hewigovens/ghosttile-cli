@@ -15,21 +15,16 @@ extension OverviewView {
             Spacer(minLength: 16)
 
             VStack(alignment: .trailing, spacing: 10) {
-                HStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField("Search apps or bundle ID", text: $query)
-                        .textFieldStyle(.plain)
-                        .frame(width: 260)
-                        .focused($searchFocused)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(searchFieldBackground)
-                .overlay(searchFieldStroke)
+                SearchFieldView(
+                    placeholder: "Search apps or bundle ID",
+                    text: $viewModel.query,
+                    width: 260,
+                    isDarkMode: isDarkMode,
+                    focus: $searchFocused
+                )
 
                 HStack(spacing: 10) {
-                    Label("\(vm.hiddenApps.count)", systemImage: "eye.slash")
+                    Label("\(viewModel.hiddenApps.count)", systemImage: "eye.slash")
                         .font(.system(size: 12, weight: .semibold))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 7)
@@ -44,8 +39,8 @@ extension OverviewView {
     }
 
     var emptyState: some View {
-        let title = vm.hiddenApps.isEmpty ? "No managed apps" : "No matching apps"
-        let subtitle = vm.hiddenApps.isEmpty
+        let title = viewModel.hiddenApps.isEmpty ? "No managed apps" : "No matching apps"
+        let subtitle = viewModel.hiddenApps.isEmpty
             ? "Hide a few apps first, then open Overview."
             : "Try a different search term."
 
@@ -79,7 +74,7 @@ extension OverviewView {
             Spacer()
             Button("Grant Access") {
                 thumbnailStore.requestCaptureAccess()
-                thumbnailStore.warmCache(for: vm.hiddenApps, force: true)
+                thumbnailStore.warmCache(for: viewModel.hiddenApps, force: true)
             }
             .buttonStyle(.bordered)
         }
@@ -113,19 +108,6 @@ extension OverviewView {
         .overlay(previewUnavailableStroke)
     }
 
-    var searchFieldBackground: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(isDarkMode ? Color.black.opacity(0.14) : Color.white.opacity(0.7))
-    }
-
-    var searchFieldStroke: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .stroke(
-                isDarkMode ? Color.white.opacity(0.08) : Color.black.opacity(0.07),
-                lineWidth: 1
-            )
-    }
-
     var countPillBackground: some View {
         Capsule()
             .fill(isDarkMode ? Color.primary.opacity(0.08) : Color.white.opacity(0.7))
@@ -142,5 +124,21 @@ extension OverviewView {
                 isDarkMode ? Color.white.opacity(0.08) : Color.black.opacity(0.06),
                 lineWidth: 1
             )
+    }
+
+    var backgroundGlow: some View {
+        ZStack {
+            Circle()
+                .fill(Color.blue.opacity(isDarkMode ? 0.12 : 0.07))
+                .frame(width: 440, height: 440)
+                .blur(radius: 80)
+                .offset(x: -260, y: -180)
+
+            Circle()
+                .fill(Color.orange.opacity(isDarkMode ? 0.08 : 0.04))
+                .frame(width: 320, height: 320)
+                .blur(radius: 80)
+                .offset(x: 240, y: 220)
+        }
     }
 }

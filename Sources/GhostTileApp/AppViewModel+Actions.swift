@@ -2,7 +2,7 @@ import AppKit
 import GhostTileCore
 
 extension AppViewModel {
-    func hideRunningApp(_ app: AppItem) {
+    func hideRunningApp(_ app: ManagedAppItem) {
         guard !loading.contains(app.id) else { return }
 
         if app.isSIPProtected {
@@ -14,63 +14,88 @@ extension AppViewModel {
         Log.info("Hiding \(app.name) (\(app.id))")
 
         loading.insert(app.id)
+        let bundleId = app.id
+        let name = app.name
+        let appPath = app.appPath
+        let binaryPath = app.binaryPath
+        let cliPath = cliPath
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
-                try self?.hideApp(
-                    bundleId: app.id, name: app.name,
-                    appPath: app.appPath, binaryPath: app.binaryPath
+                let result = try AppOperations.hideApp(
+                    bundleId: bundleId,
+                    name: name,
+                    appPath: appPath,
+                    binaryPath: binaryPath,
+                    cliPath: cliPath
                 )
-                self?.recordSponsorUse()
+
+                Task { @MainActor [weak self] in
+                    switch result {
+                    case .hidden:
+                        self?.recordSponsorUse()
+                    case .requiresSudo(let command):
+                        self?.sudoCommand = command
+                        self?.loading.remove(bundleId)
+                    }
+                }
             } catch {
-                Log.error("Hide failed for \(app.name): \(error)")
-                DispatchQueue.main.async {
+                Log.error("Hide failed for \(name): \(error)")
+                Task { @MainActor [weak self] in
                     self?.errorMessage = error.localizedDescription
                     self?.showError = true
                 }
             }
 
-            self?.completeOperation(for: app.id)
+            Task { @MainActor [weak self] in
+                self?.completeOperation(for: bundleId)
+            }
         }
     }
 
-    func showAppInDock(_ app: AppItem) {
+    func showAppInDock(_ app: ManagedAppItem) {
         guard app.isRunning else { return }
         sendDockVisibilityNotification(bundleId: app.id, hidden: false)
         recordSponsorUse()
     }
 
-    func hideAppFromDock(_ app: AppItem) {
+    func hideAppFromDock(_ app: ManagedAppItem) {
         guard app.isRunning else { return }
         sendDockVisibilityNotification(bundleId: app.id, hidden: true)
         recordSponsorUse()
     }
 
-    func managedApp(bundleId: String) -> AppItem? {
+    func managedApp(bundleId: String) -> ManagedAppItem? {
         hiddenApps.first(where: { $0.id == bundleId })
     }
 
-    func activateManagedApp(_ app: AppItem) {
+    func activateManagedApp(_ app: ManagedAppItem) {
         if let running = NSRunningApplication.runningApplications(withBundleIdentifier: app.id).first {
             running.activate()
             recordSponsorUse()
             return
         }
 
+        let bundleId = app.id
+        let name = app.name
+        let appPath = app.appPath
+        let binaryPath = app.binaryPath
+
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
-                let info = AppInfo(
-                    bundleId: app.id,
-                    name: app.name,
-                    appPath: app.appPath,
-                    binaryPath: app.binaryPath
+                try AppOperations.launchManagedVisible(
+                    bundleId: bundleId,
+                    name: name,
+                    appPath: appPath,
+                    binaryPath: binaryPath
                 )
-                try AppManager.launchManagedVisible(info)
-                self?.recordSponsorUse()
-                self?.scheduleRefresh(after: 0.75)
+                Task { @MainActor [weak self] in
+                    self?.recordSponsorUse()
+                    self?.scheduleRefresh(after: 0.75)
+                }
             } catch {
-                Log.error("Launch failed for \(app.name): \(error)")
-                DispatchQueue.main.async {
+                Log.error("Launch failed for \(name): \(error)")
+                Task { @MainActor [weak self] in
                     self?.errorMessage = error.localizedDescription
                     self?.showError = true
                 }
@@ -78,7 +103,7 @@ extension AppViewModel {
         }
     }
 
-    func revealAppInFinder(_ app: AppItem) {
+    func revealAppInFinder(_ app: ManagedAppItem) {
         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: app.appPath)])
     }
 
@@ -96,35 +121,40 @@ extension AppViewModel {
         activateManagedApp(app)
     }
 
-    func removeApp(_ app: AppItem) {
+    func removeApp(_ app: ManagedAppItem) {
         guard !loading.contains(app.id) else { return }
         Log.info("Removing \(app.name) (\(app.id)) from managed apps")
 
         loading.insert(app.id)
         let wasRunning = app.isRunning
+        let bundleId = app.id
+        let appPath = app.appPath
+        let binaryPath = app.binaryPath
+        let name = app.name
+        let cliPath = cliPath
+        let refreshDelay: TimeInterval = wasRunning ? Self.postOperationRefreshDelay : 0
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
-                if wasRunning {
-                    try AppManager.quit(app.id)
+                try AppOperations.removeApp(
+                    bundleId: bundleId,
+                    appPath: appPath,
+                    binaryPath: binaryPath,
+                    wasRunning: wasRunning
+                )
+                Task { @MainActor [weak self] in
+                    self?.recordSponsorUse()
                 }
-                try AppManager.restoreBinary(app.id, binaryPath: app.binaryPath, appPath: app.appPath)
-                try Config.removeHidden(app.id)
-                if wasRunning {
-                    try AppManager.launchNormal(app.appPath)
-                }
-                self?.recordSponsorUse()
             } catch {
-                Log.error("Remove failed for \(app.name): \(error)")
-                DispatchQueue.main.async {
-                    self?.sudoCommand = "sudo \(self?.cliPath ?? "ghosttile") restore \(app.id)"
+                Log.error("Remove failed for \(name): \(error)")
+                Task { @MainActor [weak self] in
+                    self?.sudoCommand = "sudo \(cliPath) restore \(bundleId)"
                 }
             }
 
-            self?.completeOperation(
-                for: app.id,
-                refreshDelay: wasRunning ? Self.postOperationRefreshDelay : 0
-            )
+            Task { @MainActor [weak self] in
+                self?.completeOperation(for: bundleId, refreshDelay: refreshDelay)
+            }
         }
     }
 
@@ -150,12 +180,22 @@ extension AppViewModel {
             let name = bundle.infoDictionary?["CFBundleName"] as? String
                 ?? FileManager.default.displayName(atPath: appPath)
             let icon = NSWorkspace.shared.icon(forFile: appPath)
-            let item = AppItem(
-                id: bundleId, name: name, icon: icon,
-                appPath: appPath, binaryPath: execURL.path,
-                category: .other, isHidden: false,
-                isSIPProtected: false, isRunning: false,
-                isHiddenFromDock: false
+            let record = ManagedAppRecord(
+                bundleId: bundleId,
+                name: name,
+                appPath: appPath,
+                binaryPath: execURL.path,
+                managed: false,
+                running: false,
+                hiddenFromDock: false,
+                pid: nil,
+                isSIPProtected: false,
+                categoryIdentifier: nil
+            )
+            let item = ManagedAppItem(
+                record: record,
+                icon: icon,
+                category: .other
             )
             hideRunningApp(item)
         }

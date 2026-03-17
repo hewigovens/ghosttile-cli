@@ -1,65 +1,15 @@
-import AppKit
 import GhostTileCore
 import ServiceManagement
 import SwiftUI
 
-extension SettingsView {
-    var bundledCLIPath: String? {
-        let path = BundledResources.resourcePath(named: "ghosttile-cli")
-        return FileManager.default.fileExists(atPath: path) ? path : nil
-    }
-
-    var bundledDylibPath: String? {
-        let path = BundledResources.resourcePath(named: "ghosthide.dylib")
-        return FileManager.default.fileExists(atPath: path) ? path : nil
-    }
-
-    var displayLogPath: String {
-        (Log.logPath as NSString).abbreviatingWithTildeInPath
-    }
-
-    var cliStatusText: String {
-        switch cliStatus {
-        case .checking:
-            return "Checking"
-        case .installed:
-            return "Installed"
-        case .notInstalled:
-            return "Optional"
-        case .failed:
-            return "Needs Attention"
-        }
-    }
-
-    var cliStatusColor: Color {
-        switch cliStatus {
-        case .checking:
-            return .secondary
-        case .installed:
-            return .green
-        case .notInstalled:
-            return .orange
-        case .failed:
-            return .red
-        }
-    }
-
-    var cliActionTitle: String {
-        switch cliStatus {
-        case .installed:
-            return "Reinstall CLI"
-        case .checking, .notInstalled, .failed:
-            return "Install CLI"
-        }
-    }
-
+extension SettingsViewModel {
     func checkCLIInstalled() {
-        let cliInstalled = FileManager.default.fileExists(atPath: cliInstallPath)
-        let dylibInstalled = FileManager.default.fileExists(atPath: cliDylibInstallPath)
+        let cliInstalled = FileManager.default.fileExists(atPath: CLIPaths.installedCLI)
+        let dylibInstalled = FileManager.default.fileExists(atPath: CLIPaths.installedDylib)
 
         if cliInstalled && dylibInstalled {
             do {
-                let installedVersion = try AppManager.run(cliInstallPath, ["--version"])
+                let installedVersion = try AppManager.run(CLIPaths.installedCLI, ["--version"])
                 if installedVersion == expectedCLIVersion {
                     cliStatus = .installed
                 } else {
@@ -79,11 +29,11 @@ extension SettingsView {
 
     func uninstallCLI() {
         do {
-            if FileManager.default.fileExists(atPath: cliInstallPath) {
-                try FileManager.default.removeItem(atPath: cliInstallPath)
+            if FileManager.default.fileExists(atPath: CLIPaths.installedCLI) {
+                try FileManager.default.removeItem(atPath: CLIPaths.installedCLI)
             }
-            if FileManager.default.fileExists(atPath: cliDylibInstallPath) {
-                try FileManager.default.removeItem(atPath: cliDylibInstallPath)
+            if FileManager.default.fileExists(atPath: CLIPaths.installedDylib) {
+                try FileManager.default.removeItem(atPath: CLIPaths.installedDylib)
             }
             cliStatus = .notInstalled
             return
@@ -91,11 +41,11 @@ extension SettingsView {
             Log.info("Direct CLI uninstall failed: \(error)")
         }
         do {
-            if FileManager.default.fileExists(atPath: cliInstallPath) {
-                try HelperClient.removeFile(atPath: cliInstallPath)
+            if FileManager.default.fileExists(atPath: CLIPaths.installedCLI) {
+                try HelperClient.removeFile(atPath: CLIPaths.installedCLI)
             }
-            if FileManager.default.fileExists(atPath: cliDylibInstallPath) {
-                try HelperClient.removeFile(atPath: cliDylibInstallPath)
+            if FileManager.default.fileExists(atPath: CLIPaths.installedDylib) {
+                try HelperClient.removeFile(atPath: CLIPaths.installedDylib)
             }
             cliStatus = .notInstalled
         } catch {
@@ -105,22 +55,22 @@ extension SettingsView {
     }
 
     func installCLI() {
-        guard let cliSource = bundledCLIPath,
-              let dylibSource = bundledDylibPath
+        guard let cliSource = CLIPaths.bundledCLI,
+              let dylibSource = CLIPaths.bundledDylib
         else {
             cliStatus = .failed("CLI resources not found in app bundle")
             return
         }
 
         do {
-            if FileManager.default.fileExists(atPath: cliInstallPath) {
-                try FileManager.default.removeItem(atPath: cliInstallPath)
+            if FileManager.default.fileExists(atPath: CLIPaths.installedCLI) {
+                try FileManager.default.removeItem(atPath: CLIPaths.installedCLI)
             }
-            if FileManager.default.fileExists(atPath: cliDylibInstallPath) {
-                try FileManager.default.removeItem(atPath: cliDylibInstallPath)
+            if FileManager.default.fileExists(atPath: CLIPaths.installedDylib) {
+                try FileManager.default.removeItem(atPath: CLIPaths.installedDylib)
             }
-            try FileManager.default.copyItem(atPath: cliSource, toPath: cliInstallPath)
-            try FileManager.default.copyItem(atPath: dylibSource, toPath: cliDylibInstallPath)
+            try FileManager.default.copyItem(atPath: cliSource, toPath: CLIPaths.installedCLI)
+            try FileManager.default.copyItem(atPath: dylibSource, toPath: CLIPaths.installedDylib)
             cliStatus = .installed
             return
         } catch {
@@ -128,8 +78,8 @@ extension SettingsView {
         }
 
         do {
-            try HelperClient.copyFile(from: cliSource, to: cliInstallPath)
-            try HelperClient.copyFile(from: dylibSource, to: cliDylibInstallPath)
+            try HelperClient.copyFile(from: cliSource, to: CLIPaths.installedCLI)
+            try HelperClient.copyFile(from: dylibSource, to: CLIPaths.installedDylib)
             cliStatus = .installed
         } catch {
             Log.error("CLI install failed: \(error)")
@@ -137,7 +87,7 @@ extension SettingsView {
         }
     }
 
-    func setLaunchAtLogin(_ enabled: Bool) {
+    func setLaunchAtLogin(_ enabled: Bool, launchAtLogin: Binding<Bool>) {
         if #available(macOS 13.0, *) {
             let service = SMAppService.mainApp
             do {
@@ -146,16 +96,16 @@ extension SettingsView {
                 } else {
                     try service.unregister()
                 }
-                launchAtLogin = enabled
+                launchAtLogin.wrappedValue = enabled
             } catch {
-                launchAtLogin = !enabled
+                launchAtLogin.wrappedValue = !enabled
             }
         }
     }
 
-    func syncLaunchAtLoginState() {
+    func syncLaunchAtLoginState(launchAtLogin: Binding<Bool>) {
         if #available(macOS 13.0, *) {
-            launchAtLogin = SMAppService.mainApp.status == .enabled
+            launchAtLogin.wrappedValue = SMAppService.mainApp.status == .enabled
         }
     }
 

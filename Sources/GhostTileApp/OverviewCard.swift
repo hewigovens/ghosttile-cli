@@ -3,7 +3,7 @@ import SwiftUI
 
 struct OverviewCard: View {
     @Environment(\.colorScheme) private var colorScheme
-    let app: AppViewModel.AppItem
+    let app: ManagedAppItem
     let thumbnail: NSImage?
     let isSelected: Bool
     let onOpen: () -> Void
@@ -46,12 +46,13 @@ struct OverviewCard: View {
                 )
 
                 HStack(alignment: .center, spacing: 10) {
-                    Image(nsImage: app.icon)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 28, height: 28)
-                        .padding(6)
-                        .background(iconChipBackground)
+                    IconTileView(
+                        icon: app.icon,
+                        size: 40,
+                        cornerRadius: 10,
+                        iconInset: 12,
+                        fill: iconChipFill
+                    )
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(app.name)
@@ -134,9 +135,8 @@ struct OverviewCard: View {
         }
     }
 
-    private var iconChipBackground: some View {
-        RoundedRectangle(cornerRadius: 10, style: .continuous)
-            .fill(isDarkMode ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(Color.white.opacity(0.74)))
+    private var iconChipFill: AnyShapeStyle {
+        isDarkMode ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(Color.white.opacity(0.74))
     }
 
     private var statusPill: some View {

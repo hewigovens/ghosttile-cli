@@ -4,25 +4,17 @@ import SwiftUI
 struct MainWindowView: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var vm: AppViewModel
+    @StateObject var viewModel: MainWindowViewModel
     @ObservedObject private var sponsorNudge = SponsorNudgeController.shared
-
-    @State var dropTargeted = false
-    @State var query = ""
 
     let runningSidebarWidth: CGFloat = 300
 
-    var filteredManagedApps: [AppViewModel.AppItem] {
-        filter(vm.hiddenApps)
-    }
-
-    var filteredRunningApps: [AppViewModel.AppItem] {
-        filter(vm.visibleApps)
-    }
-
-    var totalManagedCount: Int { vm.hiddenApps.count }
-    var runningCount: Int { vm.visibleApps.count }
-    var hiddenRunningCount: Int { vm.hiddenApps.filter(\.isRunning).count }
     var isDarkMode: Bool { colorScheme == .dark }
+
+    init(vm: AppViewModel) {
+        self.vm = vm
+        _viewModel = StateObject(wrappedValue: MainWindowViewModel(store: vm.managedAppsStore))
+    }
 
     var body: some View {
         ZStack {
