@@ -4,33 +4,16 @@ default:
 app := "GhostTile.app"
 deployment_target := "15.0"
 
-build:
+build: build-cli
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "Building {{app}}..."
-    MACOSX_DEPLOYMENT_TARGET={{deployment_target}} swift build -c release --product GhostTileApp
-    MACOSX_DEPLOYMENT_TARGET={{deployment_target}} swift build -c release --product ghosttile
-    echo "Compiling ghosthide.dylib..."
-    ghosthide_debug_flag=""
-    if [[ "${GHOSTHIDE_DEBUG:-0}" == "1" ]]; then
-        ghosthide_debug_flag="-DGHOSTHIDE_DEBUG=1"
-    fi
-    xcrun clang -dynamiclib -arch arm64 -framework Cocoa \
-        -mmacosx-version-min={{deployment_target}} \
-        ${ghosthide_debug_flag:+$ghosthide_debug_flag} \
-        -o .build/ghosthide.dylib Resources/ghosthide.m Resources/fishhook.c
+    echo "Building {{app}} via Xcode..."
+    xcodegen generate --spec project.yml --project .
+    xcodebuild -project GhostTile.xcodeproj -scheme GhostTileApp -configuration Release build 2>&1 | xcbeautify
+    app_path="$(xcodebuild -project GhostTile.xcodeproj -scheme GhostTileApp -configuration Release -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/GhostTile.app"
     rm -rf "{{app}}"
-    mkdir -p "{{app}}/Contents/MacOS" "{{app}}/Contents/Resources"
-    cp .build/release/GhostTileApp "{{app}}/Contents/MacOS/GhostTile"
-    cp Resources/Info.plist "{{app}}/Contents/"
-    cp Resources/appIcon.icns "{{app}}/Contents/Resources/"
-    cp Resources/status_menu_v.pdf "{{app}}/Contents/Resources/"
-    cp Resources/ghost-icon.png "{{app}}/Contents/Resources/"
-    cp Resources/appIcon-old.png "{{app}}/Contents/Resources/"
-    cp Resources/appIcon-new.png "{{app}}/Contents/Resources/"
-    cp .build/ghosthide.dylib "{{app}}/Contents/Resources/"
+    cp -R "$app_path" "{{app}}"
     codesign --force --sign - "{{app}}"
-    cp .build/release/ghosttile "{{app}}/Contents/Resources/ghosttile-cli"
     echo "Built {{app}} ($(du -sh "{{app}}" | cut -f1))"
 
 build-cli:
@@ -47,12 +30,6 @@ build-cli:
         ${ghosthide_debug_flag:+$ghosthide_debug_flag} \
         -o .build/ghosthide.dylib Resources/ghosthide.m Resources/fishhook.c
     cp .build/ghosthide.dylib .build/release/ghosthide.dylib
-
-generate:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    just build-cli
-    xcodegen generate --spec project.yml --project .
 
 resign app:
     #!/usr/bin/env bash
@@ -80,16 +57,18 @@ resign-all:
         sudo .build/release/ghosttile prepare --force "$app_path"
     done <<< "$app_paths"
 
-run: kill build
-    open "{{app}}"
+run: kill build-cli
+    #!/usr/bin/env bash
+    set -euo pipefail
+    xcodegen generate --spec project.yml --project .
+    xcodebuild -project GhostTile.xcodeproj -scheme GhostTileApp -configuration Release build 2>&1 | xcbeautify
+    app_path="$(xcodebuild -project GhostTile.xcodeproj -scheme GhostTileApp -configuration Release -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/GhostTile.app"
+    open "$app_path"
 
 kill:
     -pkill -f "{{app}}/Contents/MacOS/GhostTile"
 
 restart: kill run
-
-icon:
-    swift scripts/generate-icon.swift Resources
 
 install: build
     cp -r "{{app}}" /Applications/

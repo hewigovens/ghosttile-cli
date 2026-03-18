@@ -45,26 +45,26 @@ targets:
         product: LSAppCategory
       - package: KeyboardShortcuts
         product: KeyboardShortcuts
+    info:
+      path: Resources/Info.plist
+      properties:
+        CFBundleDisplayName: GhostTile
+        CFBundleIconName: app
+        CFBundleShortVersionString: 2.0.0
+        CFBundleVersion: "16"
+        LSUIElement: true
+        LSMinimumSystemVersion: "15.0"
+        NSHighResolutionCapable: true
+        NSAppleEventsUsageDescription: GhostTile needs permission to open Terminal for running commands with elevated privileges.
     settings:
       base:
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: GhostTile
-        INFOPLIST_KEY_CFBundleIdentifier: dev.hewig.ghosttile
-        INFOPLIST_KEY_CFBundleName: GhostTile
-        INFOPLIST_KEY_CFBundleShortVersionString: 2.0.0
-        INFOPLIST_KEY_CFBundleVersion: "16"
-        INFOPLIST_KEY_LSMinimumSystemVersion: "15.0"
-        INFOPLIST_KEY_LSUIElement: YES
-        INFOPLIST_KEY_NSAppleEventsUsageDescription: GhostTile needs permission to open Terminal for running commands with elevated privileges.
-        INFOPLIST_KEY_NSHighResolutionCapable: YES
         PRODUCT_BUNDLE_IDENTIFIER: dev.hewig.ghosttile
         PRODUCT_NAME: GhostTile
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_APPICON_NAME: app
     postBuildScripts:
       - path: /bin/sh
         name: Stage GhostTile Resources
         inputFiles:
-          - $(PROJECT_DIR)/Resources/appIcon.icns
           - $(PROJECT_DIR)/Resources/status_menu_v.pdf
           - $(PROJECT_DIR)/Resources/ghost-icon.png
           - $(PROJECT_DIR)/Resources/appIcon-old.png
@@ -72,7 +72,6 @@ targets:
           - $(PROJECT_DIR)/.build/ghosthide.dylib
           - $(PROJECT_DIR)/.build/release/ghosttile
         outputFiles:
-          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/appIcon.icns
           - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/status_menu_v.pdf
           - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ghost-icon.png
           - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/appIcon-old.png
@@ -83,7 +82,6 @@ targets:
           set -euo pipefail
           resources_dir="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
           mkdir -p "${resources_dir}"
-          cp "${PROJECT_DIR}/Resources/appIcon.icns" "${resources_dir}/"
           cp "${PROJECT_DIR}/Resources/status_menu_v.pdf" "${resources_dir}/"
           cp "${PROJECT_DIR}/Resources/ghost-icon.png" "${resources_dir}/"
           cp "${PROJECT_DIR}/Resources/appIcon-old.png" "${resources_dir}/"

@@ -1,0 +1,8 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ghost body -->
+  <path d="M256 60 C148 60 80 140 80 240 L80 400 C80 400 110 370 140 400 C170 430 200 400 230 400 C260 430 290 400 320 400 C350 430 380 400 410 400 C440 430 432 400 432 400 L432 240 C432 140 364 60 256 60Z" fill="white" opacity="0.95"/>
+  <!-- Left eye -->
+  <circle cx="200" cy="240" r="32" fill="#5AB3E8"/>
+  <!-- Right eye -->
+  <circle cx="312" cy="240" r="32" fill="#5AB3E8"/>
+</svg>

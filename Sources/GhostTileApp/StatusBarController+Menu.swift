@@ -72,24 +72,28 @@ extension StatusBarController {
         submenu.addItem(stateItem)
         submenu.addItem(.separator())
 
-        let activate = makeItem(app.isRunning ? "Activate" : "Launch", action: #selector(activateManagedApp(_:)))
-        activate.representedObject = app.id
-        submenu.addItem(activate)
+        let hide = makeItem("Hide from Dock", action: #selector(hideManagedApp(_:)))
+        hide.representedObject = app.id
+        hide.image = NSImage(systemSymbolName: "eye.slash", accessibilityDescription: nil)
+        hide.isEnabled = app.isRunning && !app.isHiddenFromDock
+        submenu.addItem(hide)
 
         let show = makeItem("Show in Dock", action: #selector(showManagedApp(_:)))
         show.representedObject = app.id
+        show.image = NSImage(systemSymbolName: "eye", accessibilityDescription: nil)
         show.isEnabled = app.isRunning && app.isHiddenFromDock
         submenu.addItem(show)
 
-        let hide = makeItem("Hide from Dock", action: #selector(hideManagedApp(_:)))
-        hide.representedObject = app.id
-        hide.isEnabled = app.isRunning && !app.isHiddenFromDock
-        submenu.addItem(hide)
+        let activate = makeItem(app.isRunning ? "Activate" : "Launch", action: #selector(activateManagedApp(_:)))
+        activate.representedObject = app.id
+        activate.image = NSImage(systemSymbolName: app.isRunning ? "arrow.up.forward.app" : "play", accessibilityDescription: nil)
+        submenu.addItem(activate)
 
         submenu.addItem(.separator())
 
         let remove = makeItem("Remove from GhostTile", action: #selector(removeManagedApp(_:)))
         remove.representedObject = app.id
+        remove.image = NSImage(systemSymbolName: "trash", accessibilityDescription: nil)
         submenu.addItem(remove)
         return submenu
     }
