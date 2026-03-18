@@ -35,11 +35,14 @@ jobs:
           cache: pnpm
           cache-dependency-path: raycast/pnpm-lock.yaml
 
-      - name: Install just
-        run: brew install just
+      - name: Install tools
+        run: brew install just xcodegen
 
       - name: Build Swift package
         run: swift build
+
+      - name: Build CLI and dylib
+        run: just build-cli
 
       - name: Build app bundle
         run: just build
