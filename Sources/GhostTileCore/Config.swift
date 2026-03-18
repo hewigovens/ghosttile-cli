@@ -1,16 +1,17 @@
 import Foundation
 
 public enum Config {
+    public static var configDirOverride: String?
+
     public static var backupDir: String { "\(configDir)/backups" }
 
     public static var configDir: String {
+        if let override = configDirOverride { return override }
         // When running via sudo, use the real user's home instead of /var/root
         let home: String
         if let sudoUser = ProcessInfo.processInfo.environment["SUDO_USER"],
            let pw = getpwnam(sudoUser) {
             home = String(cString: pw.pointee.pw_dir)
-        } else if let envHome = getenv("HOME") {
-            home = String(cString: envHome)
         } else {
             home = FileManager.default.homeDirectoryForCurrentUser.path
         }

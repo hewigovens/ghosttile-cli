@@ -2,7 +2,6 @@ import XCTest
 @testable import GhostTileCore
 
 final class ConfigTests: XCTestCase {
-    private var originalHome: String?
     private var tempDir: URL!
 
     override func setUp() {
@@ -10,14 +9,11 @@ final class ConfigTests: XCTestCase {
         tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("ghosttile-config-tests-\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        originalHome = ProcessInfo.processInfo.environment["HOME"]
-        setenv("HOME", tempDir.path, 1)
+        Config.configDirOverride = tempDir.path
     }
 
     override func tearDown() {
-        if let originalHome {
-            setenv("HOME", originalHome, 1)
-        }
+        Config.configDirOverride = nil
         if let tempDir {
             try? FileManager.default.removeItem(at: tempDir)
         }
