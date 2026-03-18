@@ -9,6 +9,8 @@ public enum Config {
         if let sudoUser = ProcessInfo.processInfo.environment["SUDO_USER"],
            let pw = getpwnam(sudoUser) {
             home = String(cString: pw.pointee.pw_dir)
+        } else if let envHome = getenv("HOME") {
+            home = String(cString: envHome)
         } else {
             home = FileManager.default.homeDirectoryForCurrentUser.path
         }

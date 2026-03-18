@@ -15,7 +15,7 @@ build:
     if [[ "${GHOSTHIDE_DEBUG:-0}" == "1" ]]; then
         ghosthide_debug_flag="-DGHOSTHIDE_DEBUG=1"
     fi
-    xcrun clang -dynamiclib -arch arm64 -arch x86_64 -framework Cocoa \
+    xcrun clang -dynamiclib -arch arm64 -framework Cocoa \
         -mmacosx-version-min={{deployment_target}} \
         ${ghosthide_debug_flag:+$ghosthide_debug_flag} \
         -o .build/ghosthide.dylib Resources/ghosthide.m Resources/fishhook.c
@@ -42,7 +42,7 @@ build-cli:
     if [[ "${GHOSTHIDE_DEBUG:-0}" == "1" ]]; then
         ghosthide_debug_flag="-DGHOSTHIDE_DEBUG=1"
     fi
-    xcrun clang -dynamiclib -arch arm64 -arch x86_64 -framework Cocoa \
+    xcrun clang -dynamiclib -arch arm64 -framework Cocoa \
         -mmacosx-version-min={{deployment_target}} \
         ${ghosthide_debug_flag:+$ghosthide_debug_flag} \
         -o .build/ghosthide.dylib Resources/ghosthide.m Resources/fishhook.c

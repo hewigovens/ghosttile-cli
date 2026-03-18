@@ -16,7 +16,7 @@ public enum Log {
         return dir.appendingPathComponent("ghosttile.log")
     }()
 
-    private static let maxLogSize: UInt64 = 1_000_000 // 1 MB
+    private static let maxLogSize: UInt64 = 1_000_000
     private static let maxRotatedLogs = 2
 
     private static let dateFormatter: DateFormatter = {
@@ -66,11 +66,9 @@ public enum Log {
         let fm = FileManager.default
         let base = logFileURL.path
 
-        // Remove oldest
         let oldest = "\(base).\(maxRotatedLogs)"
         try? fm.removeItem(atPath: oldest)
 
-        // Shift existing rotated logs
         for i in stride(from: maxRotatedLogs - 1, through: 1, by: -1) {
             let src = "\(base).\(i)"
             let dst = "\(base).\(i + 1)"
@@ -79,7 +77,6 @@ public enum Log {
             }
         }
 
-        // Rotate current → .1
         try? fm.moveItem(atPath: base, toPath: "\(base).1")
     }
 

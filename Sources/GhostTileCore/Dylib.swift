@@ -3,13 +3,10 @@ import Foundation
 public enum Dylib {
     public static let installName = MachOEditor.ghosthideInstallName
 
-    /// Path to the bundled dylib in the app's Resources or next to the CLI binary.
     public static var bundledPath: String? {
-        // App bundle: Contents/MacOS/GhostTile → Contents/Resources/ghosthide.dylib
         let appPath = BundledResources.resourcePath(named: "ghosthide.dylib")
         if FileManager.default.fileExists(atPath: appPath) { return appPath }
 
-        // CLI: same directory as the binary
         let cliPath = BundledResources.executableURL.deletingLastPathComponent()
             .appendingPathComponent("ghosthide.dylib").path
         if FileManager.default.fileExists(atPath: cliPath) { return cliPath }
@@ -22,7 +19,6 @@ public enum Dylib {
             .appendingPathComponent("Contents/Frameworks/ghosthide.dylib").path
     }
 
-    /// Returns the packaged dylib path for the app bundle or installed CLI.
     public static func ensureDylib() throws -> String {
         if let path = bundledPath { return path }
         throw GhostTileError(

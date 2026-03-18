@@ -59,7 +59,6 @@ class AppViewModel: ObservableObject {
     }
 
     private func initializeState() {
-        // Restore saved dock visibility preference
         let savedDockVisible = UserDefaults.standard.object(forKey: "showInDock") as? Bool ?? false
         if savedDockVisible {
             NSApp.setActivationPolicy(.regular)

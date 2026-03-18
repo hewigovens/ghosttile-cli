@@ -44,6 +44,15 @@ jobs:
       - name: Build app bundle
         run: just build
 
+      - name: Build debug dylib for tests
+        run: |
+          xcrun clang -dynamiclib -arch arm64 -framework Cocoa \
+            -mmacosx-version-min=15.0 -DGHOSTHIDE_DEBUG=1 \
+            -o .build/ghosthide.dylib Resources/ghosthide.m Resources/fishhook.c
+
+      - name: Run tests
+        run: swift test
+
       - name: Install Raycast extension dependencies
         working-directory: raycast
         run: pnpm install --frozen-lockfile

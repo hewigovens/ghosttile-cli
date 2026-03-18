@@ -26,5 +26,10 @@ let package = Package(
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
             ]
         ),
+        .testTarget(
+            name: "GhostTileCoreTests",
+            dependencies: ["GhostTileCore"],
+            exclude: ["Resources"]
+        ),
     ]
 )

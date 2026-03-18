@@ -56,6 +56,9 @@
 - `just run`: rebuild and open the app bundle.
 - `just build-cli`: build only the CLI in release.
 
+## Code Style
+- Only add comments that explain *why*, not *what*. If the code is self-explanatory, skip the comment.
+
 ## Editing Guidance
 - Prefer changes in `GhostTileCore` when logic is shared between the app and CLI.
 - Use the existing service/view-model split. Don't route new behavior through `AppViewModel` — put logic in focused services or `AppOperations`.
