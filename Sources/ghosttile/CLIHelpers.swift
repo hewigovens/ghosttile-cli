@@ -29,11 +29,31 @@ func resolveManaged(_ query: String) throws -> (String, HiddenApp) {
     return result
 }
 
+func isRunning(_ bundleId: String) -> Bool {
+    AppManager.isRunning(bundleId)
+}
+
+func validateNotSIPProtected(_ app: AppInfo) throws {
+    if AppManager.isSIPProtected(app.appPath) {
+        throw GhostTileError("\(app.name) is in a SIP-protected location.")
+    }
+}
+
+func prepareIfNeeded(_ app: AppInfo, force: Bool) throws {
+    let shouldPrepare = try force || AppManager.needsPreparation(app)
+    guard shouldPrepare else { return }
+    print("Preparing \(app.name)...")
+    try AppManager.prepare(app)
+}
+
+func addToConfig(_ app: AppInfo) throws {
+    try Config.addHidden(app)
+}
+
 func sendVisibilityNotification(_ query: String, action: ManagedAppNotificationAction) throws {
     let (bundleId, hiddenApp) = try resolveManaged(query)
 
-    let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
-    guard !running.isEmpty else {
+    guard isRunning(bundleId) else {
         print("\(hiddenApp.name) is not running.")
         return
     }

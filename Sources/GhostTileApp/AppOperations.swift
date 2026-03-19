@@ -10,12 +10,10 @@ enum AppOperations {
         Log.info("Hiding app: \(app.name) (\(app.bundleId))")
 
         if AppManager.isAppleFirstParty(app.appPath) {
-            Log.info("Blocked: \(app.name) is Apple first-party")
             throw GhostTileError("\(app.name) is an Apple system app and cannot be hidden.")
         }
 
         if try AppManager.needsSudo(app) {
-            Log.info("Blocked: \(app.name) needs manual step via CLI")
             return .requiresSudo(command: "sudo \(cliPath) manage \(app.bundleId)")
         }
 
@@ -25,21 +23,9 @@ enum AppOperations {
 
         try AppManager.quit(app.bundleId)
         try AppManager.launchHidden(app)
-        try Config.addHidden(
-            app.bundleId,
-            app: HiddenApp(
-                name: app.name,
-                appPath: app.appPath,
-                binaryPath: app.binaryPath,
-                prepared: true
-            )
-        )
+        try Config.addHidden(app)
 
         return .hidden
-    }
-
-    static func launchManagedVisible(_ app: AppInfo) throws {
-        try AppManager.launchManagedVisible(app)
     }
 
     static func removeApp(_ app: AppInfo, wasRunning: Bool) throws {

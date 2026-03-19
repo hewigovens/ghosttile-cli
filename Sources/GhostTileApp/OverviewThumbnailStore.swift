@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import GhostTileCore
 
 @MainActor
 final class OverviewThumbnailStore: ObservableObject {
@@ -42,7 +43,7 @@ final class OverviewThumbnailStore: ObservableObject {
 
         let runningApps = apps.compactMap { app -> (ManagedAppItem, pid_t)? in
             guard app.isRunning,
-                  let running = NSRunningApplication.runningApplications(withBundleIdentifier: app.id).first
+                  let running = AppManager.runningApps(app.id).first
             else { return nil }
 
             return (app, running.processIdentifier)

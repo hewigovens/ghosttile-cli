@@ -42,6 +42,15 @@ public enum Config {
         try save(config)
     }
 
+    public static func addHidden(_ app: AppInfo) throws {
+        try addHidden(app.bundleId, app: HiddenApp(
+            name: app.name,
+            appPath: app.appPath,
+            binaryPath: app.binaryPath,
+            prepared: true
+        ))
+    }
+
     public static func removeHidden(_ bundleId: String) throws {
         var config = load()
         config.hidden.removeValue(forKey: bundleId)

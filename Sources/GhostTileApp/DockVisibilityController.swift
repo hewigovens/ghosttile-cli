@@ -12,8 +12,7 @@ final class DockVisibilityController {
         Log.info("Sending auto-hide notification for launched managed app: \(hiddenApp.name) (\(bundleId))")
 
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 1.0) {
-            let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
-            guard let process = running.first, process.activationPolicy == .regular else { return }
+            guard let process = AppManager.runningApps(bundleId).first, process.activationPolicy == .regular else { return }
 
             Task { @MainActor in
                 self.send(bundleId: bundleId, hidden: true)
@@ -33,8 +32,7 @@ final class DockVisibilityController {
     }
 
     func reapplyHiddenState(bundleId: String, hiddenApp: HiddenApp) {
-        let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
-        guard let process = running.first else { return }
+        guard let process = AppManager.runningApps(bundleId).first else { return }
 
         if process.activationPolicy == .accessory {
             Log.info("\(hiddenApp.name) is already hidden on startup")

@@ -58,8 +58,8 @@ struct OverviewView: View {
                                         vm.handleAttentionNotificationClick(bundleId: app.id)
                                         onDismiss()
                                     },
-                                    onShow: { vm.showAppInDock(app) },
-                                    onHide: { vm.hideAppFromDock(app) },
+                                    onShow: { vm.setDockVisibility(app, hidden: false) },
+                                    onHide: { vm.setDockVisibility(app, hidden: true) },
                                     onReveal: { vm.revealAppInFinder(app) },
                                     onRemove: { vm.removeApp(app) }
                                 )

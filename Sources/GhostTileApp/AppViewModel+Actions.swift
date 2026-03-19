@@ -6,12 +6,9 @@ extension AppViewModel {
         guard !loading.contains(app.id) else { return }
 
         if app.isSIPProtected {
-            Log.info("Blocked: \(app.name) is SIP-protected")
-            errorMessage = "\(app.name) is system-protected and cannot be hidden."
-            showError = true
+            showError(message: "\(app.name) is system-protected and cannot be hidden.")
             return
         }
-        Log.info("Hiding \(app.name) (\(app.id))")
 
         let info = app.appInfo
         let cli = cliPath
@@ -28,15 +25,9 @@ extension AppViewModel {
         }
     }
 
-    func showAppInDock(_ app: ManagedAppItem) {
+    func setDockVisibility(_ app: ManagedAppItem, hidden: Bool) {
         guard app.isRunning else { return }
-        sendDockVisibilityNotification(bundleId: app.id, hidden: false)
-        recordSponsorUse()
-    }
-
-    func hideAppFromDock(_ app: ManagedAppItem) {
-        guard app.isRunning else { return }
-        sendDockVisibilityNotification(bundleId: app.id, hidden: true)
+        sendDockVisibilityNotification(bundleId: app.id, hidden: hidden)
         recordSponsorUse()
     }
 
@@ -45,7 +36,7 @@ extension AppViewModel {
     }
 
     func activateManagedApp(_ app: ManagedAppItem) {
-        if let running = NSRunningApplication.runningApplications(withBundleIdentifier: app.id).first {
+        if let running = AppManager.runningApps(app.id).first {
             running.activate()
             recordSponsorUse()
             return
@@ -53,7 +44,7 @@ extension AppViewModel {
 
         let info = app.appInfo
         performAsync(for: app.id, showLoading: false) {
-            try AppOperations.launchManagedVisible(info)
+            try AppManager.launchManagedVisible(info)
         } onResult: { [weak self] _ in
             self?.recordSponsorUse()
             self?.scheduleRefresh(after: 0.75)
@@ -68,7 +59,7 @@ extension AppViewModel {
         guard let app = managedApp(bundleId: bundleId) else { return }
 
         if app.isRunning, app.isHiddenFromDock {
-            showAppInDock(app)
+            setDockVisibility(app, hidden: false)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
                 self?.activateManagedApp(app)
             }
@@ -80,7 +71,6 @@ extension AppViewModel {
 
     func removeApp(_ app: ManagedAppItem) {
         guard !loading.contains(app.id) else { return }
-        Log.info("Removing \(app.name) (\(app.id)) from managed apps")
 
         let info = app.appInfo
         let wasRunning = app.isRunning
@@ -102,13 +92,11 @@ extension AppViewModel {
               let execURL = bundle.executableURL
         else { return }
 
-        let config = Config.load()
-        if config.hidden[bundleId] != nil { return }
+        if Config.load().hidden[bundleId] != nil { return }
 
         let appPath = url.path
         if AppManager.isSIPProtected(appPath) || AppManager.isAppleFirstParty(appPath) {
-            errorMessage = "\(bundle.infoDictionary?["CFBundleName"] as? String ?? bundleId) cannot be hidden."
-            showError = true
+            showError(message: "\(bundle.infoDictionary?["CFBundleName"] as? String ?? bundleId) cannot be hidden.")
             return
         }
 
@@ -130,12 +118,7 @@ extension AppViewModel {
                 isSIPProtected: false,
                 categoryIdentifier: nil
             )
-            let item = ManagedAppItem(
-                record: record,
-                icon: icon,
-                category: .other
-            )
-            hideRunningApp(item)
+            hideRunningApp(ManagedAppItem(record: record, icon: icon, category: .other))
         }
     }
 
@@ -155,7 +138,12 @@ extension AppViewModel {
         UserDefaults.standard.set(dockVisible, forKey: "showInDock")
     }
 
-    // MARK: - Async Operation Helper
+    // MARK: - Helpers
+
+    private func showError(message: String) {
+        errorMessage = message
+        showError = true
+    }
 
     func performAsync<T>(
         for bundleId: String,

@@ -85,5 +85,32 @@ dist: build
     echo "Created dist/GhostTile-{{version}}.zip ($(du -sh "GhostTile-{{version}}.zip" | cut -f1))"
     shasum -a 256 "GhostTile-{{version}}.zip"
 
+sign-release: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    signing_identity="${DEVELOPER_ID_APPLICATION:-Developer ID Application: Tao Xu (V28VJH6B6S)}"
+    echo "Signing {{app}} with ${signing_identity}..."
+    codesign --force --timestamp --sign "${signing_identity}" "{{app}}/Contents/Resources/ghosthide.dylib"
+    codesign --force --timestamp --options runtime --sign "${signing_identity}" "{{app}}/Contents/Resources/ghosttile-cli"
+    codesign --force --timestamp --options runtime --sign "${signing_identity}" "{{app}}"
+    codesign --verify --deep --strict --verbose=2 "{{app}}"
+    echo "Signed {{app}}"
+
+notarize-release: sign-release
+    #!/usr/bin/env bash
+    set -euo pipefail
+    notary_profile="${NOTARY_PROFILE:-notarytool}"
+    mkdir -p dist
+    rm -f "dist/GhostTile-{{version}}.zip"
+    ditto -c -k --keepParent "{{app}}" "dist/GhostTile-{{version}}.zip"
+    echo "Submitting dist/GhostTile-{{version}}.zip for notarization with profile ${notary_profile}..."
+    xcrun notarytool submit "dist/GhostTile-{{version}}.zip" --keychain-profile "${notary_profile}" --wait
+    xcrun stapler staple "{{app}}"
+    xcrun stapler validate "{{app}}"
+    rm -f "dist/GhostTile-{{version}}.zip"
+    ditto -c -k --keepParent "{{app}}" "dist/GhostTile-{{version}}.zip"
+    echo "Created notarized dist/GhostTile-{{version}}.zip ($(du -sh "dist/GhostTile-{{version}}.zip" | cut -f1))"
+    shasum -a 256 "dist/GhostTile-{{version}}.zip"
+
 clean:
     rm -rf .build "{{app}}" dist

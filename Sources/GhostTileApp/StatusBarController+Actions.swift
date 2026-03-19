@@ -8,12 +8,12 @@ extension StatusBarController {
 
     @objc func showManagedApp(_ sender: NSMenuItem) {
         guard let app = managedApp(from: sender) else { return }
-        vm.showAppInDock(app)
+        vm.setDockVisibility(app, hidden: false)
     }
 
     @objc func hideManagedApp(_ sender: NSMenuItem) {
         guard let app = managedApp(from: sender) else { return }
-        vm.hideAppFromDock(app)
+        vm.setDockVisibility(app, hidden: true)
     }
 
     @objc func removeManagedApp(_ sender: NSMenuItem) {

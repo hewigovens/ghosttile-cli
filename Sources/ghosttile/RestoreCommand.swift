@@ -10,10 +10,9 @@ extension GhostTile {
 
         func run() throws {
             let (bundleId, hiddenApp) = try resolveManaged(app)
+            let wasRunning = isRunning(bundleId)
 
-            let running = NSRunningApplication.runningApplications(
-                withBundleIdentifier: bundleId)
-            if !running.isEmpty {
+            if wasRunning {
                 print("Quitting \(hiddenApp.name)...")
                 try AppManager.quit(bundleId)
             }
@@ -21,7 +20,8 @@ extension GhostTile {
             print("Restoring \(hiddenApp.name)...")
             try AppManager.restoreBinary(bundleId, binaryPath: hiddenApp.binaryPath, appPath: hiddenApp.appPath)
             try Config.removeHidden(bundleId)
-            if !running.isEmpty {
+
+            if wasRunning {
                 try AppManager.launchNormal(hiddenApp.appPath)
                 print("\(hiddenApp.name) restored and visible in Dock.")
             } else {

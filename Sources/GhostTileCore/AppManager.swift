@@ -34,6 +34,15 @@ public enum AppManager {
         try AppRestoreManager.restoreBinary(bundleId, binaryPath: binaryPath, appPath: appPath)
     }
 
+    // Running app lookup
+    public static func runningApps(_ bundleId: String) -> [NSRunningApplication] {
+        NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
+    }
+
+    public static func isRunning(_ bundleId: String) -> Bool {
+        !runningApps(bundleId).isEmpty
+    }
+
     // Process
     public static func quit(_ bundleId: String) throws { try AppLauncher.quit(bundleId) }
     public static func launchHidden(_ app: AppInfo) throws { try AppLauncher.launchHidden(app) }

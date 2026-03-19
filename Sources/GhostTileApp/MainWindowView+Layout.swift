@@ -71,7 +71,7 @@ extension MainWindowView {
                                 onOpen: { vm.handleAttentionNotificationClick(bundleId: app.id) },
                                 onPrimaryAction: {
                                     if app.isRunning {
-                                        app.isHiddenFromDock ? vm.showAppInDock(app) : vm.hideAppFromDock(app)
+                                        vm.setDockVisibility(app, hidden: !app.isHiddenFromDock)
                                     } else {
                                         vm.activateManagedApp(app)
                                     }

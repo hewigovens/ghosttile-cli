@@ -11,43 +11,24 @@ extension GhostTile {
 
         func run() throws {
             let resolved = try AppManager.resolve(app)
-            let config = Config.load()
 
-            if config.hidden[resolved.bundleId] != nil {
-                let running = NSRunningApplication.runningApplications(
-                    withBundleIdentifier: resolved.bundleId)
-                if running.first?.activationPolicy == .accessory && !forcePrepare {
+            if Config.load().hidden[resolved.bundleId] != nil {
+                if AppManager.runningApps(resolved.bundleId).first?.activationPolicy == .accessory && !forcePrepare {
                     print("\(resolved.name) is already managed and hidden.")
                     return
                 }
             }
 
-            if AppManager.isSIPProtected(resolved.appPath) {
-                throw GhostTileError(
-                    "\(resolved.name) is in a SIP-protected location.")
-            }
-
-            let shouldPrepare = forcePrepare ? true : try AppManager.needsPreparation(resolved)
-            if shouldPrepare {
-                print("Preparing \(resolved.name)...")
-                try AppManager.prepare(resolved)
-            }
+            try validateNotSIPProtected(resolved)
+            try prepareIfNeeded(resolved, force: forcePrepare)
 
             print("Restarting \(resolved.name)...")
             try AppManager.quit(resolved.bundleId)
             try AppManager.launchHidden(resolved)
-
-            try Config.addHidden(
-                resolved.bundleId,
-                app: HiddenApp(
-                    name: resolved.name,
-                    appPath: resolved.appPath,
-                    binaryPath: resolved.binaryPath,
-                    prepared: true))
+            try addToConfig(resolved)
 
             Thread.sleep(forTimeInterval: 2)
-            let launched = NSRunningApplication.runningApplications(
-                withBundleIdentifier: resolved.bundleId)
+            let launched = AppManager.runningApps(resolved.bundleId)
             if launched.first?.activationPolicy == .accessory {
                 print("\(resolved.name) is now managed and hidden from Dock.")
             } else if launched.isEmpty {
@@ -68,19 +49,15 @@ extension GhostTile {
 
         func run() throws {
             let resolved = try AppManager.resolve(app)
+            try validateNotSIPProtected(resolved)
 
-            if AppManager.isSIPProtected(resolved.appPath) {
-                throw GhostTileError("\(resolved.name) is in a SIP-protected location.")
-            }
-
-            let shouldPrepare = force ? true : try AppManager.needsPreparation(resolved)
-            guard shouldPrepare else {
+            let needs = try force || AppManager.needsPreparation(resolved)
+            guard needs else {
                 print("\(resolved.name) is already prepared.")
                 return
             }
 
-            print("Preparing \(resolved.name)...")
-            try AppManager.prepare(resolved)
+            try prepareIfNeeded(resolved, force: force)
             print("\(resolved.name) prepared. No relaunch performed.")
         }
     }

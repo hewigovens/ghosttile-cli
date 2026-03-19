@@ -4,20 +4,17 @@ import Foundation
 enum AppLauncher {
     static func quit(_ bundleId: String) throws {
         Log.info("Quitting \(bundleId)")
-        let apps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
-        for app in apps {
+        for app in AppManager.runningApps(bundleId) {
             app.terminate()
         }
 
         let deadline = Date().addingTimeInterval(5)
         while Date() < deadline {
-            if NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).isEmpty {
-                return
-            }
+            if !AppManager.isRunning(bundleId) { return }
             Thread.sleep(forTimeInterval: 0.2)
         }
 
-        for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleId) {
+        for app in AppManager.runningApps(bundleId) {
             app.forceTerminate()
         }
         Thread.sleep(forTimeInterval: 0.5)
