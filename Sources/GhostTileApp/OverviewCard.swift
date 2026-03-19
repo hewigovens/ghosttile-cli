@@ -180,17 +180,6 @@ struct OverviewCard: View {
         }
     }
 
-    private var statusText: String {
-        if !app.isRunning {
-            return "Not Running"
-        }
-        return app.isHiddenFromDock ? "Hidden" : "Visible"
-    }
-
-    private var statusColor: Color {
-        if !app.isRunning {
-            return .secondary
-        }
-        return app.isHiddenFromDock ? .orange : .green
-    }
+    private var statusText: String { app.statusText }
+    private var statusColor: Color { app.statusColor }
 }

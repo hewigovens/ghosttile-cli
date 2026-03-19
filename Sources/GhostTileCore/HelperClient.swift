@@ -1,12 +1,17 @@
 import Foundation
 
+public extension String {
+    var escapedForAppleScript: String {
+        replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+    }
+}
+
 public enum HelperClient {
     @discardableResult
     private static func runPrivileged(_ command: String) throws -> String {
         Log.info("Running privileged: \(command)")
-        let escaped = command
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
+        let escaped = command.escapedForAppleScript
         let script = NSAppleScript(source:
             "do shell script \"\(escaped)\" with administrator privileges"
         )

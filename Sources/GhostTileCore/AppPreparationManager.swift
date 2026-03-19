@@ -33,7 +33,7 @@ enum AppPreparationManager {
     }
 
     static func backupBinary(_ app: AppInfo) throws {
-        let directory = backupPath(for: app.bundleId)
+        let directory = FileOperations.backupPath(for: app.bundleId)
         let destination = "\(directory)/binary"
 
         if FileManager.default.fileExists(atPath: destination) {
@@ -53,7 +53,9 @@ enum AppPreparationManager {
 
         let helperSourcePath = try Dylib.ensureDylib()
         let helperInstallPath = Dylib.bundleInstallPath(forAppPath: app.appPath)
-        try installHelper(from: helperSourcePath, to: helperInstallPath)
+        let helperDir = (helperInstallPath as NSString).deletingLastPathComponent
+        try FileOperations.createDirectory(atPath: helperDir)
+        try FileOperations.replaceFile(from: helperSourcePath, to: helperInstallPath)
 
         var entitlements = try extractEntitlements(app.binaryPath)
         entitlements["com.apple.security.cs.allow-dyld-environment-variables"] = true
@@ -78,39 +80,21 @@ enum AppPreparationManager {
             "/usr/bin/codesign",
             arguments: ["--force", "--sign", "-", "--entitlements", entitlementsPath, temporaryBinary]
         )
-        try installPreparedBinary(from: temporaryBinary, to: app.binaryPath)
+        try FileOperations.replaceFile(from: temporaryBinary, to: app.binaryPath)
         Log.info("Prepared binary for \(app.name)")
 
-        do {
-            try ShellRunner.run(
-                "/usr/bin/codesign",
-                arguments: ["--force", "--sign", "-", helperInstallPath]
-            )
-        } catch {
-            try HelperClient.codesign(arguments: ["--force", "--sign", "-", helperInstallPath])
-        }
+        try FileOperations.codesign(arguments: ["--force", "--sign", "-", helperInstallPath])
 
         do {
-            try ShellRunner.run(
-                "/usr/bin/codesign",
-                arguments: [
-                    "--force", "--sign", "-", "--preserve-metadata=entitlements", app.appPath
-                ]
-            )
+            try FileOperations.codesign(arguments: [
+                "--force", "--sign", "-", "--preserve-metadata=entitlements", app.appPath,
+            ])
             Log.info("Re-signed bundle for \(app.name)")
         } catch {
-            Log.info("Direct bundle codesign failed for \(app.name), trying via admin privileges")
-            do {
-                try HelperClient.codesign(arguments: [
-                    "--force", "--sign", "-", "--preserve-metadata=entitlements", app.appPath,
-                ])
-                Log.info("Re-signed bundle for \(app.name) via admin")
-            } catch {
-                Log.error("Failed to re-sign bundle for \(app.name): \(error)")
-                throw GhostTileError(
-                    "\(app.name) requires a manual step. Run in Terminal: sudo ghosttile hide \(app.bundleId)"
-                )
-            }
+            Log.error("Failed to re-sign bundle for \(app.name): \(error)")
+            throw GhostTileError(
+                "\(app.name) requires a manual step. Run in Terminal: sudo ghosttile hide \(app.bundleId)"
+            )
         }
     }
 
@@ -137,10 +121,6 @@ enum AppPreparationManager {
         return plist
     }
 
-    private static func backupPath(for bundleId: String) -> String {
-        "\(Config.backupDir)/\(bundleId)"
-    }
-
     private static func stripSignatureIfPresent(at binaryPath: String) throws {
         do {
             try ShellRunner.run(
@@ -149,40 +129,6 @@ enum AppPreparationManager {
             )
         } catch {
             Log.info("codesign --remove-signature skipped for \(binaryPath): \(error)")
-        }
-    }
-
-    private static func installPreparedBinary(from source: String, to destination: String) throws {
-        do {
-            try FileManager.default.removeItem(atPath: destination)
-            try FileManager.default.copyItem(atPath: source, toPath: destination)
-        } catch {
-            Log.info("Direct install of prepared binary failed, trying via admin privileges")
-            try HelperClient.copyFile(from: source, to: destination)
-        }
-    }
-
-    private static func installHelper(from source: String, to destination: String) throws {
-        let directory = (destination as NSString).deletingLastPathComponent
-
-        do {
-            try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
-        } catch {
-            try HelperClient.createDirectory(atPath: directory)
-        }
-
-        if FileManager.default.fileExists(atPath: destination) {
-            do {
-                try FileManager.default.removeItem(atPath: destination)
-            } catch {
-                try? HelperClient.removeFile(atPath: destination)
-            }
-        }
-
-        do {
-            try FileManager.default.copyItem(atPath: source, toPath: destination)
-        } catch {
-            try HelperClient.copyFile(from: source, to: destination)
         }
     }
 }

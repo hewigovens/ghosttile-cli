@@ -7,6 +7,9 @@ final class AttentionNotificationController: NSObject, UNUserNotificationCenterD
 
     private let center = UNUserNotificationCenter.current()
     private weak var viewModel: AppViewModel?
+#if DEBUG
+    private var didDeliverDebugStartupNotification = false
+#endif
 
     private override init() {
         super.init()
@@ -15,6 +18,9 @@ final class AttentionNotificationController: NSObject, UNUserNotificationCenterD
     func start(viewModel: AppViewModel) {
         self.viewModel = viewModel
         center.delegate = self
+#if DEBUG
+        deliverDebugStartupNotificationIfNeeded()
+#endif
     }
 
     func deliverNotification(bundleId: String, appName: String) {
@@ -82,4 +88,38 @@ final class AttentionNotificationController: NSObject, UNUserNotificationCenterD
             return false
         }
     }
+
+#if DEBUG
+    private func deliverDebugStartupNotificationIfNeeded() {
+        guard !didDeliverDebugStartupNotification else { return }
+        didDeliverDebugStartupNotification = true
+
+        Task {
+            try? await Task.sleep(nanoseconds: 800_000_000)
+
+            guard await ensureAuthorization() else {
+                Log.info("Notifications not authorized; skipping debug startup notification")
+                return
+            }
+
+            let content = UNMutableNotificationContent()
+            content.title = "GhostTile started"
+            content.body = "Debug notification for icon verification."
+            content.threadIdentifier = "ghosttile.debug"
+
+            let request = UNNotificationRequest(
+                identifier: "ghosttile.debug.startup",
+                content: content,
+                trigger: nil
+            )
+
+            do {
+                Log.debug("Delivering debug startup notification")
+                try await center.add(request)
+            } catch {
+                Log.error("Failed to deliver debug startup notification: \(error)")
+            }
+        }
+    }
+#endif
 }

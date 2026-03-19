@@ -1,6 +1,7 @@
 import AppKit
 import GhostTileCore
 import LSAppCategory
+import SwiftUI
 
 struct ManagedAppItem: Identifiable {
     let record: ManagedAppRecord
@@ -15,6 +16,20 @@ struct ManagedAppItem: Identifiable {
     var isSIPProtected: Bool { record.isSIPProtected }
     var isRunning: Bool { record.running }
     var isHiddenFromDock: Bool { record.hiddenFromDock }
+
+    var appInfo: AppInfo {
+        AppInfo(bundleId: id, name: name, appPath: appPath, binaryPath: binaryPath)
+    }
+
+    var statusText: String {
+        if !isRunning { return "Not Running" }
+        return isHiddenFromDock ? "Hidden" : "Visible"
+    }
+
+    var statusColor: Color {
+        if !isRunning { return .secondary }
+        return isHiddenFromDock ? .orange : .green
+    }
 
     func matches(query: String) -> Bool {
         let needle = query.lowercased()

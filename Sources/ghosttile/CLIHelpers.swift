@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import GhostTileCore
 
@@ -26,4 +27,18 @@ func resolveManaged(_ query: String) throws -> (String, HiddenApp) {
     }
 
     return result
+}
+
+func sendVisibilityNotification(_ query: String, action: ManagedAppNotificationAction) throws {
+    let (bundleId, hiddenApp) = try resolveManaged(query)
+
+    let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
+    guard !running.isEmpty else {
+        print("\(hiddenApp.name) is not running.")
+        return
+    }
+
+    ManagedAppNotifications.post(bundleId: bundleId, action: action)
+    let verb = action == .hide ? "hidden from" : "shown in"
+    print("\(hiddenApp.name) \(verb) Dock.")
 }

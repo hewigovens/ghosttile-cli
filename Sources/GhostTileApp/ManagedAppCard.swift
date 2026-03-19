@@ -48,21 +48,8 @@ struct ManagedAppCard: View {
         isDarkMode ? Color.white.opacity(0.12) : Color.black.opacity(0.06)
     }
 
-    private var statusLabel: String {
-        if !app.isRunning {
-            return "Not Running"
-        }
-
-        return app.isHiddenFromDock ? "Hidden from Dock" : "Visible in Dock"
-    }
-
-    private var statusColor: Color {
-        if !app.isRunning {
-            return .secondary
-        }
-
-        return app.isHiddenFromDock ? .orange : .green
-    }
+    private var statusLabel: String { app.statusText }
+    private var statusColor: Color { app.statusColor }
 
     private var primaryActionTitle: String {
         if !app.isRunning {

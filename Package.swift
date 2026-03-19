@@ -24,7 +24,8 @@ let package = Package(
                 "GhostTileCore",
                 "LSAppCategory",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
-            ]
+            ],
+            exclude: ["app.icon"]
         ),
         .testTarget(
             name: "GhostTileCoreTests",

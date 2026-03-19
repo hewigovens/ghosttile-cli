@@ -9,18 +9,7 @@ extension GhostTile {
         @Argument(help: "Bundle ID or app name.") var app: String
 
         func run() throws {
-            let config = Config.load()
-            let q = app.lowercased()
-
-            let match = config.hidden.first {
-                $0.key.lowercased().contains(q)
-                    || $0.value.name.lowercased().contains(q)
-            }
-
-            guard let (bundleId, hiddenApp) = match else {
-                throw GhostTileError(
-                    "'\(app)' is not managed. Run 'ghosttile status' to see managed apps.")
-            }
+            let (bundleId, hiddenApp) = try resolveManaged(app)
 
             let running = NSRunningApplication.runningApplications(
                 withBundleIdentifier: bundleId)

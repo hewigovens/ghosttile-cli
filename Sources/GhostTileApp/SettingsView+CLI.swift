@@ -27,26 +27,36 @@ extension SettingsViewModel {
         }
     }
 
+    private func removeInstalledFiles() throws {
+        try removeFileIfExists(CLIPaths.installedCLI)
+        try removeFileIfExists(CLIPaths.installedDylib)
+    }
+
+    private func removeInstalledFilesViaAdmin() throws {
+        if FileManager.default.fileExists(atPath: CLIPaths.installedCLI) {
+            try HelperClient.removeFile(atPath: CLIPaths.installedCLI)
+        }
+        if FileManager.default.fileExists(atPath: CLIPaths.installedDylib) {
+            try HelperClient.removeFile(atPath: CLIPaths.installedDylib)
+        }
+    }
+
+    private func removeFileIfExists(_ path: String) throws {
+        if FileManager.default.fileExists(atPath: path) {
+            try FileManager.default.removeItem(atPath: path)
+        }
+    }
+
     func uninstallCLI() {
         do {
-            if FileManager.default.fileExists(atPath: CLIPaths.installedCLI) {
-                try FileManager.default.removeItem(atPath: CLIPaths.installedCLI)
-            }
-            if FileManager.default.fileExists(atPath: CLIPaths.installedDylib) {
-                try FileManager.default.removeItem(atPath: CLIPaths.installedDylib)
-            }
+            try removeInstalledFiles()
             cliStatus = .notInstalled
             return
         } catch {
             Log.info("Direct CLI uninstall failed: \(error)")
         }
         do {
-            if FileManager.default.fileExists(atPath: CLIPaths.installedCLI) {
-                try HelperClient.removeFile(atPath: CLIPaths.installedCLI)
-            }
-            if FileManager.default.fileExists(atPath: CLIPaths.installedDylib) {
-                try HelperClient.removeFile(atPath: CLIPaths.installedDylib)
-            }
+            try removeInstalledFilesViaAdmin()
             cliStatus = .notInstalled
         } catch {
             Log.error("CLI uninstall failed: \(error)")
@@ -63,12 +73,7 @@ extension SettingsViewModel {
         }
 
         do {
-            if FileManager.default.fileExists(atPath: CLIPaths.installedCLI) {
-                try FileManager.default.removeItem(atPath: CLIPaths.installedCLI)
-            }
-            if FileManager.default.fileExists(atPath: CLIPaths.installedDylib) {
-                try FileManager.default.removeItem(atPath: CLIPaths.installedDylib)
-            }
+            try removeInstalledFiles()
             try FileManager.default.copyItem(atPath: cliSource, toPath: CLIPaths.installedCLI)
             try FileManager.default.copyItem(atPath: dylibSource, toPath: CLIPaths.installedDylib)
             cliStatus = .installed

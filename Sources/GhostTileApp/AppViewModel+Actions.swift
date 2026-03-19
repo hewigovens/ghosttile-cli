@@ -13,42 +13,17 @@ extension AppViewModel {
         }
         Log.info("Hiding \(app.name) (\(app.id))")
 
-        loading.insert(app.id)
-        let bundleId = app.id
-        let name = app.name
-        let appPath = app.appPath
-        let binaryPath = app.binaryPath
-        let cliPath = cliPath
-
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            do {
-                let result = try AppOperations.hideApp(
-                    bundleId: bundleId,
-                    name: name,
-                    appPath: appPath,
-                    binaryPath: binaryPath,
-                    cliPath: cliPath
-                )
-
-                Task { @MainActor [weak self] in
-                    switch result {
-                    case .hidden:
-                        self?.recordSponsorUse()
-                    case .requiresSudo(let command):
-                        self?.sudoCommand = command
-                        self?.loading.remove(bundleId)
-                    }
-                }
-            } catch {
-                Log.error("Hide failed for \(name): \(error)")
-                Task { @MainActor [weak self] in
-                    self?.errorMessage = error.localizedDescription
-                    self?.showError = true
-                }
-            }
-
-            Task { @MainActor [weak self] in
-                self?.completeOperation(for: bundleId)
+        let info = app.appInfo
+        let cli = cliPath
+        performAsync(for: app.id) {
+            try AppOperations.hideApp(info, cliPath: cli)
+        } onResult: { [weak self] result in
+            switch result {
+            case .hidden:
+                self?.recordSponsorUse()
+            case .requiresSudo(let command):
+                self?.sudoCommand = command
+                self?.loading.remove(info.bundleId)
             }
         }
     }
@@ -76,30 +51,12 @@ extension AppViewModel {
             return
         }
 
-        let bundleId = app.id
-        let name = app.name
-        let appPath = app.appPath
-        let binaryPath = app.binaryPath
-
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            do {
-                try AppOperations.launchManagedVisible(
-                    bundleId: bundleId,
-                    name: name,
-                    appPath: appPath,
-                    binaryPath: binaryPath
-                )
-                Task { @MainActor [weak self] in
-                    self?.recordSponsorUse()
-                    self?.scheduleRefresh(after: 0.75)
-                }
-            } catch {
-                Log.error("Launch failed for \(name): \(error)")
-                Task { @MainActor [weak self] in
-                    self?.errorMessage = error.localizedDescription
-                    self?.showError = true
-                }
-            }
+        let info = app.appInfo
+        performAsync(for: app.id, showLoading: false) {
+            try AppOperations.launchManagedVisible(info)
+        } onResult: { [weak self] _ in
+            self?.recordSponsorUse()
+            self?.scheduleRefresh(after: 0.75)
         }
     }
 
@@ -125,36 +82,17 @@ extension AppViewModel {
         guard !loading.contains(app.id) else { return }
         Log.info("Removing \(app.name) (\(app.id)) from managed apps")
 
-        loading.insert(app.id)
+        let info = app.appInfo
         let wasRunning = app.isRunning
-        let bundleId = app.id
-        let appPath = app.appPath
-        let binaryPath = app.binaryPath
-        let name = app.name
-        let cliPath = cliPath
+        let cli = cliPath
         let refreshDelay: TimeInterval = wasRunning ? Self.postOperationRefreshDelay : 0
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            do {
-                try AppOperations.removeApp(
-                    bundleId: bundleId,
-                    appPath: appPath,
-                    binaryPath: binaryPath,
-                    wasRunning: wasRunning
-                )
-                Task { @MainActor [weak self] in
-                    self?.recordSponsorUse()
-                }
-            } catch {
-                Log.error("Remove failed for \(name): \(error)")
-                Task { @MainActor [weak self] in
-                    self?.sudoCommand = "sudo \(cliPath) restore \(bundleId)"
-                }
-            }
-
-            Task { @MainActor [weak self] in
-                self?.completeOperation(for: bundleId, refreshDelay: refreshDelay)
-            }
+        performAsync(for: app.id, refreshDelay: refreshDelay) {
+            try AppOperations.removeApp(info, wasRunning: wasRunning)
+        } onResult: { [weak self] _ in
+            self?.recordSponsorUse()
+        } onError: { [weak self] _ in
+            self?.sudoCommand = "sudo \(cli) restore \(info.bundleId)"
         }
     }
 
@@ -215,5 +153,39 @@ extension AppViewModel {
             openWindow?()
         }
         UserDefaults.standard.set(dockVisible, forKey: "showInDock")
+    }
+
+    // MARK: - Async Operation Helper
+
+    func performAsync<T>(
+        for bundleId: String,
+        showLoading: Bool = true,
+        refreshDelay: TimeInterval = 1.5,
+        work: @escaping () throws -> T,
+        onResult: @escaping @MainActor (T) -> Void = { _ in },
+        onError: (@MainActor (Error) -> Void)? = nil
+    ) {
+        if showLoading { loading.insert(bundleId) }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            do {
+                let result = try work()
+                Task { @MainActor in
+                    onResult(result)
+                }
+            } catch {
+                Log.error("Operation failed for \(bundleId): \(error)")
+                Task { @MainActor [weak self] in
+                    if let onError {
+                        onError(error)
+                    } else {
+                        self?.errorMessage = error.localizedDescription
+                        self?.showError = true
+                    }
+                }
+            }
+            Task { @MainActor [weak self] in
+                self?.completeOperation(for: bundleId, refreshDelay: refreshDelay)
+            }
+        }
     }
 }

@@ -24,11 +24,11 @@
       ],
       "shadow" : {
         "kind" : "neutral",
-        "opacity" : 0.3
+        "opacity" : 0.22
       },
       "translucency" : {
-        "enabled" : true,
-        "value" : 0.2
+        "enabled" : false,
+        "value" : 0.0
       }
     }
   ],

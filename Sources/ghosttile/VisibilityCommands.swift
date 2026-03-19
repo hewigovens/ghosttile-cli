@@ -1,4 +1,3 @@
-import AppKit
 import ArgumentParser
 import GhostTileCore
 
@@ -9,17 +8,7 @@ extension GhostTile {
         @Argument(help: "Bundle ID or app name.") var app: String
 
         func run() throws {
-            let (bundleId, hiddenApp) = try resolveManaged(app)
-
-            let running = NSRunningApplication.runningApplications(
-                withBundleIdentifier: bundleId)
-            guard !running.isEmpty else {
-                print("\(hiddenApp.name) is not running.")
-                return
-            }
-
-            ManagedAppNotifications.post(bundleId: bundleId, action: .hide)
-            print("\(hiddenApp.name) hidden from Dock.")
+            try sendVisibilityNotification(app, action: .hide)
         }
     }
 
@@ -29,17 +18,7 @@ extension GhostTile {
         @Argument(help: "Bundle ID or app name.") var app: String
 
         func run() throws {
-            let (bundleId, hiddenApp) = try resolveManaged(app)
-
-            let running = NSRunningApplication.runningApplications(
-                withBundleIdentifier: bundleId)
-            guard !running.isEmpty else {
-                print("\(hiddenApp.name) is not running.")
-                return
-            }
-
-            ManagedAppNotifications.post(bundleId: bundleId, action: .show)
-            print("\(hiddenApp.name) shown in Dock.")
+            try sendVisibilityNotification(app, action: .show)
         }
     }
 }

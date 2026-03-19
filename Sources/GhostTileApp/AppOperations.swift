@@ -6,44 +6,31 @@ enum HideAppOperationResult {
 }
 
 enum AppOperations {
-    static func hideApp(
-        bundleId: String,
-        name: String,
-        appPath: String,
-        binaryPath: String,
-        cliPath: String
-    ) throws -> HideAppOperationResult {
-        Log.info("Hiding app: \(name) (\(bundleId))")
+    static func hideApp(_ app: AppInfo, cliPath: String) throws -> HideAppOperationResult {
+        Log.info("Hiding app: \(app.name) (\(app.bundleId))")
 
-        if AppManager.isAppleFirstParty(appPath) {
-            Log.info("Blocked: \(name) is Apple first-party")
-            throw GhostTileError("\(name) is an Apple system app and cannot be hidden.")
+        if AppManager.isAppleFirstParty(app.appPath) {
+            Log.info("Blocked: \(app.name) is Apple first-party")
+            throw GhostTileError("\(app.name) is an Apple system app and cannot be hidden.")
         }
 
-        let info = AppInfo(
-            bundleId: bundleId,
-            name: name,
-            appPath: appPath,
-            binaryPath: binaryPath
-        )
-
-        if try AppManager.needsSudo(info) {
-            Log.info("Blocked: \(name) needs manual step via CLI")
-            return .requiresSudo(command: "sudo \(cliPath) manage \(bundleId)")
+        if try AppManager.needsSudo(app) {
+            Log.info("Blocked: \(app.name) needs manual step via CLI")
+            return .requiresSudo(command: "sudo \(cliPath) manage \(app.bundleId)")
         }
 
-        if try AppManager.needsPreparation(info) {
-            try AppManager.prepare(info)
+        if try AppManager.needsPreparation(app) {
+            try AppManager.prepare(app)
         }
 
-        try AppManager.quit(bundleId)
-        try AppManager.launchHidden(info)
+        try AppManager.quit(app.bundleId)
+        try AppManager.launchHidden(app)
         try Config.addHidden(
-            bundleId,
+            app.bundleId,
             app: HiddenApp(
-                name: name,
-                appPath: appPath,
-                binaryPath: binaryPath,
+                name: app.name,
+                appPath: app.appPath,
+                binaryPath: app.binaryPath,
                 prepared: true
             )
         )
@@ -51,36 +38,20 @@ enum AppOperations {
         return .hidden
     }
 
-    static func launchManagedVisible(
-        bundleId: String,
-        name: String,
-        appPath: String,
-        binaryPath: String
-    ) throws {
-        let info = AppInfo(
-            bundleId: bundleId,
-            name: name,
-            appPath: appPath,
-            binaryPath: binaryPath
-        )
-        try AppManager.launchManagedVisible(info)
+    static func launchManagedVisible(_ app: AppInfo) throws {
+        try AppManager.launchManagedVisible(app)
     }
 
-    static func removeApp(
-        bundleId: String,
-        appPath: String,
-        binaryPath: String,
-        wasRunning: Bool
-    ) throws {
+    static func removeApp(_ app: AppInfo, wasRunning: Bool) throws {
         if wasRunning {
-            try AppManager.quit(bundleId)
+            try AppManager.quit(app.bundleId)
         }
 
-        try AppManager.restoreBinary(bundleId, binaryPath: binaryPath, appPath: appPath)
-        try Config.removeHidden(bundleId)
+        try AppManager.restoreBinary(app.bundleId, binaryPath: app.binaryPath, appPath: app.appPath)
+        try Config.removeHidden(app.bundleId)
 
         if wasRunning {
-            try AppManager.launchNormal(appPath)
+            try AppManager.launchNormal(app.appPath)
         }
     }
 }

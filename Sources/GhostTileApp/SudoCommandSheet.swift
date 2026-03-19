@@ -57,8 +57,7 @@ struct SudoCommandSheet: View {
     }
 
     private func openInTerminal(_ cmd: String) {
-        let escaped = cmd.replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
+        let escaped = cmd.escapedForAppleScript
         let script = """
         tell application "Terminal"
             activate
