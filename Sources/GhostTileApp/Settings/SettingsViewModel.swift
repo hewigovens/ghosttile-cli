@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import GhostTileCore
 import SwiftUI
@@ -45,6 +46,15 @@ final class SettingsViewModel: ObservableObject {
             .orange
         case .failed:
             .red
+        }
+    }
+
+    func setShowInDock(_ show: Bool) {
+        if show {
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
+        } else {
+            NSApp.setActivationPolicy(.accessory)
         }
     }
 

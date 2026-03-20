@@ -1,6 +1,6 @@
 import Foundation
 
-public enum FileOperations {
+enum FileOperations {
     static func replaceFile(from source: String, to destination: String) throws {
         do {
             if FileManager.default.fileExists(atPath: destination) {

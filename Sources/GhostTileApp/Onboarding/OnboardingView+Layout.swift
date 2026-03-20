@@ -3,7 +3,7 @@ import SwiftUI
 extension OnboardingView {
     var topBar: some View {
         HStack {
-            Text("Step \(step + 1) of \(totalSteps)")
+            Text("Step \(viewModel.step + 1) of \(viewModel.totalSteps)")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
 
@@ -20,37 +20,35 @@ extension OnboardingView {
     var footer: some View {
         HStack {
             HStack(spacing: 6) {
-                ForEach(0..<totalSteps, id: \.self) { index in
+                ForEach(0..<viewModel.totalSteps, id: \.self) { index in
                     Capsule()
-                        .fill(index == step ? Color.accentColor : indicatorFill)
-                        .frame(width: index == step ? 20 : 6, height: 6)
+                        .fill(index == viewModel.step ? Color.accentColor : indicatorFill)
+                        .frame(width: index == viewModel.step ? 20 : 6, height: 6)
                 }
             }
 
             Spacer()
 
-            if step > 0 {
+            if viewModel.step > 0 {
                 Button("Back") {
                     withAnimation(.easeInOut(duration: 0.25)) {
-                        step -= 1
+                        viewModel.step -= 1
                     }
                 }
                 .buttonStyle(.bordered)
             }
 
-            if step < totalSteps - 1 {
+            if viewModel.step < viewModel.totalSteps - 1 {
                 Button("Continue") {
                     withAnimation(.easeInOut(duration: 0.25)) {
-                        step += 1
+                        viewModel.step += 1
                     }
                 }
                 .buttonStyle(.borderedProminent)
             } else {
                 Button("Get Started") {
-                    UserDefaults.standard.set(true, forKey: "onboardingComplete")
-                    withAnimation {
-                        isComplete = true
-                    }
+                    viewModel.completeOnboarding()
+                    withAnimation { isComplete = true }
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -67,7 +65,7 @@ extension OnboardingView {
                             .frame(width: 148, height: 148)
 
                         Group {
-                            if iconFlipped {
+                            if viewModel.iconFlipped {
                                 newIcon
                                     .transition(.scale(scale: 0.86).combined(with: .opacity))
                             } else {
@@ -76,8 +74,8 @@ extension OnboardingView {
                             }
                         }
                         .frame(width: 120, height: 120)
-                        .scaleEffect(iconScale)
-                        .opacity(iconOpacity)
+                        .scaleEffect(viewModel.iconScale)
+                        .opacity(viewModel.iconOpacity)
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
@@ -166,7 +164,7 @@ extension OnboardingView {
                         systemImage: "terminal.fill",
                         tint: .purple,
                         actionTitle: "Grant",
-                        action: openAppManagementSettings
+                        action: viewModel.openAppManagementSettings
                     )
                     PermissionCard(
                         title: "Screen & System Audio Recording",
@@ -174,7 +172,7 @@ extension OnboardingView {
                         systemImage: "rectangle.on.rectangle",
                         tint: .orange,
                         actionTitle: "Grant",
-                        action: openScreenCaptureSettings
+                        action: viewModel.openScreenCaptureSettings
                     )
                 }
             }

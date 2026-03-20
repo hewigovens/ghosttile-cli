@@ -27,12 +27,7 @@ struct SettingsView: View {
                                     get: { showInDock },
                                     set: { newValue in
                                         showInDock = newValue
-                                        if newValue {
-                                            NSApp.setActivationPolicy(.regular)
-                                            NSApp.activate(ignoringOtherApps: true)
-                                        } else {
-                                            NSApp.setActivationPolicy(.accessory)
-                                        }
+                                        viewModel.setShowInDock(newValue)
                                     }
                                 )
                             )
