@@ -11,9 +11,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
         let menu = NSMenu()
-        let item = NSMenuItem(title: "Hide from Dock", action: #selector(hideFromDock), keyEquivalent: "")
-        item.target = self
-        menu.addItem(item)
+
+        if let vm, !vm.hiddenApps.isEmpty {
+            for app in vm.hiddenApps {
+                let item = app.menuItem(icon: app.icon)
+                let submenu = NSMenu(title: app.name)
+                for menuItem in app.visibilityMenuItems(
+                    target: self,
+                    hideAction: #selector(dockMenuHideApp(_:)),
+                    showAction: #selector(dockMenuShowApp(_:)),
+                    activateAction: #selector(dockMenuActivateApp(_:))
+                ) {
+                    submenu.addItem(menuItem)
+                }
+                item.submenu = submenu
+                menu.addItem(item)
+            }
+            menu.addItem(.separator())
+        }
+
+        let hideItem = NSMenuItem(title: "Hide GhostTile from Dock", action: #selector(hideFromDock), keyEquivalent: "")
+        hideItem.target = self
+        menu.addItem(hideItem)
         return menu
     }
 
@@ -23,6 +42,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func hideFromDock() {
         vm?.toggleSelfDock()
+    }
+
+    @objc private func dockMenuHideApp(_ sender: NSMenuItem) {
+        guard let bundleId = sender.representedObject as? String,
+              let app = vm?.managedApp(bundleId: bundleId) else { return }
+        vm?.setDockVisibility(app, hidden: true)
+    }
+
+    @objc private func dockMenuShowApp(_ sender: NSMenuItem) {
+        guard let bundleId = sender.representedObject as? String,
+              let app = vm?.managedApp(bundleId: bundleId) else { return }
+        vm?.setDockVisibility(app, hidden: false)
+    }
+
+    @objc private func dockMenuActivateApp(_ sender: NSMenuItem) {
+        guard let bundleId = sender.representedObject as? String,
+              let app = vm?.managedApp(bundleId: bundleId) else { return }
+        vm?.activateManagedApp(app)
     }
 }
 

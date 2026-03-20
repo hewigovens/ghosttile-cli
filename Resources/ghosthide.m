@@ -10,9 +10,11 @@ static OSStatus (*_original_TransformProcessType)(const ProcessSerialNumber *psn
                                                   ProcessApplicationTransformState transformState) = NULL;
 static BOOL _ghosthide_active = YES;
 static id _ghosthide_badgeObserver = nil;
+static IMP _original_applicationDockMenu = NULL;
 
 static void _ghosthide_log(NSString *message);
 static void _ghosthide_install_debug_hooks(void);
+static void _ghosthide_install_dock_menu(void);
 
 @interface GhostTileBadgeObserver : NSObject
 @property (nonatomic, copy) NSString *bundleId;
@@ -194,6 +196,61 @@ static void _ghosthide_configure_notifications(NSString *bundleId) {
     });
 }
 
+@interface GhostTileDockMenuHandler : NSObject
++ (void)toggleDockVisibility:(id)sender;
+@end
+
+@implementation GhostTileDockMenuHandler
+
++ (void)toggleDockVisibility:(__unused id)sender {
+    _ghosthide_apply_hidden_state(YES);
+}
+
+@end
+
+static NSMenu *_ghosthide_applicationDockMenu(id self, SEL _cmd, NSApplication *sender) {
+    NSMenu *menu = nil;
+    if (_original_applicationDockMenu) {
+        menu = ((NSMenu *(*)(id, SEL, NSApplication *))_original_applicationDockMenu)(self, _cmd, sender);
+    }
+    if (!menu) {
+        menu = [[NSMenu alloc] init];
+    }
+
+    if (menu.numberOfItems > 0) {
+        [menu addItem:[NSMenuItem separatorItem]];
+    }
+
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"Hide from Dock"
+                                                 action:@selector(toggleDockVisibility:)
+                                          keyEquivalent:@""];
+    item.target = [GhostTileDockMenuHandler class];
+    [menu addItem:item];
+    return menu;
+}
+
+static void _ghosthide_install_dock_menu(void) {
+    id delegate = [[NSApplication sharedApplication] delegate];
+    if (!delegate) {
+        _ghosthide_log(@"no app delegate, skipping dock menu install");
+        return;
+    }
+
+    Class delegateClass = [delegate class];
+    SEL sel = @selector(applicationDockMenu:);
+
+    if (class_getInstanceMethod(delegateClass, sel)) {
+        _ghosthide_swizzle_instance_method(delegateClass, sel,
+                                           (IMP)_ghosthide_applicationDockMenu,
+                                           &_original_applicationDockMenu,
+                                           @"applicationDockMenu");
+    } else {
+        class_addMethod(delegateClass, sel,
+                        (IMP)_ghosthide_applicationDockMenu, "@@:@");
+        _ghosthide_log(@"added applicationDockMenu: to delegate");
+    }
+}
+
 __attribute__((constructor))
 static void ghosthide_load(void) {
     if (getenv("GHOSTHIDE_DISABLE")) {
@@ -208,6 +265,7 @@ static void ghosthide_load(void) {
         _ghosthide_log(@"main queue initialization start");
         _ghosthide_apply_hidden_state(!_ghosthide_start_visible());
         _ghosthide_configure_notifications(_ghosthide_bundle_id());
+        _ghosthide_install_dock_menu();
         _ghosthide_log(@"main queue initialization complete");
     });
 }

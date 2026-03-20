@@ -58,8 +58,7 @@ extension StatusBarController {
     }
 
     func makeManagedAppItem(_ app: ManagedAppItem) -> NSMenuItem {
-        let item = NSMenuItem(title: app.name, action: nil, keyEquivalent: "")
-        item.image = resizedIcon(app.icon)
+        let item = app.menuItem(icon: app.icon)
         item.submenu = managedAppSubmenu(for: app)
         return item
     }
@@ -67,27 +66,22 @@ extension StatusBarController {
     func managedAppSubmenu(for app: ManagedAppItem) -> NSMenu {
         let submenu = NSMenu(title: app.name)
 
-        let stateItem = NSMenuItem(title: managedAppStateText(app), action: nil, keyEquivalent: "")
+        let stateText = app.isRunning
+            ? (app.isHiddenFromDock ? "Running Hidden" : "Running Visible")
+            : "Not Running"
+        let stateItem = NSMenuItem(title: stateText, action: nil, keyEquivalent: "")
         stateItem.isEnabled = false
         submenu.addItem(stateItem)
         submenu.addItem(.separator())
 
-        let hide = makeItem("Hide from Dock", action: #selector(hideManagedApp(_:)))
-        hide.representedObject = app.id
-        hide.image = NSImage(systemSymbolName: "eye.slash", accessibilityDescription: nil)
-        hide.isEnabled = app.isRunning && !app.isHiddenFromDock
-        submenu.addItem(hide)
-
-        let show = makeItem("Show in Dock", action: #selector(showManagedApp(_:)))
-        show.representedObject = app.id
-        show.image = NSImage(systemSymbolName: "eye", accessibilityDescription: nil)
-        show.isEnabled = app.isRunning && app.isHiddenFromDock
-        submenu.addItem(show)
-
-        let activate = makeItem(app.isRunning ? "Activate" : "Launch", action: #selector(activateManagedApp(_:)))
-        activate.representedObject = app.id
-        activate.image = NSImage(systemSymbolName: app.isRunning ? "arrow.up.forward.app" : "play", accessibilityDescription: nil)
-        submenu.addItem(activate)
+        for item in app.visibilityMenuItems(
+            target: self,
+            hideAction: #selector(hideManagedApp(_:)),
+            showAction: #selector(showManagedApp(_:)),
+            activateAction: #selector(activateManagedApp(_:))
+        ) {
+            submenu.addItem(item)
+        }
 
         submenu.addItem(.separator())
 
@@ -96,21 +90,6 @@ extension StatusBarController {
         remove.image = NSImage(systemSymbolName: "trash", accessibilityDescription: nil)
         submenu.addItem(remove)
         return submenu
-    }
-
-    func managedAppStateText(_ app: ManagedAppItem) -> String {
-        if !app.isRunning {
-            return "Not Running"
-        }
-        return app.isHiddenFromDock ? "Running Hidden" : "Running Visible"
-    }
-
-    func resizedIcon(_ image: NSImage) -> NSImage {
-        if let copy = image.copy() as? NSImage {
-            copy.size = NSSize(width: 16, height: 16)
-            return copy
-        }
-        return image
     }
 
     func managedApp(from sender: NSMenuItem) -> ManagedAppItem? {
