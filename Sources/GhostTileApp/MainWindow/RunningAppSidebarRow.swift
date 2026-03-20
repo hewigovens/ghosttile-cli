@@ -9,7 +9,10 @@ struct RunningAppSidebarRow: View {
 
     @State private var hovering = false
 
-    private var isDarkMode: Bool { colorScheme == .dark }
+    private var isDarkMode: Bool {
+        colorScheme == .dark
+    }
+
     private var rowFillColor: Color {
         if hovering {
             return isDarkMode ? Color.white.opacity(0.08) : Color.white.opacity(0.74)

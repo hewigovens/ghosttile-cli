@@ -112,8 +112,8 @@ enum AppPreparationManager {
         process.waitUntilExit()
 
         guard !data.isEmpty,
-            let plist = try? PropertyListSerialization.propertyList(from: data, format: nil)
-                as? [String: Any]
+              let plist = try? PropertyListSerialization.propertyList(from: data, format: nil)
+              as? [String: Any]
         else {
             return [:]
         }

@@ -112,5 +112,14 @@ notarize-release: sign-release
     echo "Created notarized dist/GhostTile-{{version}}.zip ($(du -sh "dist/GhostTile-{{version}}.zip" | cut -f1))"
     shasum -a 256 "dist/GhostTile-{{version}}.zip"
 
+lint:
+    swiftlint lint --quiet Sources/ Tests/
+
+format:
+    swiftformat Sources/ Tests/
+
+format-check:
+    swiftformat --lint Sources/ Tests/
+
 clean:
     rm -rf .build "{{app}}" dist

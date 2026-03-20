@@ -66,8 +66,8 @@ enum AppResolver {
 
     static func info(from app: NSRunningApplication) throws -> AppInfo {
         guard let bundleId = app.bundleIdentifier,
-            let bundleURL = app.bundleURL,
-            let bundle = Bundle(url: bundleURL)
+              let bundleURL = app.bundleURL,
+              let bundle = Bundle(url: bundleURL)
         else {
             throw GhostTileError(
                 "Could not inspect app metadata for '\(app.localizedName ?? "Unknown app")'."
@@ -88,7 +88,7 @@ enum AppResolver {
 
         let fallbackName =
             bundle.object(forInfoDictionaryKey: kCFBundleNameKey as String) as? String
-            ?? FileManager.default.displayName(atPath: bundleURL.path)
+                ?? FileManager.default.displayName(atPath: bundleURL.path)
 
         return try info(from: bundle, fallbackName: fallbackName, appPath: bundleURL.path)
     }
@@ -99,7 +99,7 @@ enum AppResolver {
         appPath: String
     ) throws -> AppInfo {
         guard let bundleId = bundle.bundleIdentifier,
-            let executableURL = bundle.executableURL
+              let executableURL = bundle.executableURL
         else {
             throw GhostTileError("Could not inspect app metadata for '\(fallbackName)'.")
         }

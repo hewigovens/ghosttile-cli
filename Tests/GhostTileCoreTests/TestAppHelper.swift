@@ -4,12 +4,10 @@ import Foundation
 enum TestAppHelper {
     static let bundleID = "dev.hewig.ghosttile.testapp"
 
-    private static let repoRoot: URL = {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-    }()
+    private static let repoRoot: URL = .init(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
 
     static let dylibPath: String = repoRoot.appendingPathComponent(".build/ghosthide.dylib").path
     static let testAppSourcePath: String = repoRoot

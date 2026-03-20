@@ -1,5 +1,5 @@
-import XCTest
 @testable import GhostTileCore
+import XCTest
 
 final class MachOEditorTests: XCTestCase {
     private var tempDir: URL!
@@ -51,9 +51,9 @@ final class MachOEditorTests: XCTestCase {
         let binaryPath = try compileMinimalBinary()
         try MachOEditor.insertGhosthideLoadCommand(in: binaryPath)
 
-        let sizeBefore = try FileManager.default.attributesOfItem(atPath: binaryPath)[.size] as! UInt64
+        let sizeBefore = try XCTUnwrap(try FileManager.default.attributesOfItem(atPath: binaryPath)[.size] as? UInt64)
         let insertedAgain = try MachOEditor.insertGhosthideLoadCommand(in: binaryPath)
-        let sizeAfter = try FileManager.default.attributesOfItem(atPath: binaryPath)[.size] as! UInt64
+        let sizeAfter = try XCTUnwrap(try FileManager.default.attributesOfItem(atPath: binaryPath)[.size] as? UInt64)
 
         XCTAssertFalse(insertedAgain, "second insert should return false")
         XCTAssertEqual(sizeBefore, sizeAfter, "file size should not change on second insert")

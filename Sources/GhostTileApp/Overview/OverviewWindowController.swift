@@ -25,7 +25,7 @@ final class OverviewWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) {
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
@@ -67,7 +67,7 @@ final class OverviewWindowController: NSWindowController, NSWindowDelegate {
         )
     }
 
-    func windowDidResignKey(_ notification: Notification) {
+    func windowDidResignKey(_: Notification) {
         window?.orderOut(nil)
     }
 }
@@ -89,8 +89,13 @@ private final class OverviewPanel: NSPanel {
         hidesOnDeactivate = true
     }
 
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { true }
+    override var canBecomeKey: Bool {
+        true
+    }
+
+    override var canBecomeMain: Bool {
+        true
+    }
 
     override func cancelOperation(_ sender: Any?) {
         orderOut(sender)

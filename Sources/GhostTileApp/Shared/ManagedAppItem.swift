@@ -8,14 +8,37 @@ struct ManagedAppItem: Identifiable {
     let icon: NSImage
     let category: AppCategory
 
-    var id: String { record.bundleId }
-    var name: String { record.name }
-    var appPath: String { record.appPath }
-    var binaryPath: String { record.binaryPath }
-    var isHidden: Bool { record.managed }
-    var isSIPProtected: Bool { record.isSIPProtected }
-    var isRunning: Bool { record.running }
-    var isHiddenFromDock: Bool { record.hiddenFromDock }
+    var id: String {
+        record.bundleId
+    }
+
+    var name: String {
+        record.name
+    }
+
+    var appPath: String {
+        record.appPath
+    }
+
+    var binaryPath: String {
+        record.binaryPath
+    }
+
+    var isHidden: Bool {
+        record.managed
+    }
+
+    var isSIPProtected: Bool {
+        record.isSIPProtected
+    }
+
+    var isRunning: Bool {
+        record.running
+    }
+
+    var isHiddenFromDock: Bool {
+        record.hiddenFromDock
+    }
 
     var appInfo: AppInfo {
         AppInfo(bundleId: id, name: name, appPath: appPath, binaryPath: binaryPath)
@@ -43,7 +66,12 @@ struct ManagedAppItem: Identifiable {
         return item
     }
 
-    func visibilityMenuItems(target: AnyObject, hideAction: Selector, showAction: Selector, activateAction: Selector) -> [NSMenuItem] {
+    func visibilityMenuItems(
+        target: AnyObject,
+        hideAction: Selector,
+        showAction: Selector,
+        activateAction: Selector
+    ) -> [NSMenuItem] {
         let hide = NSMenuItem(title: "Hide from Dock", action: hideAction, keyEquivalent: "")
         hide.target = target
         hide.representedObject = id
@@ -59,7 +87,10 @@ struct ManagedAppItem: Identifiable {
         let activate = NSMenuItem(title: isRunning ? "Activate" : "Launch", action: activateAction, keyEquivalent: "")
         activate.target = target
         activate.representedObject = id
-        activate.image = NSImage(systemSymbolName: isRunning ? "arrow.up.forward.app" : "play", accessibilityDescription: nil)
+        activate.image = NSImage(
+            systemSymbolName: isRunning ? "arrow.up.forward.app" : "play",
+            accessibilityDescription: nil
+        )
 
         return [hide, show, activate]
     }
@@ -72,7 +103,7 @@ struct ManagedAppItem: Identifiable {
     }
 }
 
-extension Array where Element == ManagedAppItem {
+extension [ManagedAppItem] {
     func filtered(by query: String) -> [ManagedAppItem] {
         guard !query.isEmpty else { return self }
         return filter { $0.matches(query: query) }

@@ -52,11 +52,10 @@ extension GhostTile {
             }
 
             for record in records {
-                let status: String
-                if let pid = record.pid {
-                    status = record.hiddenFromDock ? "pid \(pid), hidden" : "pid \(pid), visible"
+                let status: String = if let pid = record.pid {
+                    record.hiddenFromDock ? "pid \(pid), hidden" : "pid \(pid), visible"
                 } else {
-                    status = "not running"
+                    "not running"
                 }
                 let name = record.name.padding(toLength: 20, withPad: " ", startingAt: 0)
                 print("  \(name) \(record.bundleId)  [\(status)]")

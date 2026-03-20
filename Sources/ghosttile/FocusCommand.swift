@@ -5,7 +5,8 @@ import GhostTileCore
 extension GhostTile {
     struct Focus: ParsableCommand {
         static let configuration = CommandConfiguration(
-            abstract: "Bring a hidden app to front.")
+            abstract: "Bring a hidden app to front."
+        )
         @Argument(help: "Bundle ID or app name.") var app: String
 
         func run() throws {

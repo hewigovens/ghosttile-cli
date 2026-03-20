@@ -5,7 +5,8 @@ import GhostTileCore
 extension GhostTile {
     struct Restore: ParsableCommand {
         static let configuration = CommandConfiguration(
-            abstract: "Remove an app from the managed list and restore it.")
+            abstract: "Remove an app from the managed list and restore it."
+        )
         @Argument(help: "Bundle ID or app name.") var app: String
 
         func run() throws {

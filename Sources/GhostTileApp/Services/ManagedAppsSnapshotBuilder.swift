@@ -15,7 +15,7 @@ enum ManagedAppsSnapshotBuilder {
             let bundle = Bundle(url: bundleURL)
             let icon =
                 bundle.map { NSWorkspace.shared.icon(forFile: $0.bundlePath) }
-                ?? NSImage(size: NSSize(width: 20, height: 20))
+                    ?? NSImage(size: NSSize(width: 20, height: 20))
             return ManagedAppItem(
                 record: record,
                 icon: icon,

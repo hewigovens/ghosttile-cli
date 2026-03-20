@@ -32,7 +32,10 @@ jobs:
           cache-dependency-path: raycast/pnpm-lock.yaml
 
       - name: Install tools
-        run: brew install just xcodegen
+        run: brew install just xcodegen swiftlint swiftformat
+
+      - name: Lint
+        run: just lint
 
       - name: Build Swift package
         run: swift build

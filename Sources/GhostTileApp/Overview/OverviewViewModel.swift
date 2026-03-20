@@ -7,6 +7,7 @@ final class OverviewViewModel: ObservableObject {
     @Published var query = "" {
         didSet { syncSelection() }
     }
+
     @Published var selectedBundleId: String?
 
     private let store: ManagedAppsStore
@@ -41,15 +42,13 @@ final class OverviewViewModel: ObservableObject {
         guard !filteredApps.isEmpty else { return }
 
         let currentIndex = filteredApps.firstIndex { $0.id == selectedBundleId } ?? 0
-        let nextIndex: Int
-
-        switch direction {
+        let nextIndex: Int = switch direction {
         case .left, .up:
-            nextIndex = max(0, currentIndex - 1)
+            max(0, currentIndex - 1)
         case .right, .down:
-            nextIndex = min(filteredApps.count - 1, currentIndex + 1)
+            min(filteredApps.count - 1, currentIndex + 1)
         @unknown default:
-            nextIndex = currentIndex
+            currentIndex
         }
 
         selectedBundleId = filteredApps[nextIndex].id
@@ -67,7 +66,7 @@ final class OverviewViewModel: ObservableObject {
         }
 
         if let selectedBundleId,
-            filteredApps.contains(where: { $0.id == selectedBundleId })
+           filteredApps.contains(where: { $0.id == selectedBundleId })
         {
             return
         }

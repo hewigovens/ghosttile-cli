@@ -1,6 +1,6 @@
-import XCTest
 import Cocoa
 @testable import GhostTileCore
+import XCTest
 
 final class ShowHideIntegrationTests: XCTestCase {
     private var tempDir: URL!

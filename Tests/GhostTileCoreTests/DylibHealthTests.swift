@@ -1,5 +1,5 @@
-import XCTest
 @testable import GhostTileCore
+import XCTest
 
 final class DylibHealthTests: XCTestCase {
     private static let dylibPath = {
@@ -46,7 +46,7 @@ final class DylibHealthTests: XCTestCase {
         let magic = data.withUnsafeBytes { $0.load(fromByteOffset: 0, as: UInt32.self) }
         let magicLE = UInt32(littleEndian: magic)
         let magicBE = UInt32(bigEndian: magic)
-        let validMagics: Set<UInt32> = [0xfeedfacf, 0xfeedface, 0xcafebabe, 0xcafebabf]
+        let validMagics: Set<UInt32> = [0xFEED_FACF, 0xFEED_FACE, 0xCAFE_BABE, 0xCAFE_BABF]
         XCTAssertTrue(
             validMagics.contains(magicLE) || validMagics.contains(magicBE),
             "dylib should start with valid Mach-O magic (got 0x\(String(magicLE, radix: 16)))"

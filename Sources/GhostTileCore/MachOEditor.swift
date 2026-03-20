@@ -3,13 +3,13 @@ import Foundation
 enum MachOEditor {
     static let ghosthideInstallName = "@rpath/ghosthide.dylib"
 
-    private static let fatMagic: UInt32 = 0xcafebabe
-    private static let fatMagic64: UInt32 = 0xcafebabf
-    private static let mhMagic: UInt32 = 0xfeedface
-    private static let mhMagic64: UInt32 = 0xfeedfacf
+    private static let fatMagic: UInt32 = 0xCAFE_BABE
+    private static let fatMagic64: UInt32 = 0xCAFE_BABF
+    private static let mhMagic: UInt32 = 0xFEED_FACE
+    private static let mhMagic64: UInt32 = 0xFEED_FACF
     private static let lcSegment: UInt32 = 0x1
     private static let lcSymtab: UInt32 = 0x2
-    private static let lcLoadDylib: UInt32 = 0xc
+    private static let lcLoadDylib: UInt32 = 0xC
     private static let lcLoadWeakDylib: UInt32 = 0x18 | 0x8000_0000
     private static let lcSegment64: UInt32 = 0x19
     private static let lcBuildVersion: UInt32 = 0x32
@@ -54,7 +54,7 @@ enum MachOEditor {
             let is64 = magic == fatMagic64
             let archSize = is64 ? 32 : 20
             let base = is64 ? 8 : 8
-            return (0..<nfatArch).map { index in
+            return (0 ..< nfatArch).map { index in
                 let archOffset = base + (index * archSize)
                 let sliceOffset: Int
                 let sliceSize: Int
@@ -79,7 +79,7 @@ enum MachOEditor {
     private static func sliceHasGhosthideLoadCommand(_ data: Data, slice: Slice) throws -> Bool {
         let header = try parseHeader(data, slice: slice)
         var cursor = header.commandsOffset
-        for _ in 0..<header.ncmds {
+        for _ in 0 ..< header.ncmds {
             let cmd = readUInt32LE(data, at: cursor)
             let cmdsize = Int(readUInt32LE(data, at: cursor + 4))
             if cmd == lcLoadDylib || cmd == lcLoadWeakDylib {
@@ -120,7 +120,7 @@ enum MachOEditor {
         }
 
         let insertOffset = header.commandsOffset + header.sizeofcmds
-        data.replaceSubrange(insertOffset..<(insertOffset + command.count), with: command)
+        data.replaceSubrange(insertOffset ..< (insertOffset + command.count), with: command)
         writeUInt32LE(&data, at: slice.offset + 16, value: UInt32(header.ncmds + 1))
         writeUInt32LE(&data, at: slice.offset + 20, value: UInt32(header.sizeofcmds + command.count))
         return true
@@ -136,14 +136,14 @@ enum MachOEditor {
         var cursor = header.commandsOffset
         let commandsEnd = header.commandsOffset + header.sizeofcmds
 
-        for _ in 0..<header.ncmds {
+        for _ in 0 ..< header.ncmds {
             let cmd = readUInt32LE(data, at: cursor)
             let cmdsize = Int(readUInt32LE(data, at: cursor + 4))
             if cmd == commandToRemove {
                 let commandEnd = cursor + cmdsize
-                let tail = Data(data[commandEnd..<commandsEnd])
-                data.replaceSubrange(cursor..<(cursor + tail.count), with: tail)
-                data.replaceSubrange((commandsEnd - cmdsize)..<commandsEnd, with: Data(repeating: 0, count: cmdsize))
+                let tail = Data(data[commandEnd ..< commandsEnd])
+                data.replaceSubrange(cursor ..< (cursor + tail.count), with: tail)
+                data.replaceSubrange((commandsEnd - cmdsize) ..< commandsEnd, with: Data(repeating: 0, count: cmdsize))
                 writeUInt32LE(&data, at: slice.offset + 16, value: UInt32(header.ncmds - 1))
                 writeUInt32LE(&data, at: slice.offset + 20, value: UInt32(header.sizeofcmds - cmdsize))
                 return true
@@ -154,11 +154,11 @@ enum MachOEditor {
         return false
     }
 
-    private static func availableHeaderSpace(_ data: Data, slice: Slice, header: Header) throws -> Int {
+    private static func availableHeaderSpace(_ data: Data, slice _: Slice, header: Header) throws -> Int {
         var minOffset = Int.max
         var cursor = header.commandsOffset
 
-        for _ in 0..<header.ncmds {
+        for _ in 0 ..< header.ncmds {
             let cmd = readUInt32LE(data, at: cursor)
             let cmdsize = Int(readUInt32LE(data, at: cursor + 4))
 
@@ -168,7 +168,7 @@ enum MachOEditor {
                 let nsects = Int(readUInt32LE(data, at: cursor + 48))
                 if fileoff > 0 { minOffset = min(minOffset, fileoff) }
                 var sectionOffset = cursor + 56
-                for _ in 0..<nsects {
+                for _ in 0 ..< nsects {
                     let sectionFileOffset = Int(readUInt32LE(data, at: sectionOffset + 40))
                     if sectionFileOffset > 0 { minOffset = min(minOffset, sectionFileOffset) }
                     sectionOffset += 68
@@ -178,7 +178,7 @@ enum MachOEditor {
                 let nsects = Int(readUInt32LE(data, at: cursor + 64))
                 if fileoff > 0 { minOffset = min(minOffset, fileoff) }
                 var sectionOffset = cursor + 72
-                for _ in 0..<nsects {
+                for _ in 0 ..< nsects {
                     let sectionFileOffset = Int(readUInt32LE(data, at: sectionOffset + 48))
                     if sectionFileOffset > 0 { minOffset = min(minOffset, sectionFileOffset) }
                     sectionOffset += 80
@@ -212,7 +212,7 @@ enum MachOEditor {
         writeUInt32LE(&command, at: 12, value: 0)
         writeUInt32LE(&command, at: 16, value: 0)
         writeUInt32LE(&command, at: 20, value: 0)
-        command.replaceSubrange(24..<(24 + pathBytes.count), with: pathBytes)
+        command.replaceSubrange(24 ..< (24 + pathBytes.count), with: pathBytes)
         return command
     }
 
@@ -257,9 +257,9 @@ enum MachOEditor {
     private static func readCString(_ data: Data, at offset: Int, maxLength: Int) -> String {
         guard maxLength > 0 else { return "" }
         let upperBound = min(offset + maxLength, data.count)
-        let bytes = data[offset..<upperBound]
+        let bytes = data[offset ..< upperBound]
         let nulIndex = bytes.firstIndex(of: 0) ?? upperBound
-        return String(decoding: data[offset..<nulIndex], as: UTF8.self)
+        return String(decoding: data[offset ..< nulIndex], as: UTF8.self)
     }
 
     private static func readUInt32LE(_ data: Data, at offset: Int) -> UInt32 {
@@ -289,7 +289,7 @@ enum MachOEditor {
     private static func writeUInt32LE(_ data: inout Data, at offset: Int, value: UInt32) {
         var littleEndian = value.littleEndian
         withUnsafeBytes(of: &littleEndian) { bytes in
-            data.replaceSubrange(offset..<(offset + 4), with: bytes)
+            data.replaceSubrange(offset ..< (offset + 4), with: bytes)
         }
     }
 }

@@ -5,7 +5,9 @@ struct OnboardingView: View {
     @Binding var isComplete: Bool
     @StateObject var viewModel = OnboardingViewModel()
 
-    var isDarkMode: Bool { colorScheme == .dark }
+    var isDarkMode: Bool {
+        colorScheme == .dark
+    }
 
     var body: some View {
         ZStack {

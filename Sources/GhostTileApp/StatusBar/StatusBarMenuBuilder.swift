@@ -5,7 +5,9 @@ import KeyboardShortcuts
 struct StatusBarMenuBuilder {
     let controller: StatusBarController
 
-    private var vm: AppViewModel { controller.vm }
+    private var vm: AppViewModel {
+        controller.vm
+    }
 
     func rebuild(_ menu: NSMenu) {
         menu.removeAllItems()

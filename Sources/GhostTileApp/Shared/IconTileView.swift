@@ -7,7 +7,7 @@ struct IconTileView: View {
     var cornerRadius: CGFloat
     var iconInset: CGFloat
     var fill: AnyShapeStyle
-    var strokeColor: Color? = nil
+    var strokeColor: Color?
 
     var body: some View {
         ZStack {

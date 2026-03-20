@@ -6,14 +6,14 @@ struct OverviewCard: View {
     let app: ManagedAppItem
     let thumbnail: NSImage?
     let isSelected: Bool
-    let onOpen: () -> Void
-    let onShow: () -> Void
-    let onHide: () -> Void
-    let onReveal: () -> Void
-    let onRemove: () -> Void
+    let actions: ManagedAppActions
+    var onTap: (() -> Void)?
 
     @State private var hovering = false
-    private var isDarkMode: Bool { colorScheme == .dark }
+    private var isDarkMode: Bool {
+        colorScheme == .dark
+    }
+
     private var cardFillColor: Color {
         isDarkMode ? Color.black.opacity(0.22) : Color.white.opacity(0.56)
     }
@@ -90,20 +90,20 @@ struct OverviewCard: View {
         )
         .shadow(color: .black.opacity(isDarkMode ? 0.16 : 0.05), radius: 20, y: 10)
         .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .onTapGesture(perform: onOpen)
+        .onTapGesture { actions.open(app); onTap?() }
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.14), value: hovering)
         .contextMenu {
             if app.isRunning {
                 if app.isHiddenFromDock {
-                    Button("Show in Dock", action: onShow)
+                    Button("Show in Dock", action: { actions.show(app) })
                 } else {
-                    Button("Hide from Dock", action: onHide)
+                    Button("Hide from Dock", action: { actions.hide(app) })
                 }
             }
-            Button("Reveal in Finder", action: onReveal)
+            Button("Reveal in Finder", action: { actions.reveal(app) })
             Divider()
-            Button("Remove from GhostTile", action: onRemove)
+            Button("Remove from GhostTile", action: { actions.remove(app) })
         }
     }
 
@@ -120,7 +120,7 @@ struct OverviewCard: View {
                 LinearGradient(
                     colors: [
                         Color.blue.opacity(isDarkMode ? 0.25 : 0.14),
-                        isDarkMode ? Color.black.opacity(0.7) : Color.white.opacity(0.56)
+                        isDarkMode ? Color.black.opacity(0.7) : Color.white.opacity(0.56),
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -155,7 +155,7 @@ struct OverviewCard: View {
         HStack(spacing: 6) {
             if app.isRunning {
                 Button {
-                    app.isHiddenFromDock ? onShow() : onHide()
+                    app.isHiddenFromDock ? actions.show(app) : actions.hide(app)
                 } label: {
                     Image(systemName: app.isHiddenFromDock ? "eye" : "eye.slash")
                         .font(.system(size: 11, weight: .semibold))
@@ -164,14 +164,14 @@ struct OverviewCard: View {
                 .foregroundStyle(.secondary)
             }
 
-            Button(action: onReveal) {
+            Button(action: { actions.reveal(app) }) {
                 Image(systemName: "folder")
                     .font(.system(size: 11, weight: .semibold))
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
 
-            Button(action: onRemove) {
+            Button(action: { actions.remove(app) }) {
                 Image(systemName: "trash")
                     .font(.system(size: 11, weight: .semibold))
             }
@@ -180,6 +180,11 @@ struct OverviewCard: View {
         }
     }
 
-    private var statusText: String { app.statusText }
-    private var statusColor: Color { app.statusColor }
+    private var statusText: String {
+        app.statusText
+    }
+
+    private var statusColor: Color {
+        app.statusColor
+    }
 }

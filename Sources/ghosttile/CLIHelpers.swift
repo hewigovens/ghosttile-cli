@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import GhostTileCore
 
-func printJSON<T: Encodable>(_ value: T) throws {
+func printJSON(_ value: some Encodable) throws {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
     let data = try encoder.encode(value)

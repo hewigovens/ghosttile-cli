@@ -5,7 +5,7 @@ struct SearchFieldView: View {
     @Binding var text: String
     let width: CGFloat
     let isDarkMode: Bool
-    var focus: FocusState<Bool>.Binding? = nil
+    var focus: FocusState<Bool>.Binding?
 
     var body: some View {
         HStack(spacing: 10) {

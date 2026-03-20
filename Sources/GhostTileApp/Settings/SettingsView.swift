@@ -104,7 +104,7 @@ struct SettingsView: View {
                                         Text("Optional, but needed for some hardened or protected apps.")
                                             .font(.system(size: 11))
                                             .foregroundStyle(.secondary)
-                                    case .failed(let msg):
+                                    case let .failed(msg):
                                         Text(msg)
                                             .font(.system(size: 11))
                                             .foregroundStyle(.red)
@@ -168,8 +168,10 @@ struct SettingsView: View {
                             infoRow(
                                 title: "Version",
                                 value: {
-                                    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? BuildInfo.version
-                                    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? BuildInfo.build
+                                    let version = Bundle.main
+                                        .infoDictionary?["CFBundleShortVersionString"] as? String ?? BuildInfo.version
+                                    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? BuildInfo
+                                        .build
                                     return "\(version) (\(build))"
                                 }(),
                                 symbol: "shippingbox"

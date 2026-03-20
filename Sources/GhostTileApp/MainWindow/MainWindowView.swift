@@ -9,7 +9,9 @@ struct MainWindowView: View {
 
     let runningSidebarWidth: CGFloat = 300
 
-    var isDarkMode: Bool { colorScheme == .dark }
+    var isDarkMode: Bool {
+        colorScheme == .dark
+    }
 
     init(vm: AppViewModel) {
         self.vm = vm
@@ -51,7 +53,9 @@ struct MainWindowView: View {
                 sponsorNudge.stopPrompting()
             }
         } message: {
-            Text("If GhostTile is useful in your daily workflow, sponsoring helps fund ongoing macOS compatibility work.")
+            Text(
+                "If GhostTile is useful in your daily workflow, sponsoring helps fund ongoing macOS compatibility work."
+            )
         }
         .sheet(isPresented: Binding(
             get: { vm.sudoCommand != nil },

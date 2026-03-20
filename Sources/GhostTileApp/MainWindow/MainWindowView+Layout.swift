@@ -12,7 +12,11 @@ extension MainWindowView {
                 HStack(spacing: 8) {
                     statPill(title: "Managed", value: viewModel.totalManagedCount, systemImage: "eye.slash")
                     statPill(title: "Running", value: viewModel.runningCount, systemImage: "app.badge")
-                    statPill(title: "Active Hidden", value: viewModel.hiddenRunningCount, systemImage: "bolt.horizontal.circle")
+                    statPill(
+                        title: "Active Hidden",
+                        value: viewModel.hiddenRunningCount,
+                        systemImage: "bolt.horizontal.circle"
+                    )
                 }
             }
 
@@ -68,16 +72,14 @@ extension MainWindowView {
                             ManagedAppCard(
                                 app: app,
                                 isLoading: vm.loading.contains(app.id),
-                                onOpen: { vm.handleAttentionNotificationClick(bundleId: app.id) },
+                                actions: vm,
                                 onPrimaryAction: {
                                     if app.isRunning {
                                         vm.setDockVisibility(app, hidden: !app.isHiddenFromDock)
                                     } else {
                                         vm.activateManagedApp(app)
                                     }
-                                },
-                                onReveal: { vm.revealAppInFinder(app) },
-                                onRemove: { vm.removeApp(app) }
+                                }
                             )
                         }
                     }
@@ -164,10 +166,10 @@ extension MainWindowView {
                     .font(.system(size: 20, weight: .semibold))
 
                 Text(emptySubtitle)
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 420)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 420)
             }
 
             if viewModel.query.isEmpty {

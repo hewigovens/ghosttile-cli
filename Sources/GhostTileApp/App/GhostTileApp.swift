@@ -5,11 +5,11 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
     var vm: AppViewModel?
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
     }
 
-    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+    func applicationDockMenu(_: NSApplication) -> NSMenu? {
         let menu = NSMenu()
 
         if let vm, !vm.hiddenApps.isEmpty {
@@ -36,7 +36,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return menu
     }
 
-    func applicationDidBecomeActive(_ notification: Notification) {
+    func applicationDidBecomeActive(_: Notification) {
         vm?.refreshForPresentation()
     }
 

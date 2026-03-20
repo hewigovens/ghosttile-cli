@@ -6,8 +6,8 @@ struct PermissionCard: View {
     let subtitle: String
     let systemImage: String
     let tint: Color
-    var actionTitle: String? = nil
-    var action: (() -> Void)? = nil
+    var actionTitle: String?
+    var action: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 14) {
@@ -45,11 +45,11 @@ struct PermissionCard: View {
 }
 
 struct OnboardingWindowCenterer: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         NSView()
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: NSView, context _: Context) {
         DispatchQueue.main.async {
             guard let window = nsView.window else { return }
             guard let screen = window.screen ?? NSScreen.main else {

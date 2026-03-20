@@ -49,7 +49,7 @@ final class OverviewThumbnailStore: ObservableObject {
             return (app, running.processIdentifier)
         }
 
-        let runningIDs = Set(runningApps.map { $0.0.id })
+        let runningIDs = Set(runningApps.map(\.0.id))
         thumbnails = thumbnails.filter { runningIDs.contains($0.key) }
         lastCaptureAt = lastCaptureAt.filter { runningIDs.contains($0.key) }
 

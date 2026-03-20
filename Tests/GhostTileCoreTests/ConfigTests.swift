@@ -1,5 +1,5 @@
-import XCTest
 @testable import GhostTileCore
+import XCTest
 
 final class ConfigTests: XCTestCase {
     private var tempDir: URL!

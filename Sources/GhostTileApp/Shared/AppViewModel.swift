@@ -3,7 +3,7 @@ import Combine
 import GhostTileCore
 
 @MainActor
-class AppViewModel: ObservableObject {
+class AppViewModel: ObservableObject, ManagedAppActions {
     @Published var showError = false
     @Published var errorMessage = ""
     @Published var dockVisible = false
@@ -14,10 +14,21 @@ class AppViewModel: ObservableObject {
     private(set) lazy var actionHandler = AppActionHandler(viewModel: self)
     private(set) lazy var attentionManager = AttentionObserverManager(viewModel: self)
 
-    var apps: [ManagedAppItem] { managedAppsStore.apps }
-    var hiddenApps: [ManagedAppItem] { apps.filter(\.isHidden) }
-    var loading: Set<String> { actionHandler.loading }
-    var cliPath: String { CLIPaths.resolved }
+    var apps: [ManagedAppItem] {
+        managedAppsStore.apps
+    }
+
+    var hiddenApps: [ManagedAppItem] {
+        apps.filter(\.isHidden)
+    }
+
+    var loading: Set<String> {
+        actionHandler.loading
+    }
+
+    var cliPath: String {
+        CLIPaths.resolved
+    }
 
     private var observers: [NSObjectProtocol] = []
     private var pendingPresentationRefresh: DispatchWorkItem?
@@ -86,7 +97,8 @@ class AppViewModel: ObservableObject {
                         self?.refresh()
                     }
                 }
-            })
+            }
+        )
         observers.append(
             nc.addObserver(
                 forName: NSWorkspace.didTerminateApplicationNotification,
@@ -95,7 +107,8 @@ class AppViewModel: ObservableObject {
                 Task { @MainActor [weak self] in
                     self?.refresh()
                 }
-            })
+            }
+        )
     }
 
     // MARK: - State
@@ -163,18 +176,48 @@ class AppViewModel: ObservableObject {
         UserDefaults.standard.set(dockVisible, forKey: "showInDock")
     }
 
-    // MARK: - Action Forwarding
+    // MARK: - ManagedAppActions
 
-    func hideRunningApp(_ app: ManagedAppItem) { actionHandler.hideRunningApp(app) }
-    func setDockVisibility(_ app: ManagedAppItem, hidden: Bool) { actionHandler.setDockVisibility(app, hidden: hidden) }
-    func activateManagedApp(_ app: ManagedAppItem) { actionHandler.activateManagedApp(app) }
-    func revealAppInFinder(_ app: ManagedAppItem) { actionHandler.revealAppInFinder(app) }
-    func handleAttentionNotificationClick(bundleId: String) { actionHandler.handleAttentionNotificationClick(bundleId: bundleId) }
-    func removeApp(_ app: ManagedAppItem) { actionHandler.removeApp(app) }
-    func hideByURL(_ url: URL) { actionHandler.hideByURL(url) }
+    func open(_ app: ManagedAppItem) { actionHandler.handleAttentionNotificationClick(bundleId: app.id) }
+    func show(_ app: ManagedAppItem) { actionHandler.setDockVisibility(app, hidden: false) }
+    func hide(_ app: ManagedAppItem) { actionHandler.setDockVisibility(app, hidden: true) }
+    func reveal(_ app: ManagedAppItem) { actionHandler.revealAppInFinder(app) }
+    func remove(_ app: ManagedAppItem) { actionHandler.removeApp(app) }
+
+    // MARK: - Additional Actions
+
+    func hideRunningApp(_ app: ManagedAppItem) {
+        actionHandler.hideRunningApp(app)
+    }
+
+    func setDockVisibility(_ app: ManagedAppItem, hidden: Bool) {
+        actionHandler.setDockVisibility(app, hidden: hidden)
+    }
+
+    func activateManagedApp(_ app: ManagedAppItem) {
+        actionHandler.activateManagedApp(app)
+    }
+
+    func revealAppInFinder(_ app: ManagedAppItem) {
+        actionHandler.revealAppInFinder(app)
+    }
+
+    func handleAttentionNotificationClick(bundleId: String) {
+        actionHandler.handleAttentionNotificationClick(bundleId: bundleId)
+    }
+
+    func removeApp(_ app: ManagedAppItem) {
+        actionHandler.removeApp(app)
+    }
+
+    func hideByURL(_ url: URL) {
+        actionHandler.hideByURL(url)
+    }
 
     deinit {
         let nc = NSWorkspace.shared.notificationCenter
-        for observer in observers { nc.removeObserver(observer) }
+        for observer in observers {
+            nc.removeObserver(observer)
+        }
     }
 }

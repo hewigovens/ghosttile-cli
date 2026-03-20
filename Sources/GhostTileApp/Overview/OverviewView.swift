@@ -9,7 +9,9 @@ struct OverviewView: View {
     let onDismiss: () -> Void
 
     @FocusState var searchFocused: Bool
-    var isDarkMode: Bool { colorScheme == .dark }
+    var isDarkMode: Bool {
+        colorScheme == .dark
+    }
 
     init(vm: AppViewModel, thumbnailStore: OverviewThumbnailStore, onDismiss: @escaping () -> Void) {
         self.vm = vm
@@ -19,7 +21,7 @@ struct OverviewView: View {
     }
 
     let columns = [
-        GridItem(.adaptive(minimum: 228, maximum: 272), spacing: 16, alignment: .top)
+        GridItem(.adaptive(minimum: 228, maximum: 272), spacing: 16, alignment: .top),
     ]
 
     var body: some View {
@@ -54,14 +56,8 @@ struct OverviewView: View {
                                     app: app,
                                     thumbnail: thumbnailStore.thumbnail(for: app.id),
                                     isSelected: app.id == viewModel.selectedBundleId,
-                                    onOpen: {
-                                        vm.handleAttentionNotificationClick(bundleId: app.id)
-                                        onDismiss()
-                                    },
-                                    onShow: { vm.setDockVisibility(app, hidden: false) },
-                                    onHide: { vm.setDockVisibility(app, hidden: true) },
-                                    onReveal: { vm.revealAppInFinder(app) },
-                                    onRemove: { vm.removeApp(app) }
+                                    actions: vm,
+                                    onTap: onDismiss
                                 )
                             }
                         }

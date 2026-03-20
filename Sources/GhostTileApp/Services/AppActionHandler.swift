@@ -28,7 +28,7 @@ final class AppActionHandler {
             switch result {
             case .hidden:
                 vm?.recordSponsorUse()
-            case .requiresSudo(let command):
+            case let .requiresSudo(command):
                 vm?.sudoCommand = command
                 self?.loading.remove(info.bundleId)
             }

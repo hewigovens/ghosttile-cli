@@ -4,12 +4,12 @@ import os.log
 public enum Log {
     private static let osLog = OSLog(subsystem: "dev.hewig.ghosttile", category: "general")
     private static let logFileURL: URL = {
-        let home: String
-        if let sudoUser = ProcessInfo.processInfo.environment["SUDO_USER"],
-           let pw = getpwnam(sudoUser) {
-            home = String(cString: pw.pointee.pw_dir)
+        let home: String = if let sudoUser = ProcessInfo.processInfo.environment["SUDO_USER"],
+                              let pw = getpwnam(sudoUser)
+        {
+            String(cString: pw.pointee.pw_dir)
         } else {
-            home = FileManager.default.homeDirectoryForCurrentUser.path
+            FileManager.default.homeDirectoryForCurrentUser.path
         }
         let dir = URL(fileURLWithPath: home).appendingPathComponent(".config/ghosttile")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -80,5 +80,7 @@ public enum Log {
         try? fm.moveItem(atPath: base, toPath: "\(base).1")
     }
 
-    public static var logPath: String { logFileURL.path }
+    public static var logPath: String {
+        logFileURL.path
+    }
 }

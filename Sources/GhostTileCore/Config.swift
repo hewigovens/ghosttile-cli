@@ -3,22 +3,26 @@ import Foundation
 public enum Config {
     public static var configDirOverride: String?
 
-    public static var backupDir: String { "\(configDir)/backups" }
+    public static var backupDir: String {
+        "\(configDir)/backups"
+    }
 
     public static var configDir: String {
         if let override = configDirOverride { return override }
         // When running via sudo, use the real user's home instead of /var/root
-        let home: String
-        if let sudoUser = ProcessInfo.processInfo.environment["SUDO_USER"],
-           let pw = getpwnam(sudoUser) {
-            home = String(cString: pw.pointee.pw_dir)
+        let home: String = if let sudoUser = ProcessInfo.processInfo.environment["SUDO_USER"],
+                              let pw = getpwnam(sudoUser)
+        {
+            String(cString: pw.pointee.pw_dir)
         } else {
-            home = FileManager.default.homeDirectoryForCurrentUser.path
+            FileManager.default.homeDirectoryForCurrentUser.path
         }
         return "\(home)/.config/ghosttile"
     }
 
-    public static var configPath: String { "\(configDir)/config.json" }
+    public static var configPath: String {
+        "\(configDir)/config.json"
+    }
 
     public static func load() -> GhostTileConfig {
         guard let data = FileManager.default.contents(atPath: configPath),
@@ -29,7 +33,8 @@ public enum Config {
 
     public static func save(_ config: GhostTileConfig) throws {
         try FileManager.default.createDirectory(
-            atPath: configDir, withIntermediateDirectories: true)
+            atPath: configDir, withIntermediateDirectories: true
+        )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(config)

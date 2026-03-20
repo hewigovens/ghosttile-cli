@@ -29,10 +29,10 @@ extension SettingsView {
         }
     }
 
-    func sectionCard<Content: View>(
+    func sectionCard(
         title: String,
         symbol: String,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: () -> some View
     ) -> some View {
         SettingsSectionCard(title: title, symbol: symbol) {
             content()
@@ -59,11 +59,11 @@ extension SettingsView {
         }
     }
 
-    func shortcutRow<Recorder: View>(
+    func shortcutRow(
         title: String,
         symbol: String,
         description: String,
-        @ViewBuilder recorder: () -> Recorder
+        @ViewBuilder recorder: () -> some View
     ) -> some View {
         HStack(alignment: .center, spacing: 12) {
             SettingsRowIcon(symbol: symbol)

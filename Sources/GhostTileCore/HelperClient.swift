@@ -17,7 +17,7 @@ public enum HelperClient {
         )
         var error: NSDictionary?
         let result = script?.executeAndReturnError(&error)
-        if let error = error {
+        if let error {
             let message = error[NSAppleScript.errorMessage] as? String ?? "Unknown error"
             Log.error("Privileged command failed: \(message)")
             throw GhostTileError(message)
@@ -47,7 +47,7 @@ public enum HelperClient {
         Log.info("Privileged remove succeeded: \(path)")
     }
 
-    // May fail on App Store apps due to responsible process check
+    /// May fail on App Store apps due to responsible process check
     public static func codesign(arguments: [String]) throws {
         let args = arguments.map { shellQuote($0) }
         let command = "/usr/bin/codesign \(args.joined(separator: " "))"

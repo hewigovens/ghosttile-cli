@@ -4,14 +4,15 @@ struct ManagedAppCard: View {
     @Environment(\.colorScheme) private var colorScheme
     let app: ManagedAppItem
     let isLoading: Bool
-    let onOpen: () -> Void
+    let actions: ManagedAppActions
     let onPrimaryAction: () -> Void
-    let onReveal: () -> Void
-    let onRemove: () -> Void
 
     @State private var hovering = false
 
-    private var isDarkMode: Bool { colorScheme == .dark }
+    private var isDarkMode: Bool {
+        colorScheme == .dark
+    }
+
     private var cardFillColor: Color {
         isDarkMode ? Color.white.opacity(0.06) : Color.white.opacity(0.52)
     }
@@ -48,8 +49,13 @@ struct ManagedAppCard: View {
         isDarkMode ? Color.white.opacity(0.12) : Color.black.opacity(0.06)
     }
 
-    private var statusLabel: String { app.statusText }
-    private var statusColor: Color { app.statusColor }
+    private var statusLabel: String {
+        app.statusText
+    }
+
+    private var statusColor: Color {
+        app.statusColor
+    }
 
     private var primaryActionTitle: String {
         if !app.isRunning {
@@ -116,7 +122,7 @@ struct ManagedAppCard: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
 
-                    Button(action: onOpen) {
+                    Button(action: { actions.open(app) }) {
                         Image(systemName: "arrow.up.forward.app")
                             .font(.system(size: 12, weight: .semibold))
                     }
@@ -127,7 +133,7 @@ struct ManagedAppCard: View {
                     Spacer()
                 }
 
-                Button(action: onReveal) {
+                Button(action: { actions.reveal(app) }) {
                     Image(systemName: "folder")
                         .font(.system(size: 12, weight: .semibold))
                 }
@@ -135,7 +141,7 @@ struct ManagedAppCard: View {
                 .controlSize(.small)
                 .help("Reveal in Finder")
 
-                Button(action: onRemove) {
+                Button(action: { actions.remove(app) }) {
                     Image(systemName: "trash")
                         .font(.system(size: 12, weight: .semibold))
                 }
@@ -155,14 +161,14 @@ struct ManagedAppCard: View {
         )
         .shadow(color: cardShadowColor, radius: 22, y: 10)
         .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .onTapGesture(perform: onOpen)
+        .onTapGesture(perform: { actions.open(app) })
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.14), value: hovering)
         .contextMenu {
-            Button("Reveal and Activate", action: onOpen)
-            Button("Reveal in Finder", action: onReveal)
+            Button("Reveal and Activate", action: { actions.open(app) })
+            Button("Reveal in Finder", action: { actions.reveal(app) })
             Divider()
-            Button("Remove from GhostTile", action: onRemove)
+            Button("Remove from GhostTile", action: { actions.remove(app) })
         }
     }
 

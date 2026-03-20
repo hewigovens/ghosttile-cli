@@ -13,7 +13,9 @@ public struct ManagedAppRecord: Identifiable, Encodable, Sendable {
     public let isSIPProtected: Bool
     public let categoryIdentifier: String?
 
-    public var id: String { bundleId }
+    public var id: String {
+        bundleId
+    }
 
     public init(
         bundleId: String,
@@ -66,9 +68,9 @@ public enum ManagedAppStateReader {
 
         var records: [ManagedAppRecord] = visibleRunningApps.compactMap { app in
             guard let bundleId = app.bundleIdentifier,
-                let bundleURL = app.bundleURL,
-                let bundle = Bundle(url: bundleURL),
-                let executableURL = bundle.executableURL
+                  let bundleURL = app.bundleURL,
+                  let bundle = Bundle(url: bundleURL),
+                  let executableURL = bundle.executableURL
             else { return nil }
 
             let appPath = bundleURL.path

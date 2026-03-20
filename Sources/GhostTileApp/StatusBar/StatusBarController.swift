@@ -37,7 +37,8 @@ class StatusBarController: NSObject, NSMenuDelegate {
             } else {
                 button.image = NSImage(
                     systemSymbolName: "eye.slash",
-                    accessibilityDescription: "GhostTile")
+                    accessibilityDescription: "GhostTile"
+                )
             }
         }
     }
@@ -49,7 +50,7 @@ class StatusBarController: NSObject, NSMenuDelegate {
         menuBuilder.rebuild(menu)
     }
 
-    func menuDidClose(_ menu: NSMenu) {
+    func menuDidClose(_: NSMenu) {
         KeyboardShortcuts.enable(.openMainWindow, .openOverview)
     }
 

@@ -20,7 +20,7 @@ extension OnboardingView {
     var footer: some View {
         HStack {
             HStack(spacing: 6) {
-                ForEach(0..<viewModel.totalSteps, id: \.self) { index in
+                ForEach(0 ..< viewModel.totalSteps, id: \.self) { index in
                     Capsule()
                         .fill(index == viewModel.step ? Color.accentColor : indicatorFill)
                         .frame(width: index == viewModel.step ? 20 : 6, height: 6)
@@ -81,9 +81,11 @@ extension OnboardingView {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("GhostTile 2 keeps the idea, but drops the old baggage.")
                             .font(.system(size: 22, weight: .bold, design: .rounded))
-                        Text("The rewrite focuses on a cleaner control surface, modern automation, and a better hidden-app overview.")
-                            .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
+                        Text(
+                            "The rewrite focuses on a cleaner control surface, modern automation, and a better hidden-app overview."
+                        )
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
                     }
                 }
 
@@ -147,9 +149,11 @@ extension OnboardingView {
                 Text("Permissions")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
 
-                Text("GhostTile needs App Management to prepare apps safely. Terminal helps with protected apps, and Screen & System Audio Recording enables live Overview previews.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                Text(
+                    "GhostTile needs App Management to prepare apps safely. Terminal helps with protected apps, and Screen & System Audio Recording enables live Overview previews."
+                )
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
 
                 VStack(spacing: 10) {
                     PermissionCard(
@@ -179,7 +183,7 @@ extension OnboardingView {
         }
     }
 
-    func onboardingPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    func onboardingPanel(@ViewBuilder content: () -> some View) -> some View {
         content()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(20)
