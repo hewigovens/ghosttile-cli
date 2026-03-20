@@ -27,7 +27,7 @@ extension MainWindowView {
                         isDarkMode: isDarkMode
                     )
 
-                    Button("Add App", action: selectAppToHide)
+                    Button("Add App", action: { viewModel.selectAppToHide(with: vm) })
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
                 }
@@ -90,7 +90,7 @@ extension MainWindowView {
         .padding(18)
         .background(sectionBackground(isDropTargeted: viewModel.dropTargeted))
         .onDrop(of: [.fileURL], isTargeted: $viewModel.dropTargeted) { providers in
-            handleFileDrop(providers)
+            viewModel.handleFileDrop(providers, vm: vm)
         }
     }
 
@@ -171,7 +171,7 @@ extension MainWindowView {
             }
 
             if viewModel.query.isEmpty {
-                Button("Add App", action: selectAppToHide)
+                Button("Add App", action: { viewModel.selectAppToHide(with: vm) })
                     .buttonStyle(.borderedProminent)
             }
         }
