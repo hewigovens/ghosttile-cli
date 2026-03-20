@@ -28,7 +28,7 @@ build-cli:
     xcrun clang -dynamiclib -arch arm64 -framework Cocoa \
         -mmacosx-version-min={{deployment_target}} \
         ${ghosthide_debug_flag:+$ghosthide_debug_flag} \
-        -o .build/ghosthide.dylib Resources/ghosthide.m Resources/fishhook.c
+        -o .build/ghosthide.dylib Resources/ghosthide.m Resources/ghosthide_debug.m Resources/fishhook.c
     cp .build/ghosthide.dylib .build/release/ghosthide.dylib
 
 resign app:

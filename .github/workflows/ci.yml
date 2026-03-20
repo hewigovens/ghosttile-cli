@@ -51,7 +51,7 @@ jobs:
         run: |
           xcrun clang -dynamiclib -arch arm64 -framework Cocoa \
             -mmacosx-version-min=15.0 -DGHOSTHIDE_DEBUG=1 \
-            -o .build/ghosthide.dylib Resources/ghosthide.m Resources/fishhook.c
+            -o .build/ghosthide.dylib Resources/ghosthide.m Resources/ghosthide_debug.m Resources/fishhook.c
 
       - name: Run tests
         run: swift test
