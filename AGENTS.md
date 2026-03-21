@@ -70,6 +70,7 @@
 - When touching config behavior, verify both app-driven and CLI-driven updates. The GUI reflects `~/.config/ghosttile/config.json` changes via `ConfigWatcher` without a restart.
 
 ## Validation Expectations
+- Always run `just format` and `just lint` before committing.
 - Always run `swift build` after code changes.
 - If you change packaging or resources, also run `just build`.
 - If you change app/core interaction, verify at least one CLI path and one GUI path conceptually, even if you cannot execute the full macOS workflow in automation.

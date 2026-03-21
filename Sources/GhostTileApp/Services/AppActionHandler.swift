@@ -13,50 +13,50 @@ final class AppActionHandler {
     }
 
     func hideRunningApp(_ app: ManagedAppItem) {
-        guard let vm = viewModel, !loading.contains(app.id) else { return }
+        guard let viewModel, !loading.contains(app.id) else { return }
 
         if app.isSIPProtected {
-            vm.showError(message: "\(app.name) is system-protected and cannot be hidden.")
+            viewModel.showError(message: "\(app.name) is system-protected and cannot be hidden.")
             return
         }
 
         let info = app.appInfo
-        let cli = vm.cliPath
+        let cli = viewModel.cliPath
         performAsync(for: app.id) {
             try AppOperations.hideApp(info, cliPath: cli)
-        } onResult: { [weak self, weak vm] result in
+        } onResult: { [weak self, weak viewModel] result in
             switch result {
             case .hidden:
-                vm?.recordSponsorUse()
+                viewModel?.recordSponsorUse()
             case let .requiresSudo(command):
-                vm?.sudoCommand = command
+                viewModel?.sudoCommand = command
                 self?.loading.remove(info.bundleId)
             }
         }
     }
 
     func setDockVisibility(_ app: ManagedAppItem, hidden: Bool) {
-        guard let vm = viewModel, app.isRunning else { return }
-        vm.dockVisibilityController.send(bundleId: app.id, hidden: hidden)
-        vm.scheduleRefresh(after: 0.5)
-        vm.recordSponsorUse()
+        guard let viewModel, app.isRunning else { return }
+        viewModel.dockVisibilityController.send(bundleId: app.id, hidden: hidden)
+        viewModel.scheduleRefresh(after: 0.5)
+        viewModel.recordSponsorUse()
     }
 
     func activateManagedApp(_ app: ManagedAppItem) {
-        guard let vm = viewModel else { return }
+        guard let viewModel else { return }
 
         if let running = AppManager.runningApps(app.id).first {
             running.activate()
-            vm.recordSponsorUse()
+            viewModel.recordSponsorUse()
             return
         }
 
         let info = app.appInfo
         performAsync(for: app.id, showLoading: false) {
             try AppManager.launchManagedVisible(info)
-        } onResult: { [weak vm] _ in
-            vm?.recordSponsorUse()
-            vm?.scheduleRefresh(after: 0.75)
+        } onResult: { [weak viewModel] _ in
+            viewModel?.recordSponsorUse()
+            viewModel?.scheduleRefresh(after: 0.75)
         }
     }
 
@@ -65,8 +65,8 @@ final class AppActionHandler {
     }
 
     func handleAttentionNotificationClick(bundleId: String) {
-        guard let vm = viewModel,
-              let app = vm.managedApp(bundleId: bundleId) else { return }
+        guard let viewModel,
+              let app = viewModel.managedApp(bundleId: bundleId) else { return }
 
         if app.isRunning, app.isHiddenFromDock {
             setDockVisibility(app, hidden: false)
@@ -80,24 +80,24 @@ final class AppActionHandler {
     }
 
     func removeApp(_ app: ManagedAppItem) {
-        guard let vm = viewModel, !loading.contains(app.id) else { return }
+        guard let viewModel, !loading.contains(app.id) else { return }
 
         let info = app.appInfo
         let wasRunning = app.isRunning
-        let cli = vm.cliPath
+        let cli = viewModel.cliPath
         let refreshDelay: TimeInterval = wasRunning ? Self.postOperationRefreshDelay : 0
 
         performAsync(for: app.id, refreshDelay: refreshDelay) {
             try AppOperations.removeApp(info, wasRunning: wasRunning)
-        } onResult: { [weak vm] _ in
-            vm?.recordSponsorUse()
-        } onError: { [weak vm] _ in
-            vm?.sudoCommand = "sudo \(cli) restore \(info.bundleId)"
+        } onResult: { [weak viewModel] _ in
+            viewModel?.recordSponsorUse()
+        } onError: { [weak viewModel] _ in
+            viewModel?.sudoCommand = "sudo \(cli) restore \(info.bundleId)"
         }
     }
 
     func hideByURL(_ url: URL) {
-        guard let vm = viewModel,
+        guard let viewModel,
               let bundle = Bundle(url: url),
               let bundleId = bundle.bundleIdentifier,
               let execURL = bundle.executableURL
@@ -107,11 +107,11 @@ final class AppActionHandler {
 
         let appPath = url.path
         if AppManager.isSIPProtected(appPath) || AppManager.isAppleFirstParty(appPath) {
-            vm.showError(message: "\(bundle.infoDictionary?["CFBundleName"] as? String ?? bundleId) cannot be hidden.")
+            viewModel.showError(message: "\(bundle.infoDictionary?["CFBundleName"] as? String ?? bundleId) cannot be hidden.")
             return
         }
 
-        if let existing = vm.apps.first(where: { $0.id == bundleId }) {
+        if let existing = viewModel.apps.first(where: { $0.id == bundleId }) {
             hideRunningApp(existing)
         } else {
             let name = bundle.infoDictionary?["CFBundleName"] as? String

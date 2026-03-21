@@ -25,8 +25,8 @@ public enum HelperClient {
         return result?.stringValue ?? ""
     }
 
-    private static func shellQuote(_ s: String) -> String {
-        "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    private static func shellQuote(_ string: String) -> String {
+        "'" + string.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
     public static func copyFile(from source: String, to destination: String) throws {

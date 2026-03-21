@@ -164,14 +164,18 @@ struct OverviewCard: View {
                 .foregroundStyle(.secondary)
             }
 
-            Button(action: { actions.reveal(app) }) {
+            Button {
+                actions.reveal(app)
+            } label: {
                 Image(systemName: "folder")
                     .font(.system(size: 11, weight: .semibold))
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
 
-            Button(action: { actions.remove(app) }) {
+            Button {
+                actions.remove(app)
+            } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 11, weight: .semibold))
             }

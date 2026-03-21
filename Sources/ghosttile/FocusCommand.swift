@@ -10,10 +10,10 @@ extension GhostTile {
         @Argument(help: "Bundle ID or app name.") var app: String
 
         func run() throws {
-            let q = app.lowercased()
+            let query = app.lowercased()
             let running = NSWorkspace.shared.runningApplications.filter {
-                ($0.bundleIdentifier?.lowercased().contains(q) ?? false)
-                    || ($0.localizedName?.lowercased().contains(q) ?? false)
+                ($0.bundleIdentifier?.lowercased().contains(query) ?? false)
+                    || ($0.localizedName?.lowercased().contains(query) ?? false)
             }
 
             guard let target = running.first else {

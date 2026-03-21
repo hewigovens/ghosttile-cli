@@ -122,7 +122,9 @@ struct ManagedAppCard: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
 
-                    Button(action: { actions.open(app) }) {
+                    Button {
+                        actions.open(app)
+                    } label: {
                         Image(systemName: "arrow.up.forward.app")
                             .font(.system(size: 12, weight: .semibold))
                     }
@@ -133,7 +135,9 @@ struct ManagedAppCard: View {
                     Spacer()
                 }
 
-                Button(action: { actions.reveal(app) }) {
+                Button {
+                    actions.reveal(app)
+                } label: {
                     Image(systemName: "folder")
                         .font(.system(size: 12, weight: .semibold))
                 }
@@ -141,7 +145,9 @@ struct ManagedAppCard: View {
                 .controlSize(.small)
                 .help("Reveal in Finder")
 
-                Button(action: { actions.remove(app) }) {
+                Button {
+                    actions.remove(app)
+                } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 12, weight: .semibold))
                 }

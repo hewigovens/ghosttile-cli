@@ -3,7 +3,7 @@ import SwiftUI
 
 struct OverviewView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @ObservedObject var vm: AppViewModel
+    @ObservedObject var appViewModel: AppViewModel
     @StateObject var viewModel: OverviewViewModel
     @ObservedObject var thumbnailStore: OverviewThumbnailStore
     let onDismiss: () -> Void
@@ -13,11 +13,11 @@ struct OverviewView: View {
         colorScheme == .dark
     }
 
-    init(vm: AppViewModel, thumbnailStore: OverviewThumbnailStore, onDismiss: @escaping () -> Void) {
-        self.vm = vm
+    init(appViewModel: AppViewModel, thumbnailStore: OverviewThumbnailStore, onDismiss: @escaping () -> Void) {
+        self.appViewModel = appViewModel
         self.thumbnailStore = thumbnailStore
         self.onDismiss = onDismiss
-        _viewModel = StateObject(wrappedValue: OverviewViewModel(store: vm.managedAppsStore))
+        _viewModel = StateObject(wrappedValue: OverviewViewModel(store: appViewModel.managedAppsStore))
     }
 
     let columns = [
@@ -56,7 +56,7 @@ struct OverviewView: View {
                                     app: app,
                                     thumbnail: thumbnailStore.thumbnail(for: app.id),
                                     isSelected: app.id == viewModel.selectedBundleId,
-                                    actions: vm,
+                                    actions: appViewModel,
                                     onTap: onDismiss
                                 )
                             }
@@ -89,7 +89,7 @@ struct OverviewView: View {
 
     func openSelectedApp() {
         guard let app = viewModel.selectedApp() else { return }
-        vm.handleAttentionNotificationClick(bundleId: app.id)
+        appViewModel.handleAttentionNotificationClick(bundleId: app.id)
         onDismiss()
     }
 }

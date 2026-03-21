@@ -43,7 +43,7 @@ final class MainWindowViewModel: ObservableObject {
         store.apps.filter { $0.isHidden && $0.isRunning }.count
     }
 
-    func selectAppToHide(with vm: AppViewModel) {
+    func selectAppToHide(with appViewModel: AppViewModel) {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.applicationBundle]
         panel.allowsMultipleSelection = false
@@ -52,11 +52,11 @@ final class MainWindowViewModel: ObservableObject {
         panel.canChooseFiles = true
         panel.message = "Select an app to hide from the Dock"
         if panel.runModal() == .OK, let url = panel.url {
-            vm.hideByURL(url)
+            appViewModel.hideByURL(url)
         }
     }
 
-    func handleFileDrop(_ providers: [NSItemProvider], vm: AppViewModel) -> Bool {
+    func handleFileDrop(_ providers: [NSItemProvider], appViewModel: AppViewModel) -> Bool {
         for provider in providers {
             provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, _ in
                 guard let data = item as? Data,
@@ -64,7 +64,7 @@ final class MainWindowViewModel: ObservableObject {
                       let url = URL(string: urlString),
                       url.pathExtension == "app"
                 else { return }
-                DispatchQueue.main.async { vm.hideByURL(url) }
+                DispatchQueue.main.async { appViewModel.hideByURL(url) }
             }
         }
         return true

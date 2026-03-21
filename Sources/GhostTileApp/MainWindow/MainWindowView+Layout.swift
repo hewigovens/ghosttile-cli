@@ -31,7 +31,7 @@ extension MainWindowView {
                         isDarkMode: isDarkMode
                     )
 
-                    Button("Add App", action: { viewModel.selectAppToHide(with: vm) })
+                    Button("Add App", action: { viewModel.selectAppToHide(with: appViewModel) })
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
                 }
@@ -71,13 +71,13 @@ extension MainWindowView {
                         ForEach(viewModel.managedApps) { app in
                             ManagedAppCard(
                                 app: app,
-                                isLoading: vm.loading.contains(app.id),
-                                actions: vm,
+                                isLoading: appViewModel.loading.contains(app.id),
+                                actions: appViewModel,
                                 onPrimaryAction: {
                                     if app.isRunning {
-                                        vm.setDockVisibility(app, hidden: !app.isHiddenFromDock)
+                                        appViewModel.setDockVisibility(app, hidden: !app.isHiddenFromDock)
                                     } else {
-                                        vm.activateManagedApp(app)
+                                        appViewModel.activateManagedApp(app)
                                     }
                                 }
                             )
@@ -92,7 +92,7 @@ extension MainWindowView {
         .padding(18)
         .background(sectionBackground(isDropTargeted: viewModel.dropTargeted))
         .onDrop(of: [.fileURL], isTargeted: $viewModel.dropTargeted) { providers in
-            viewModel.handleFileDrop(providers, vm: vm)
+            viewModel.handleFileDrop(providers, appViewModel: appViewModel)
         }
     }
 
@@ -102,7 +102,7 @@ extension MainWindowView {
                 SectionHeaderView(title: "Running Apps", subtitle: "Hide active apps quickly.")
                 Spacer()
                 Button {
-                    vm.refresh()
+                    appViewModel.refresh()
                 } label: {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 12, weight: .medium))
@@ -132,8 +132,8 @@ extension MainWindowView {
                         ForEach(viewModel.runningApps) { app in
                             RunningAppSidebarRow(
                                 app: app,
-                                isLoading: vm.loading.contains(app.id),
-                                onHide: { vm.hideRunningApp(app) }
+                                isLoading: appViewModel.loading.contains(app.id),
+                                onHide: { appViewModel.hideRunningApp(app) }
                             )
                         }
                     }
@@ -173,7 +173,7 @@ extension MainWindowView {
             }
 
             if viewModel.query.isEmpty {
-                Button("Add App", action: { viewModel.selectAppToHide(with: vm) })
+                Button("Add App", action: { viewModel.selectAppToHide(with: appViewModel) })
                     .buttonStyle(.borderedProminent)
             }
         }

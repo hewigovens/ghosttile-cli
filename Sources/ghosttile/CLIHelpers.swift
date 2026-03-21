@@ -13,11 +13,11 @@ func printJSON(_ value: some Encodable) throws {
 
 func resolveManaged(_ query: String) throws -> (String, HiddenApp) {
     let config = Config.load()
-    let q = query.lowercased()
+    let queryLower = query.lowercased()
 
     let match = config.hidden.first {
-        $0.key.lowercased().contains(q)
-            || $0.value.name.lowercased().contains(q)
+        $0.key.lowercased().contains(queryLower)
+            || $0.value.name.lowercased().contains(queryLower)
     }
 
     guard let result = match else {

@@ -19,6 +19,7 @@ final class SponsorNudgeController: ObservableObject {
     private let firstPromptUsageThreshold = 6
     private let repeatPromptUsageInterval = 15
     private let remindCooldown: TimeInterval = 60 * 60 * 24 * 14
+    // swiftlint:disable:next force_unwrapping
     private let sponsorsURL = URL(string: "https://github.com/sponsors/hewigovens")!
 
     private init() {}
@@ -51,8 +52,7 @@ final class SponsorNudgeController: ObservableObject {
         guard usageCount >= nextUsageThreshold else { return }
 
         if let lastPromptAt = defaults.object(forKey: Keys.lastPromptAt) as? Date,
-           Date().timeIntervalSince(lastPromptAt) < remindCooldown
-        {
+           Date().timeIntervalSince(lastPromptAt) < remindCooldown {
             return
         }
 

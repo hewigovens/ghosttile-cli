@@ -3,7 +3,7 @@ import SwiftUI
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var vm: AppViewModel?
+    var viewModel: AppViewModel?
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
@@ -12,8 +12,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDockMenu(_: NSApplication) -> NSMenu? {
         let menu = NSMenu()
 
-        if let vm, !vm.hiddenApps.isEmpty {
-            for app in vm.hiddenApps {
+        if let viewModel, !viewModel.hiddenApps.isEmpty {
+            for app in viewModel.hiddenApps {
                 let item = app.menuItem(icon: app.icon)
                 let submenu = NSMenu(title: app.name)
                 for menuItem in app.visibilityMenuItems(
@@ -37,36 +37,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_: Notification) {
-        vm?.refreshForPresentation()
+        viewModel?.refreshForPresentation()
     }
 
     @objc private func hideFromDock() {
-        vm?.toggleSelfDock()
+        viewModel?.toggleSelfDock()
     }
 
     @objc private func dockMenuHideApp(_ sender: NSMenuItem) {
         guard let bundleId = sender.representedObject as? String,
-              let app = vm?.managedApp(bundleId: bundleId) else { return }
-        vm?.setDockVisibility(app, hidden: true)
+              let app = viewModel?.managedApp(bundleId: bundleId) else { return }
+        viewModel?.setDockVisibility(app, hidden: true)
     }
 
     @objc private func dockMenuShowApp(_ sender: NSMenuItem) {
         guard let bundleId = sender.representedObject as? String,
-              let app = vm?.managedApp(bundleId: bundleId) else { return }
-        vm?.setDockVisibility(app, hidden: false)
+              let app = viewModel?.managedApp(bundleId: bundleId) else { return }
+        viewModel?.setDockVisibility(app, hidden: false)
     }
 
     @objc private func dockMenuActivateApp(_ sender: NSMenuItem) {
         guard let bundleId = sender.representedObject as? String,
-              let app = vm?.managedApp(bundleId: bundleId) else { return }
-        vm?.activateManagedApp(app)
+              let app = viewModel?.managedApp(bundleId: bundleId) else { return }
+        viewModel?.activateManagedApp(app)
     }
 }
 
 @main
 struct GhostTileApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var vm = AppViewModel()
+    @StateObject private var viewModel = AppViewModel()
     @State private var statusBar: StatusBarController?
     @State private var overviewController: OverviewWindowController?
     @AppStorage("onboardingComplete") private var onboardingComplete = false
@@ -76,12 +76,12 @@ struct GhostTileApp: App {
         for window in NSApp.windows {
             if window.identifier?.rawValue.contains("main") == true || window.title == "GhostTile" {
                 window.makeKeyAndOrderFront(nil)
-                vm.refreshForPresentation()
+                viewModel.refreshForPresentation()
                 SponsorNudgeController.shared.considerPrompt()
                 return
             }
         }
-        vm.refreshForPresentation()
+        viewModel.refreshForPresentation()
         SponsorNudgeController.shared.considerPrompt()
     }
 
@@ -89,14 +89,14 @@ struct GhostTileApp: App {
         Window("GhostTile", id: "main") {
             Group {
                 if onboardingComplete {
-                    MainWindowView(vm: vm)
+                    MainWindowView(appViewModel: viewModel)
                 } else {
                     OnboardingView(isComplete: $onboardingComplete)
                 }
             }
             .onAppear {
                 if overviewController == nil {
-                    overviewController = OverviewWindowController(viewModel: vm)
+                    overviewController = OverviewWindowController(viewModel: viewModel)
                 }
                 if let overviewController {
                     ShortcutController.shared.start(
@@ -106,15 +106,15 @@ struct GhostTileApp: App {
                 }
                 if statusBar == nil {
                     statusBar = StatusBarController(
-                        vm: vm,
+                        viewModel: viewModel,
                         showMainWindow: showMainWindow,
                         showOverview: {
                             overviewController?.toggle()
                         }
                     )
                 }
-                AttentionNotificationController.shared.start(viewModel: vm)
-                appDelegate.vm = vm
+                AttentionNotificationController.shared.start(viewModel: viewModel)
+                appDelegate.viewModel = viewModel
                 SponsorNudgeController.shared.considerPrompt()
             }
         }

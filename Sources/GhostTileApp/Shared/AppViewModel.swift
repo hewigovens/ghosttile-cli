@@ -77,17 +77,16 @@ class AppViewModel: ObservableObject, ManagedAppActions {
         refresh()
         reapplyHidden()
 
-        let nc = NSWorkspace.shared.notificationCenter
+        let notificationCenter = NSWorkspace.shared.notificationCenter
         observers.append(
-            nc.addObserver(
+            notificationCenter.addObserver(
                 forName: NSWorkspace.didLaunchApplicationNotification,
                 object: nil, queue: .main
             ) { [weak self] notification in
                 guard let self else { return }
                 if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
                     as? NSRunningApplication,
-                    let bundleId = app.bundleIdentifier
-                {
+                    let bundleId = app.bundleIdentifier {
                     Task { @MainActor [weak self] in
                         self?.autoHideIfNeeded(bundleId)
                     }
@@ -100,7 +99,7 @@ class AppViewModel: ObservableObject, ManagedAppActions {
             }
         )
         observers.append(
-            nc.addObserver(
+            notificationCenter.addObserver(
                 forName: NSWorkspace.didTerminateApplicationNotification,
                 object: nil, queue: .main
             ) { [weak self] _ in
@@ -178,11 +177,25 @@ class AppViewModel: ObservableObject, ManagedAppActions {
 
     // MARK: - ManagedAppActions
 
-    func open(_ app: ManagedAppItem) { actionHandler.handleAttentionNotificationClick(bundleId: app.id) }
-    func show(_ app: ManagedAppItem) { actionHandler.setDockVisibility(app, hidden: false) }
-    func hide(_ app: ManagedAppItem) { actionHandler.setDockVisibility(app, hidden: true) }
-    func reveal(_ app: ManagedAppItem) { actionHandler.revealAppInFinder(app) }
-    func remove(_ app: ManagedAppItem) { actionHandler.removeApp(app) }
+    func open(_ app: ManagedAppItem) {
+        actionHandler.handleAttentionNotificationClick(bundleId: app.id)
+    }
+
+    func show(_ app: ManagedAppItem) {
+        actionHandler.setDockVisibility(app, hidden: false)
+    }
+
+    func hide(_ app: ManagedAppItem) {
+        actionHandler.setDockVisibility(app, hidden: true)
+    }
+
+    func reveal(_ app: ManagedAppItem) {
+        actionHandler.revealAppInFinder(app)
+    }
+
+    func remove(_ app: ManagedAppItem) {
+        actionHandler.removeApp(app)
+    }
 
     // MARK: - Additional Actions
 
@@ -215,9 +228,9 @@ class AppViewModel: ObservableObject, ManagedAppActions {
     }
 
     deinit {
-        let nc = NSWorkspace.shared.notificationCenter
+        let notificationCenter = NSWorkspace.shared.notificationCenter
         for observer in observers {
-            nc.removeObserver(observer)
+            notificationCenter.removeObserver(observer)
         }
     }
 }

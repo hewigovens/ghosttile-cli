@@ -45,8 +45,7 @@ private func representativeWindow(pid: pid_t) async throws -> SCWindow? {
 @available(macOS 14.0, *)
 private func currentShareableContent() async throws -> SCShareableContent {
     try await withCheckedThrowingContinuation { continuation in
-        SCShareableContent.getExcludingDesktopWindows(true, onScreenWindowsOnly: true) {
-            shareableContent, error in
+        SCShareableContent.getExcludingDesktopWindows(true, onScreenWindowsOnly: true) { shareableContent, error in
             if let shareableContent {
                 continuation.resume(returning: shareableContent)
             } else {
@@ -70,8 +69,7 @@ private func captureImage(for window: SCWindow) async throws -> CGImage {
     configuration.ignoreShadowsSingleWindow = true
 
     return try await withCheckedThrowingContinuation { continuation in
-        SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration) {
-            image, error in
+        SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration) { image, error in
             if let image {
                 continuation.resume(returning: image)
             } else {

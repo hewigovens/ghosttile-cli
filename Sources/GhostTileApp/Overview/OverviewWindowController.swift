@@ -17,7 +17,7 @@ final class OverviewWindowController: NSWindowController, NSWindowDelegate {
         panel.delegate = self
         panel.contentViewController = NSHostingController(
             rootView: OverviewView(
-                vm: viewModel,
+                appViewModel: viewModel,
                 thumbnailStore: thumbnailStore,
                 onDismiss: { [weak panel] in panel?.orderOut(nil) }
             )

@@ -3,7 +3,7 @@ import SwiftUI
 
 struct MainWindowView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @ObservedObject var vm: AppViewModel
+    @ObservedObject var appViewModel: AppViewModel
     @StateObject var viewModel: MainWindowViewModel
     @ObservedObject private var sponsorNudge = SponsorNudgeController.shared
 
@@ -13,9 +13,9 @@ struct MainWindowView: View {
         colorScheme == .dark
     }
 
-    init(vm: AppViewModel) {
-        self.vm = vm
-        _viewModel = StateObject(wrappedValue: MainWindowViewModel(store: vm.managedAppsStore))
+    init(appViewModel: AppViewModel) {
+        self.appViewModel = appViewModel
+        _viewModel = StateObject(wrappedValue: MainWindowViewModel(store: appViewModel.managedAppsStore))
     }
 
     var body: some View {
@@ -36,11 +36,11 @@ struct MainWindowView: View {
             .padding(.bottom, 22)
         }
         .frame(minWidth: 940, idealWidth: 1040, minHeight: 680, idealHeight: 760)
-        .onAppear { vm.refresh() }
-        .alert("Error", isPresented: $vm.showError) {
+        .onAppear { appViewModel.refresh() }
+        .alert("Error", isPresented: $appViewModel.showError) {
             Button("OK") {}
         } message: {
-            Text(vm.errorMessage)
+            Text(appViewModel.errorMessage)
         }
         .alert("Support GhostTile", isPresented: $sponsorNudge.isPresented) {
             Button("Sponsor on GitHub") {
@@ -58,10 +58,10 @@ struct MainWindowView: View {
             )
         }
         .sheet(isPresented: Binding(
-            get: { vm.sudoCommand != nil },
-            set: { if !$0 { vm.sudoCommand = nil } }
+            get: { appViewModel.sudoCommand != nil },
+            set: { if !$0 { appViewModel.sudoCommand = nil } }
         )) {
-            SudoCommandSheet(command: vm.sudoCommand ?? "")
+            SudoCommandSheet(command: appViewModel.sudoCommand ?? "")
         }
     }
 

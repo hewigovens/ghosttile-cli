@@ -5,8 +5,8 @@ import KeyboardShortcuts
 struct StatusBarMenuBuilder {
     let controller: StatusBarController
 
-    private var vm: AppViewModel {
-        controller.vm
+    private var viewModel: AppViewModel {
+        controller.viewModel
     }
 
     func rebuild(_ menu: NSMenu) {
@@ -20,7 +20,7 @@ struct StatusBarMenuBuilder {
         overviewItem.setShortcut(for: .openOverview)
         menu.addItem(overviewItem)
 
-        let dockTitle = vm.dockVisible ? "Hide from Dock" : "Show in Dock"
+        let dockTitle = viewModel.dockVisible ? "Hide from Dock" : "Show in Dock"
         menu.addItem(makeItem(dockTitle, action: #selector(StatusBarController.toggleDock)))
 
         menu.addItem(.separator())
@@ -36,7 +36,7 @@ struct StatusBarMenuBuilder {
         header.isEnabled = false
         menu.addItem(header)
 
-        let managed = vm.hiddenApps
+        let managed = viewModel.hiddenApps
         if managed.isEmpty {
             let empty = NSMenuItem(title: "No managed apps", action: nil, keyEquivalent: "")
             empty.isEnabled = false

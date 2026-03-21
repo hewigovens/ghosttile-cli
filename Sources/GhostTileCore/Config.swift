@@ -11,9 +11,8 @@ public enum Config {
         if let override = configDirOverride { return override }
         // When running via sudo, use the real user's home instead of /var/root
         let home: String = if let sudoUser = ProcessInfo.processInfo.environment["SUDO_USER"],
-                              let pw = getpwnam(sudoUser)
-        {
-            String(cString: pw.pointee.pw_dir)
+                              let passwd = getpwnam(sudoUser) {
+            String(cString: passwd.pointee.pw_dir)
         } else {
             FileManager.default.homeDirectoryForCurrentUser.path
         }

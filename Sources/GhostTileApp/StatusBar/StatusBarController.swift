@@ -7,18 +7,18 @@ import SwiftUI
 class StatusBarController: NSObject, NSMenuDelegate {
     var statusItem: NSStatusItem!
     let menu = NSMenu()
-    let vm: AppViewModel
+    let viewModel: AppViewModel
     let showMainWindowAction: () -> Void
     let showOverview: () -> Void
     var settingsWindow: NSWindow?
     private lazy var menuBuilder = StatusBarMenuBuilder(controller: self)
 
     init(
-        vm: AppViewModel,
+        viewModel: AppViewModel,
         showMainWindow: @escaping () -> Void,
         showOverview: @escaping () -> Void
     ) {
-        self.vm = vm
+        self.viewModel = viewModel
         self.showMainWindowAction = showMainWindow
         self.showOverview = showOverview
         super.init()
@@ -58,33 +58,33 @@ class StatusBarController: NSObject, NSMenuDelegate {
 
     @objc func activateManagedApp(_ sender: NSMenuItem) {
         guard let app = managedApp(from: sender) else { return }
-        vm.activateManagedApp(app)
+        viewModel.activateManagedApp(app)
     }
 
     @objc func showManagedApp(_ sender: NSMenuItem) {
         guard let app = managedApp(from: sender) else { return }
-        vm.setDockVisibility(app, hidden: false)
+        viewModel.setDockVisibility(app, hidden: false)
     }
 
     @objc func hideManagedApp(_ sender: NSMenuItem) {
         guard let app = managedApp(from: sender) else { return }
-        vm.setDockVisibility(app, hidden: true)
+        viewModel.setDockVisibility(app, hidden: true)
     }
 
     @objc func removeManagedApp(_ sender: NSMenuItem) {
         guard let app = managedApp(from: sender) else { return }
-        vm.removeApp(app)
+        viewModel.removeApp(app)
     }
 
     func managedApp(from sender: NSMenuItem) -> ManagedAppItem? {
         guard let bundleId = sender.representedObject as? String else { return nil }
-        return vm.managedApp(bundleId: bundleId)
+        return viewModel.managedApp(bundleId: bundleId)
     }
 
     // MARK: - Window Actions
 
     @objc func toggleDock() {
-        vm.toggleSelfDock {
+        viewModel.toggleSelfDock {
             for window in NSApp.windows where window.identifier?.rawValue.contains("main") == true {
                 window.makeKeyAndOrderFront(nil)
                 return

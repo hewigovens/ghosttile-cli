@@ -15,19 +15,19 @@ enum AppResolver {
             $0.activationPolicy == .regular && $0.bundleIdentifier != nil
         }
 
-        let q = query.lowercased()
+        let queryLower = query.lowercased()
 
         if let app = apps.first(where: {
             guard let bundleId = $0.bundleIdentifier else { return false }
-            return bundleId.lowercased() == q
+            return bundleId.lowercased() == queryLower
         }) {
             return try info(from: app)
         }
 
         let matches = apps.filter {
             guard let bundleId = $0.bundleIdentifier else { return false }
-            return bundleId.lowercased().contains(q)
-                || ($0.localizedName?.lowercased().contains(q) ?? false)
+            return bundleId.lowercased().contains(queryLower)
+                || ($0.localizedName?.lowercased().contains(queryLower) ?? false)
         }
 
         if matches.count == 1 {

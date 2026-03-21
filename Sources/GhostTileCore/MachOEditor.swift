@@ -31,6 +31,7 @@ enum MachOEditor {
         var modified = false
 
         for slice in try slices(in: data) {
+            // swiftlint:disable:next for_where
             if try insertGhosthideLoadCommand(into: &data, slice: slice) {
                 modified = true
             }
@@ -164,30 +165,12 @@ enum MachOEditor {
 
             switch cmd {
             case lcSegment:
-                let fileoff = Int(readUInt32LE(data, at: cursor + 32))
-                let nsects = Int(readUInt32LE(data, at: cursor + 48))
-                if fileoff > 0 { minOffset = min(minOffset, fileoff) }
-                var sectionOffset = cursor + 56
-                for _ in 0 ..< nsects {
-                    let sectionFileOffset = Int(readUInt32LE(data, at: sectionOffset + 40))
-                    if sectionFileOffset > 0 { minOffset = min(minOffset, sectionFileOffset) }
-                    sectionOffset += 68
-                }
+                minOffset = segmentMinOffset(data, at: cursor, layout: .segment32, current: minOffset)
             case lcSegment64:
-                let fileoff = Int(readUInt64LE(data, at: cursor + 40))
-                let nsects = Int(readUInt32LE(data, at: cursor + 64))
-                if fileoff > 0 { minOffset = min(minOffset, fileoff) }
-                var sectionOffset = cursor + 72
-                for _ in 0 ..< nsects {
-                    let sectionFileOffset = Int(readUInt32LE(data, at: sectionOffset + 48))
-                    if sectionFileOffset > 0 { minOffset = min(minOffset, sectionFileOffset) }
-                    sectionOffset += 80
-                }
+                minOffset = segmentMinOffset(data, at: cursor, layout: .segment64, current: minOffset)
             case lcSymtab:
-                let symoff = Int(readUInt32LE(data, at: cursor + 8))
-                let stroff = Int(readUInt32LE(data, at: cursor + 16))
-                if symoff > 0 { minOffset = min(minOffset, symoff) }
-                if stroff > 0 { minOffset = min(minOffset, stroff) }
+                minOffset = updateMin(minOffset, readUInt32LE(data, at: cursor + 8))
+                minOffset = updateMin(minOffset, readUInt32LE(data, at: cursor + 16))
             default:
                 break
             }
@@ -214,6 +197,36 @@ enum MachOEditor {
         writeUInt32LE(&command, at: 20, value: 0)
         command.replaceSubrange(24 ..< (24 + pathBytes.count), with: pathBytes)
         return command
+    }
+
+    private struct SegmentLayout {
+        let fileoffAt: Int, nsectsAt: Int, headerSize: Int, sectionFileoffAt: Int, sectionSize: Int, use64: Bool
+
+        static let segment32 = SegmentLayout(fileoffAt: 32, nsectsAt: 48, headerSize: 56, sectionFileoffAt: 40, sectionSize: 68, use64: false)
+        static let segment64 = SegmentLayout(fileoffAt: 40, nsectsAt: 64, headerSize: 72, sectionFileoffAt: 48, sectionSize: 80, use64: true)
+    }
+
+    private static func segmentMinOffset(_ data: Data, at cursor: Int, layout: SegmentLayout, current: Int) -> Int {
+        var minOffset = current
+        let fileoff = layout.use64 ? Int(readUInt64LE(data, at: cursor + layout.fileoffAt)) : Int(readUInt32LE(data, at: cursor + layout.fileoffAt))
+        let nsects = Int(readUInt32LE(data, at: cursor + layout.nsectsAt))
+        minOffset = updateMin(minOffset, fileoff)
+        var sectionOffset = cursor + layout.headerSize
+        for _ in 0 ..< nsects {
+            let sectionFileOffset = Int(readUInt32LE(data, at: sectionOffset + layout.sectionFileoffAt))
+            minOffset = updateMin(minOffset, sectionFileOffset)
+            sectionOffset += layout.sectionSize
+        }
+        return minOffset
+    }
+
+    private static func updateMin(_ current: Int, _ value: UInt32) -> Int {
+        let intValue = Int(value)
+        return intValue > 0 ? min(current, intValue) : current
+    }
+
+    private static func updateMin(_ current: Int, _ value: Int) -> Int {
+        value > 0 ? min(current, value) : current
     }
 
     private struct Header {
@@ -259,7 +272,7 @@ enum MachOEditor {
         let upperBound = min(offset + maxLength, data.count)
         let bytes = data[offset ..< upperBound]
         let nulIndex = bytes.firstIndex(of: 0) ?? upperBound
-        return String(decoding: data[offset ..< nulIndex], as: UTF8.self)
+        return String(decoding: data[offset ..< nulIndex], as: UTF8.self) // swiftlint:disable:this optional_data_string_conversion
     }
 
     private static func readUInt32LE(_ data: Data, at offset: Int) -> UInt32 {
