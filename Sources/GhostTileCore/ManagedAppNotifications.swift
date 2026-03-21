@@ -4,6 +4,7 @@ public enum ManagedAppNotificationAction: String {
     case hide
     case show
     case toggle
+    case attention
 }
 
 public enum ManagedAppNotifications {

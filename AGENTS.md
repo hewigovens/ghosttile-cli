@@ -12,6 +12,41 @@
 - `Sources/GhostTileApp`: SwiftUI views, app lifecycle, and status bar integration.
 - `Resources`: app bundle resources, `Info.plist`, icons, and `ghosthide.m`.
 - `justfile`: local build, packaging, install, and release helpers.
+- `docs/refactor.md`: architecture decisions and refactor completion status.
+
+## Architecture
+
+### GhostTileCore — domain types
+- `AppManager`: thin façade delegating to focused types below.
+- `AppResolver`: resolves apps from bundle ID, path, name, or running app.
+- `AppPreparationManager`: binary backup, Mach-O patching, entitlements, codesign.
+- `AppRestoreManager`: binary restoration and cleanup.
+- `AppLauncher`: launch/quit/focus, SIP and Apple-first-party checks.
+- `ShellRunner`: command execution with stderr capture.
+- `ManagedAppRecord` / `ManagedAppStateReader`: shared core model and snapshot factory.
+- `Config`: reads/writes `~/.config/ghosttile/config.json`.
+
+### GhostTileApp — services
+- `ManagedAppsStore`: owns managed app list, publishes snapshots, drives config watching.
+- `ConfigWatcher`: file system monitoring with dispatch sources.
+- `DockVisibilityController`: auto-hide, reapply, notification sending.
+- `AppOperations`: high-level hide/launch/remove workflows.
+- `CLIPaths`: consolidated CLI binary path resolution.
+
+### GhostTileApp — view models
+- `AppViewModel`: app-wide coordinator for loading state, errors, workspace observers.
+- `MainWindowViewModel`: query filtering, managed/running app lists, counts.
+- `OverviewViewModel`: selection, arrow navigation, search.
+- `SettingsViewModel`: CLI install status, version checking, launch-at-login.
+
+### GhostTileApp — shared UI types
+- `ManagedAppItem`: standalone UI wrapper over `ManagedAppRecord` (icon + category).
+- `IconTileView`, `SearchFieldView`, `SectionHeaderView`, `StatusPill`: reusable primitives.
+- `SettingsSectionCard`, `SettingsRowIcon`: settings-specific chrome.
+
+### CLI — commands
+- `CLIShared`: helper functions for JSON output and managed app resolution.
+- `ManagePrepareCommands`, `QueryCommands`, `FocusCommand`, `RestoreCommand`, `VisibilityCommands`: individual command files.
 
 ## Common Commands
 - `swift build`: build all targets in debug.
@@ -21,14 +56,21 @@
 - `just run`: rebuild and open the app bundle.
 - `just build-cli`: build only the CLI in release.
 
+## Code Style
+- Only add comments that explain *why*, not *what*. If the code is self-explanatory, skip the comment.
+
 ## Editing Guidance
 - Prefer changes in `GhostTileCore` when logic is shared between the app and CLI.
-- Keep UI work aligned with the existing SwiftUI/AppKit mix. The app currently uses `NSWorkspace`, `NSStatusItem`, `NSOpenPanel`, and AppleScript bridges where needed.
+- Use the existing service/view-model split. Don't route new behavior through `AppViewModel` — put logic in focused services or `AppOperations`.
+- `ManagedAppItem` is the UI-facing app type. `ManagedAppRecord` is the core type. Don't mix them.
+- CLI commands should use `AppManager` facade methods or core types directly, not app-layer services.
+- Keep UI work aligned with the existing SwiftUI/AppKit mix. The app uses `NSWorkspace`, `NSStatusItem`, `NSOpenPanel`, and distributed notifications.
 - Treat binary modification, codesigning, App Management permissions, and privileged file operations as high-risk paths. Small behavior changes here can break the main workflow.
 - Do not remove the fallback paths for protected apps unless you have validated both GUI and CLI flows.
-- When touching config behavior, verify both app-driven and CLI-driven updates. The GUI is expected to reflect `~/.config/ghosttile/config.json` changes without a restart.
+- When touching config behavior, verify both app-driven and CLI-driven updates. The GUI reflects `~/.config/ghosttile/config.json` changes via `ConfigWatcher` without a restart.
 
 ## Validation Expectations
+- Always run `just format` and `just lint` before committing.
 - Always run `swift build` after code changes.
 - If you change packaging or resources, also run `just build`.
 - If you change app/core interaction, verify at least one CLI path and one GUI path conceptually, even if you cannot execute the full macOS workflow in automation.

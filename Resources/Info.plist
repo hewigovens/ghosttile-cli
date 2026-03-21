@@ -2,29 +2,33 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleIdentifier</key>
-    <string>dev.hewig.ghosttile</string>
-    <key>CFBundleName</key>
-    <string>GhostTile</string>
-    <key>CFBundleDisplayName</key>
-    <string>GhostTile</string>
-    <key>CFBundleExecutable</key>
-    <string>GhostTile</string>
-    <key>CFBundleVersion</key>
-    <string>15</string>
-    <key>CFBundleShortVersionString</key>
-    <string>2.0.0</string>
-    <key>CFBundleIconFile</key>
-    <string>appIcon</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>LSUIElement</key>
-    <true/>
-    <key>LSMinimumSystemVersion</key>
-    <string>15.0</string>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-    <key>NSAppleEventsUsageDescription</key>
-    <string>GhostTile needs permission to open Terminal for running commands with elevated privileges.</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>GhostTile</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIconName</key>
+	<string>app</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>2.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>17</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>GhostTile needs permission to open Terminal for running commands with elevated privileges.</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
 </dict>
 </plist>

@@ -107,7 +107,6 @@ flowchart LR
 ## Requirements
 
 - macOS 15 or newer
-- Xcode / Command Line Tools with SwiftPM support
 - App Management permission for the GUI app
 - Terminal App Management permission for some protected apps when using the CLI fallback flow
 
@@ -129,9 +128,15 @@ flowchart LR
 
 The status bar menu also lets you:
 - Show the main window
+- Show the Overview panel
 - Toggle whether GhostTile itself appears in the Dock
 - Open Settings
 - Activate managed apps
+- Show or hide a managed app in the Dock
+- Remove a managed app from GhostTile
+
+In Settings, you can also assign global shortcuts for opening the main window and the Overview panel.
+Inside Overview, you can search, move selection with the arrow keys, press Return to open the selected app, and press Escape to dismiss.
 
 ## CLI Usage
 
@@ -140,6 +145,7 @@ Build or install the CLI as `ghosttile`, then use:
 ```bash
 ghosttile list
 ghosttile manage "App Name"
+ghosttile manage "/Applications/App Name.app"
 ghosttile status
 ghosttile hide "App Name"
 ghosttile show "App Name"
@@ -148,15 +154,25 @@ ghosttile restore "App Name"
 ```
 
 Available subcommands:
-- `manage`: add an app to the managed list and relaunch it hidden
+- `manage`: add an app to the managed list and relaunch it hidden. Accepts a running app name, bundle ID, or app bundle path.
 - `restore`: remove an app from the managed list and restore its original binary
 - `hide`: send the hide notification to a managed running app
 - `show`: send the show notification to a managed running app
-- `list`: list running apps
-- `status`: show all managed apps and their current state
+- `list`: list running apps. Use `ghosttile list --json` for machine-readable output.
+- `status`: show all managed apps and their current state. Use `ghosttile status --json` for machine-readable output.
 - `focus`: bring a running app to the front
 
+When installing the CLI from GhostTile Settings, the app also installs the companion `ghosthide.dylib` next to the binary so the CLI can launch managed apps without requiring developer tools at runtime.
+
+## Raycast Extension
+
+The active local Raycast extension lives in `extensions/raycast`.
+
+It shells out to the `ghosttile` CLI and uses `ghosttile status --json` for stable managed-app state.
+
 ## Build From Source
+
+Building from source requires Xcode or Command Line Tools with SwiftPM support.
 
 ### Debug build
 
@@ -193,6 +209,7 @@ just dist
 - System apps and SIP-protected apps are not supported.
 - Some hardened apps need extra preparation before they can be launched with the helper dylib.
 - Some restore / prepare flows may require administrator privileges.
+- Overview thumbnails may require Screen Recording permission to capture other apps' window content. GhostTile falls back to icon-based cards when previews are unavailable.
 - GhostTile is best-effort: some apps may override activation policy after launch.
 
 ## Paths

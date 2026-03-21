@@ -3,6 +3,7 @@
 .swiftpm/
 Package.resolved
 *.xcodeproj/
+GhostTile.xcodeproj/
 xcuserdata/
 DerivedData/
 

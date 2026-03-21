@@ -7,6 +7,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
         .package(url: "https://github.com/hewigovens/LSAppCategory", branch: "main"),
+        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "2.3.0"),
     ],
     targets: [
         .target(name: "GhostTileCore"),
@@ -19,7 +20,17 @@ let package = Package(
         ),
         .executableTarget(
             name: "GhostTileApp",
-            dependencies: ["GhostTileCore", "LSAppCategory"]
+            dependencies: [
+                "GhostTileCore",
+                "LSAppCategory",
+                .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
+            ],
+            exclude: ["app.icon"]
+        ),
+        .testTarget(
+            name: "GhostTileCoreTests",
+            dependencies: ["GhostTileCore"],
+            exclude: ["Resources"]
         ),
     ]
 )

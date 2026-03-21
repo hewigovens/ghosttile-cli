@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-26
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: raycast/pnpm-lock.yaml
+
+      - name: Install tools
+        run: brew install just xcodegen swiftlint swiftformat
+
+      - name: Lint
+        run: just lint
+
+      - name: Build Swift package
+        run: swift build
+
+      - name: Build CLI and dylib
+        run: just build-cli
+
+      - name: Build app bundle
+        run: just build
+
+      - name: Build debug dylib for tests
+        run: |
+          xcrun clang -dynamiclib -arch arm64 -framework Cocoa \
+            -mmacosx-version-min=15.0 -DGHOSTHIDE_DEBUG=1 \
+            -o .build/ghosthide.dylib Resources/ghosthide.m Resources/ghosthide_debug.m Resources/fishhook.c
+
+      - name: Run tests
+        run: swift test
+
+      - name: Install Raycast extension dependencies
+        working-directory: raycast
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck Raycast extension
+        working-directory: raycast
+        run: pnpm run typecheck

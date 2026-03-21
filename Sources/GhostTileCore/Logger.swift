@@ -4,25 +4,24 @@ import os.log
 public enum Log {
     private static let osLog = OSLog(subsystem: "dev.hewig.ghosttile", category: "general")
     private static let logFileURL: URL = {
-        let home: String
-        if let sudoUser = ProcessInfo.processInfo.environment["SUDO_USER"],
-           let pw = getpwnam(sudoUser) {
-            home = String(cString: pw.pointee.pw_dir)
+        let home: String = if let sudoUser = ProcessInfo.processInfo.environment["SUDO_USER"],
+                              let passwd = getpwnam(sudoUser) {
+            String(cString: passwd.pointee.pw_dir)
         } else {
-            home = FileManager.default.homeDirectoryForCurrentUser.path
+            FileManager.default.homeDirectoryForCurrentUser.path
         }
         let dir = URL(fileURLWithPath: home).appendingPathComponent(".config/ghosttile")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("ghosttile.log")
     }()
 
-    private static let maxLogSize: UInt64 = 1_000_000 // 1 MB
+    private static let maxLogSize: UInt64 = 1_000_000
     private static let maxRotatedLogs = 2
 
     private static let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
-        return f
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        return formatter
     }()
 
     public static func info(_ message: String) {
@@ -63,25 +62,24 @@ public enum Log {
               size > maxLogSize
         else { return }
 
-        let fm = FileManager.default
+        let fileManager = FileManager.default
         let base = logFileURL.path
 
-        // Remove oldest
         let oldest = "\(base).\(maxRotatedLogs)"
-        try? fm.removeItem(atPath: oldest)
+        try? fileManager.removeItem(atPath: oldest)
 
-        // Shift existing rotated logs
-        for i in stride(from: maxRotatedLogs - 1, through: 1, by: -1) {
-            let src = "\(base).\(i)"
-            let dst = "\(base).\(i + 1)"
-            if fm.fileExists(atPath: src) {
-                try? fm.moveItem(atPath: src, toPath: dst)
+        for index in stride(from: maxRotatedLogs - 1, through: 1, by: -1) {
+            let src = "\(base).\(index)"
+            let dst = "\(base).\(index + 1)"
+            if fileManager.fileExists(atPath: src) {
+                try? fileManager.moveItem(atPath: src, toPath: dst)
             }
         }
 
-        // Rotate current → .1
-        try? fm.moveItem(atPath: base, toPath: "\(base).1")
+        try? fileManager.moveItem(atPath: base, toPath: "\(base).1")
     }
 
-    public static var logPath: String { logFileURL.path }
+    public static var logPath: String {
+        logFileURL.path
+    }
 }

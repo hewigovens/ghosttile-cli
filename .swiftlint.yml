@@ -1,0 +1,14 @@
+excluded:
+  - .build
+
+disabled_rules:
+  - trailing_comma
+  - type_body_length
+  - file_length
+  - function_body_length
+  - line_length
+
+opt_in_rules:
+  - empty_count
+  - force_unwrapping
+  - private_outlet
