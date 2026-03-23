@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 @MainActor
@@ -26,18 +25,6 @@ final class OnboardingViewModel: ObservableObject {
 
     func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: "onboardingComplete")
-    }
-
-    func openAppManagementSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles") {
-            NSWorkspace.shared.open(url)
-        }
-    }
-
-    func openScreenCaptureSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-            NSWorkspace.shared.open(url)
-        }
     }
 
     private func startIconLoop() {

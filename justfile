@@ -75,6 +75,7 @@ install: build
     @echo "Installed to /Applications/{{app}}"
 
 version := "2.0.0"
+build_number := "17"
 
 dist: build
     #!/usr/bin/env bash
@@ -90,8 +91,13 @@ sign-release: build
     set -euo pipefail
     signing_identity="${DEVELOPER_ID_APPLICATION:-Developer ID Application: Tao Xu (V28VJH6B6S)}"
     echo "Signing {{app}} with ${signing_identity}..."
-    codesign --force --timestamp --sign "${signing_identity}" "{{app}}/Contents/Resources/ghosthide.dylib"
-    codesign --force --timestamp --options runtime --sign "${signing_identity}" "{{app}}/Contents/Resources/ghosttile-cli"
+    # Sign all binaries and nested bundles (Sparkle framework, XPCs)
+    find "{{app}}" -type f \( -name "*.dylib" -o -perm +111 \) -not -name "*.swift*" | while read binary; do
+        codesign --force --timestamp --options runtime --sign "${signing_identity}" "$binary" 2>/dev/null || true
+    done
+    find "{{app}}" -name "*.xpc" -o -name "*.app" -o -name "*.framework" | sort -r | while read bundle; do
+        codesign --force --timestamp --options runtime --sign "${signing_identity}" "$bundle"
+    done
     codesign --force --timestamp --options runtime --sign "${signing_identity}" "{{app}}"
     codesign --verify --deep --strict --verbose=2 "{{app}}"
     echo "Signed {{app}}"
@@ -111,6 +117,43 @@ notarize-release: sign-release
     ditto -c -k --keepParent "{{app}}" "dist/GhostTile-{{version}}.zip"
     echo "Created notarized dist/GhostTile-{{version}}.zip ($(du -sh "dist/GhostTile-{{version}}.zip" | cut -f1))"
     shasum -a 256 "dist/GhostTile-{{version}}.zip"
+
+release: notarize-release
+    #!/usr/bin/env bash
+    set -euo pipefail
+    zip_path="dist/GhostTile-{{version}}.zip"
+    # Sign for Sparkle
+    sparkle_bin=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -type f 2>/dev/null | head -1)
+    sig=""
+    if [ -n "$sparkle_bin" ]; then
+        sig=$("$sparkle_bin" "$zip_path" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
+    fi
+    # Update appcast
+    python3 scripts/update-appcast.py "{{version}}" "{{build_number}}" "$zip_path" docs/appcast.xml "$sig"
+    # Create GitHub release
+    if gh release view "v{{version}}" &>/dev/null; then
+        echo "Release v{{version}} already exists"
+    else
+        gh release create "v{{version}}" --draft --title "v{{version}}" --notes "Release {{version}}"
+    fi
+    gh release upload "v{{version}}" "$zip_path" --clobber
+    echo "Draft release v{{version}} created. Review and publish on GitHub."
+
+update-cask:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    zip_path="dist/GhostTile-{{version}}.zip"
+    if [ ! -f "$zip_path" ]; then
+        echo "Expected archive at $zip_path. Run 'just release' first." >&2
+        exit 1
+    fi
+    sha256=$(shasum -a 256 "$zip_path" | cut -d' ' -f1)
+    cask_path="../tap/Casks/ghosttile.rb"
+    sed -i '' \
+      -e 's/version "[^"]*"/version "{{version}}"/' \
+      -e "s/sha256 \"[^\"]*\"/sha256 \"$sha256\"/" \
+      "$cask_path"
+    echo "Updated $cask_path with version {{version}} sha256 $sha256"
 
 lint:
     swiftlint lint --quiet Sources/ Tests/

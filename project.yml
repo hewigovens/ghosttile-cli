@@ -20,6 +20,9 @@ packages:
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     from: 2.3.0
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.7.0
 targets:
   GhostTileCore:
     type: library.static
@@ -45,6 +48,8 @@ targets:
         product: LSAppCategory
       - package: KeyboardShortcuts
         product: KeyboardShortcuts
+      - package: Sparkle
+        product: Sparkle
     info:
       path: Resources/Info.plist
       properties:
@@ -56,6 +61,9 @@ targets:
         LSMinimumSystemVersion: "15.0"
         NSHighResolutionCapable: true
         NSAppleEventsUsageDescription: GhostTile needs permission to open Terminal for running commands with elevated privileges.
+        SUFeedURL: https://raw.githubusercontent.com/hewigovens/ghosttile-cli/main/docs/appcast.xml
+        SUPublicEDKey: UOMJSZnts1cRolglWcFAcibe9T9dD9flzz7fAQ3jmoQ=
+        SUEnableAutomaticChecks: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.hewig.ghosttile

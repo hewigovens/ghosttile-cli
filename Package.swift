@@ -8,6 +8,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
         .package(url: "https://github.com/hewigovens/LSAppCategory", branch: "main"),
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "2.3.0"),
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.7.0"),
     ],
     targets: [
         .target(name: "GhostTileCore"),
@@ -24,6 +25,7 @@ let package = Package(
                 "GhostTileCore",
                 "LSAppCategory",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
+                .product(name: "Sparkle", package: "Sparkle"),
             ],
             exclude: ["app.icon"]
         ),

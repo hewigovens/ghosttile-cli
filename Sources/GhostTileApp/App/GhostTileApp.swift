@@ -67,9 +67,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 struct GhostTileApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var viewModel = AppViewModel()
+    @StateObject private var updater = SparkleUpdater()
     @State private var statusBar: StatusBarController?
     @State private var overviewController: OverviewWindowController?
     @AppStorage("onboardingComplete") private var onboardingComplete = false
+
+    private func showAboutWindow() {
+        if let existing = NSApp.windows.first(where: { $0.title == "About GhostTile" }) {
+            existing.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        let window = NSWindow(contentViewController: NSHostingController(rootView: AboutView()))
+        window.title = "About GhostTile"
+        window.styleMask = [.titled, .closable]
+        window.isReleasedWhenClosed = false
+        window.setContentSize(NSSize(width: 300, height: 380))
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
 
     private func showMainWindow() {
         NSApp.activate(ignoringOtherApps: true)
@@ -107,6 +124,7 @@ struct GhostTileApp: App {
                 if statusBar == nil {
                     statusBar = StatusBarController(
                         viewModel: viewModel,
+                        updater: updater,
                         showMainWindow: showMainWindow,
                         showOverview: {
                             overviewController?.toggle()
@@ -123,7 +141,20 @@ struct GhostTileApp: App {
         .defaultPosition(.center)
 
         Settings {
-            SettingsView()
+            SettingsView(updater: updater)
+        }
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About GhostTile") {
+                    showAboutWindow()
+                }
+            }
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") {
+                    updater.checkForUpdates()
+                }
+                .disabled(!updater.canCheckForUpdates)
+            }
         }
     }
 }

@@ -1,7 +1,94 @@
 import SwiftUI
 
-extension SettingsView {
-    var settingsBackground: some View {
+enum SettingsUI {
+    static func settingsRow(
+        title: String,
+        symbol: String,
+        toggle: Binding<Bool>
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            SettingsRowIcon(symbol: symbol)
+
+            Text(title)
+                .font(.system(size: 13, weight: .medium))
+
+            Spacer()
+
+            Toggle("", isOn: toggle)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .labelsHidden()
+        }
+    }
+
+    static func shortcutRow(
+        title: String,
+        symbol: String,
+        description: String,
+        @ViewBuilder recorder: () -> some View
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            SettingsRowIcon(symbol: symbol)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+                Text(description)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            recorder()
+                .labelsHidden()
+        }
+    }
+
+    static func infoRow(
+        title: String,
+        value: String,
+        symbol: String?
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            SettingsRowIcon(symbol: symbol)
+
+            Text(title)
+                .font(.system(size: 13, weight: .medium))
+
+            Spacer()
+
+            Text(value)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    static func actionRow(
+        title: String,
+        symbol: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            SettingsRowIcon(symbol: symbol)
+
+            Text(title)
+                .font(.system(size: 13, weight: .medium))
+
+            Spacer()
+
+            Button(action: action) {
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    static var settingsBackground: some View {
         ZStack {
             Color(nsColor: .windowBackgroundColor)
 
@@ -27,115 +114,5 @@ extension SettingsView {
                 .blur(radius: 55)
                 .offset(x: 170, y: 180)
         }
-    }
-
-    func sectionCard(
-        title: String,
-        symbol: String,
-        @ViewBuilder content: () -> some View
-    ) -> some View {
-        SettingsSectionCard(title: title, symbol: symbol) {
-            content()
-        }
-    }
-
-    func settingsRow(
-        title: String,
-        symbol: String,
-        toggle: Binding<Bool>
-    ) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            SettingsRowIcon(symbol: symbol)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-            }
-            Spacer()
-            Toggle("", isOn: toggle)
-                .toggleStyle(.switch)
-                .controlSize(.small)
-                .labelsHidden()
-        }
-    }
-
-    func shortcutRow(
-        title: String,
-        symbol: String,
-        description: String,
-        @ViewBuilder recorder: () -> some View
-    ) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            SettingsRowIcon(symbol: symbol)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-                Text(description)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            recorder()
-                .labelsHidden()
-        }
-    }
-
-    func infoRow(
-        title: String,
-        value: String,
-        symbol: String?
-    ) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            SettingsRowIcon(symbol: symbol)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-            }
-
-            Spacer()
-
-            Text(value)
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    func actionRow(
-        title: String,
-        value: String,
-        symbol: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            SettingsRowIcon(symbol: symbol)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-            }
-
-            Spacer()
-
-            Button(action: action) {
-                HStack(spacing: 6) {
-                    Text(value)
-                        .font(.system(size: 12, weight: .medium))
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 11, weight: .semibold))
-                }
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    func statusPill(text: String, color: Color) -> some View {
-        StatusPill(text: text, color: color)
     }
 }

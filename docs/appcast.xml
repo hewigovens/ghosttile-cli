@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>GhostTile</title>
+        <link>https://raw.githubusercontent.com/hewigovens/ghosttile-cli/main/docs/appcast.xml</link>
+        <description>GhostTile updates</description>
+        <language>en</language>
+        <item>
+            <title>Version 2.0.0</title>
+            <sparkle:version>17</sparkle:version>
+            <sparkle:shortVersionString>2.0.0</sparkle:shortVersionString>
+            <pubDate>Mon, 23 Mar 2026 02:32:39 +0000</pubDate>
+            <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v2.0.0/GhostTile-2.0.0.zip"
+                       sparkle:edSignature="6fkMiaTY0TBXiLQZxnjKZX2r6eASZH+48GnVJ9y52ftV+j7OYz+ij/QjLFlEun64rjzg0cd/jF5ODs0JgkZFCw=="
+                       length="3905322"
+                       type="application/octet-stream"/>
+        </item>
+    </channel>
+</rss>

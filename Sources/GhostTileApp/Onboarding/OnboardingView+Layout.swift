@@ -150,33 +150,10 @@ extension OnboardingView {
                     .font(.system(size: 22, weight: .bold, design: .rounded))
 
                 Text("GhostTile needs App Management to prepare apps safely. Terminal helps with protected apps, and Screen & System Audio Recording enables live Overview previews.")
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
 
-                VStack(spacing: 10) {
-                    PermissionCard(
-                        title: "GhostTile",
-                        subtitle: "Needed to prepare apps for hiding and restoration.",
-                        systemImage: "eye.slash.circle.fill",
-                        tint: .blue
-                    )
-                    PermissionCard(
-                        title: "Terminal",
-                        subtitle: "Needed when a protected app must be handled with `sudo ghosttile …`.",
-                        systemImage: "terminal.fill",
-                        tint: .purple,
-                        actionTitle: "Grant",
-                        action: viewModel.openAppManagementSettings
-                    )
-                    PermissionCard(
-                        title: "Screen & System Audio Recording",
-                        subtitle: "Lets Overview capture live window thumbnails for managed apps.",
-                        systemImage: "rectangle.on.rectangle",
-                        tint: .orange,
-                        actionTitle: "Grant",
-                        action: viewModel.openScreenCaptureSettings
-                    )
-                }
+                PermissionsView()
             }
         }
     }
