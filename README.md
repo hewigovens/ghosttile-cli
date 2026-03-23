@@ -225,3 +225,4 @@ just dist
 - `Sources/ghosttile`: CLI entrypoint and commands
 - `Resources`: app bundle resources, icons, Info.plist, injected helper source
 - `justfile`: local build, packaging, and install commands
+
