@@ -11,6 +11,9 @@ DerivedData/
 GhostTile.app/
 dist/
 
+# Generated during build (copied from docs/imgs/icon.svg)
+Sources/GhostTileApp/app.icon/Assets/ghost.svg
+
 # macOS
 .DS_Store
 ._*

@@ -7,6 +7,8 @@ deployment_target := "15.0"
 build: build-cli
     #!/usr/bin/env bash
     set -euo pipefail
+    mkdir -p Sources/GhostTileApp/app.icon/Assets
+    cp docs/imgs/icon.svg Sources/GhostTileApp/app.icon/Assets/ghost.svg
     echo "Building {{app}} via Xcode..."
     xcodegen generate --spec project.yml --project .
     xcodebuild -project GhostTile.xcodeproj -scheme GhostTileApp -configuration Release build 2>&1 | xcbeautify
@@ -60,6 +62,8 @@ resign-all:
 run: kill build-cli
     #!/usr/bin/env bash
     set -euo pipefail
+    mkdir -p Sources/GhostTileApp/app.icon/Assets
+    cp docs/imgs/icon.svg Sources/GhostTileApp/app.icon/Assets/ghost.svg
     xcodegen generate --spec project.yml --project .
     xcodebuild -project GhostTile.xcodeproj -scheme GhostTileApp -configuration Debug build 2>&1 | xcbeautify
     app_path="$(xcodebuild -project GhostTile.xcodeproj -scheme GhostTileApp -configuration Debug -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/GhostTile.app"

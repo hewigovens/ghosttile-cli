@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GhostTile — Hide Running Apps from Your Dock</title>
+  <meta name="description"
+    content="GhostTile 2.0 lets you hide any running macOS app from the Dock. Quick Switch, keyboard shortcuts, per-app rules. Your Dock, your rules.">
+  <meta property="og:title" content="GhostTile 2.0 — Your Dock, Your Rules">
+  <meta property="og:description" content="Hide running apps from your Dock. Quick Switch, keyboard shortcuts, per-app rules.">
+  <link rel="icon" href="imgs/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #06080f;
+      --bg-alt: #0c1019;
+      --bg-card: #0f1320;
+      --text: #e4e8f1;
+      --text-secondary: #7a84a0;
+      --text-dim: #4a5270;
+      --surface: #131829;
+      --border: #1c2240;
+      --accent: #8b5cf6;
+      --accent-hover: #7c3aed;
+      --accent-glow: rgba(139, 92, 246, 0.15);
+      --cyan: #06b6d4;
+      --pink: #ec4899;
+      --green: #22c55e;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --blue: #3b82f6;
+    }
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    code, .mono {
+      font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 14px 0;
+      background: rgba(6, 8, 15, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .nav-brand .logo-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--accent);
+      padding: 3px;
+    }
+
+    .nav-brand span {
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff !important;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+
+    .nav-cta:hover {
+      background: var(--accent-hover);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      position: relative;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 160px 24px 80px;
+      text-align: center;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(6, 182, 212, 0.04) 40%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .hero-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .hero h1 {
+      font-size: clamp(48px, 7vw, 80px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 24px;
+      text-wrap: balance;
+    }
+
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--cyan) 50%, var(--pink) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero .sub {
+      font-size: clamp(17px, 2vw, 20px);
+      color: var(--text-secondary);
+      max-width: 720px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+      text-wrap: balance;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      font-size: 15px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      box-shadow: 0 0 20px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 0 40px rgba(139, 92, 246, 0.25), inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-weight: 500;
+      font-size: 15px;
+      text-decoration: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--text-dim);
+      background: var(--surface);
+    }
+
+    .brew-cmd {
+      display: inline-block;
+      padding: 10px 24px;
+      border-radius: 10px;
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--text-secondary);
+      user-select: all;
+      cursor: text;
+      letter-spacing: -0.01em;
+    }
+
+    .brew-cmd .prompt {
+      color: var(--accent);
+      user-select: none;
+    }
+
+    /* ── Ghost Visual ── */
+    .hero-visual {
+      position: relative;
+      margin-top: 64px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .ghost-orb {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, rgba(139, 92, 246, 0.4), rgba(6, 182, 212, 0.15) 60%, transparent 80%);
+      box-shadow:
+        0 0 80px rgba(139, 92, 246, 0.2),
+        0 0 160px rgba(6, 182, 212, 0.08),
+        inset 0 0 60px rgba(139, 92, 246, 0.15);
+      animation: float 6s ease-in-out infinite;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ghost-orb::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 50%;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .ghost-orb img {
+      width: 120px;
+      height: 120px;
+      opacity: 0.35;
+      filter: brightness(0.7) saturate(0.5) hue-rotate(30deg);
+      mix-blend-mode: lighten;
+      position: relative;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    /* ── Section shared ── */
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(32px, 4vw, 48px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .section-sub {
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 520px;
+      line-height: 1.6;
+    }
+
+    /* ── Features ── */
+    .features-section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+
+    .features-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .features-header .section-sub {
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .feat-card {
+      position: relative;
+      padding: 28px 24px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.2s;
+    }
+
+    .feat-card:hover {
+      border-color: rgba(139, 92, 246, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .feat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .feat-card:hover::before {
+      opacity: 1;
+    }
+
+    .feat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+
+    .feat-card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .feat-card p {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    /* Unique gradient backgrounds per card */
+    .feat-card:nth-child(1) .feat-icon { background: radial-gradient(circle, rgba(139,92,246,0.25), rgba(139,92,246,0.05)); color: var(--accent); }
+    .feat-card:nth-child(2) .feat-icon { background: radial-gradient(circle, rgba(6,182,212,0.25), rgba(6,182,212,0.05)); color: var(--cyan); }
+    .feat-card:nth-child(3) .feat-icon { background: radial-gradient(circle, rgba(236,72,153,0.25), rgba(236,72,153,0.05)); color: var(--pink); }
+    .feat-card:nth-child(4) .feat-icon { background: radial-gradient(circle, rgba(34,197,94,0.25), rgba(34,197,94,0.05)); color: var(--green); }
+    .feat-card:nth-child(5) .feat-icon { background: radial-gradient(circle, rgba(245,158,11,0.25), rgba(245,158,11,0.05)); color: var(--orange); }
+    .feat-card:nth-child(6) .feat-icon { background: radial-gradient(circle, rgba(59,130,246,0.25), rgba(59,130,246,0.05)); color: var(--blue); }
+
+    /* ── Showcase ── */
+    .showcase-section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    .showcase-item {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+      padding: 64px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .showcase-item:first-child {
+      border-top: none;
+    }
+
+    .showcase-item.reverse .showcase-text {
+      order: 2;
+    }
+
+    .showcase-item.reverse .showcase-visual {
+      order: 1;
+    }
+
+    .showcase-text .section-label {
+      margin-bottom: 8px;
+    }
+
+    .showcase-text h3 {
+      font-size: clamp(24px, 3vw, 32px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    .showcase-text p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .showcase-text kbd {
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      font-size: 12px;
+      padding: 3px 7px;
+      border-radius: 5px;
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .showcase-visual {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      aspect-ratio: 16 / 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .showcase-visual::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      pointer-events: none;
+    }
+
+    /* Demo visuals */
+    .demo-dock {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      padding: 24px;
+    }
+
+    .dock-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      transition: opacity 0.5s, transform 0.5s;
+    }
+
+    .dock-icon.hidden {
+      opacity: 0.15;
+      transform: scale(0.8);
+    }
+
+    .dock-icon.visible {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    /* ── Use Cases ── */
+    .usecases-section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+
+    .usecases-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .usecases-header .section-sub {
+      margin: 0 auto;
+    }
+
+    .usecases-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .usecase {
+      padding: 28px 28px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      transition: border-color 0.3s;
+    }
+
+    .usecase:hover {
+      border-color: rgba(139, 92, 246, 0.25);
+    }
+
+    .usecase-emoji {
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+
+    .usecase h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .usecase p {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    @media (max-width: 768px) {
+      .usecases-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ── How it works ── */
+    .how-section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+
+    .how-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .how-header .section-sub {
+      margin: 0 auto;
+    }
+
+    .how-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .how-step {
+      position: relative;
+      padding: 32px 28px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+    }
+
+    .how-step .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .how-step h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .how-step p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .how-step code {
+      display: block;
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-secondary);
+      user-select: all;
+    }
+
+    /* ── Story ── */
+    .story-section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+
+    .story-box {
+      position: relative;
+      padding: 56px 48px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      overflow: hidden;
+    }
+
+    .story-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.25), rgba(6, 182, 212, 0.15), transparent);
+    }
+
+    .story-box .section-label {
+      margin-bottom: 16px;
+    }
+
+    .story-box h2 {
+      font-size: clamp(24px, 3vw, 32px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 24px;
+    }
+
+    .story-box h2 .dim {
+      color: var(--text-dim);
+    }
+
+    .story-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+    }
+
+    .story-body p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .story-body p strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .story-timeline {
+      display: flex;
+      gap: 32px;
+      margin-top: 32px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+
+    .timeline-item {
+      flex: 1;
+    }
+
+    .timeline-year {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .timeline-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .story-box {
+        padding: 36px 24px;
+      }
+
+      .story-body {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .story-timeline {
+        flex-direction: column;
+        gap: 20px;
+      }
+    }
+
+    /* ── CTA ── */
+    .cta-section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px;
+      text-align: center;
+    }
+
+    .cta-box {
+      position: relative;
+      padding: 64px 40px;
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      overflow: hidden;
+    }
+
+    .cta-box::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .cta-box h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .cta-box p {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      position: relative;
+    }
+
+    .cta-box .hero-actions {
+      position: relative;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-left {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .footer-links a:hover {
+      color: var(--text);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .hero {
+        padding-top: 120px;
+      }
+
+      .hero h1 {
+        font-size: 40px;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .btn-primary, .btn-secondary {
+        width: 100%;
+        justify-content: center;
+        max-width: 320px;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .showcase-item,
+      .showcase-item.reverse {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+
+      .showcase-item.reverse .showcase-text {
+        order: 0;
+      }
+
+      .showcase-item.reverse .showcase-visual {
+        order: 0;
+      }
+
+      .how-steps {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .nav-links a:not(.nav-cta) {
+        display: none;
+      }
+
+      footer {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+    }
+
+    /* ── Entrance animations ── */
+    @media (prefers-reduced-motion: no-preference) {
+      .fade-up {
+        opacity: 0;
+        transform: translateY(24px);
+        animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      .fade-up-d1 { animation-delay: 0.1s; }
+      .fade-up-d2 { animation-delay: 0.2s; }
+      .fade-up-d3 { animation-delay: 0.3s; }
+      .fade-up-d4 { animation-delay: 0.4s; }
+      .fade-up-d5 { animation-delay: 0.5s; }
+      .fade-up-d6 { animation-delay: 0.6s; }
+
+      @keyframes fadeUp {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Scroll-triggered fade */
+      .reveal {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="nav-brand">
+        <img src="imgs/icon.svg" alt="" class="logo-icon">
+        <span>GhostTile</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#use-cases">Use Cases</a>
+        <a href="#story">Story</a>
+        <a href="#how">Get Started</a>
+        <a href="https://github.com/hewigovens/ghosttile-cli" class="nav-cta">
+          Download
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge fade-up">
+      <span class="dot"></span>
+      Version 2.0
+    </div>
+
+    <h1 class="fade-up fade-up-d1">
+      Your Dock. <span class="gradient">Your Rules.</span>
+    </h1>
+
+    <p class="sub fade-up fade-up-d2">
+      Dock too full? Hide any running app from the Dock like a charm. Quick Switch, per-app rules, keyboard shortcuts — zero friction.
+    </p>
+
+    <div class="hero-actions fade-up fade-up-d3">
+      <a href="#download" class="btn-primary">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M8 2v9m0 0l-3-3m3 3l3-3M3 14h10"/>
+        </svg>
+        Download for macOS
+      </a>
+      <a href="https://github.com/hewigovens/ghosttile-cli" class="btn-secondary">View source</a>
+    </div>
+
+    <div class="brew-cmd mono fade-up fade-up-d4">
+      <span class="prompt">$ </span>brew install --cask hewigovens/tap/ghosttile
+    </div>
+
+    <div class="hero-visual fade-up fade-up-d5">
+      <div class="ghost-orb"><img src="imgs/ghost-old.png" alt=""></div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features-section" id="features">
+    <div class="features-header reveal">
+      <div class="section-label">Features</div>
+      <h2 class="section-title">Everything to tame your Dock</h2>
+      <p class="section-sub">GhostTile gives you full control over which apps appear in the Dock, without quitting them.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feat-card reveal">
+        <div class="feat-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path d="M3.98 8.223A10.477 10.477 0 001.934 12c1.292 4.338 5.31 7.5 10.066 7.5.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>Instant Hide</h3>
+        <p>Remove any running app from the Dock with a single click. The app keeps running invisibly in the background.</p>
+      </div>
+
+      <div class="feat-card reveal">
+        <div class="feat-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>Quick Switch</h3>
+        <p>Cycle through hidden apps with a keyboard shortcut. Raycast-fast, no mouse needed.</p>
+      </div>
+
+      <div class="feat-card reveal">
+        <div class="feat-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>Menu Bar + Dock Menu</h3>
+        <p>Access hidden apps from GhostTile's menu bar icon or right-click the managed app's Dock icon. Always one click away.</p>
+      </div>
+
+      <div class="feat-card reveal">
+        <div class="feat-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>Expose View</h3>
+        <p>Bird's-eye overview of all hidden apps. Visual grid with live previews. Click to bring any app back instantly.</p>
+      </div>
+
+      <div class="feat-card reveal">
+        <div class="feat-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.04a4.5 4.5 0 00-1.242-7.244l4.5-4.5a4.5 4.5 0 116.364 6.364l-1.757 1.757" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>CLI + URL Scheme</h3>
+        <p>Full CLI for terminal power users. URL scheme for Shortcuts and launchers. <code class="mono" style="font-size:12px;color:var(--accent)">ghosttile hide Safari</code></p>
+      </div>
+
+      <div class="feat-card reveal">
+        <div class="feat-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>Smart Notifications</h3>
+        <p>Get notified when a hidden app needs your attention. "Slack needs your attention" — click to bring it back, or dismiss and stay focused.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Showcase -->
+  <section class="showcase-section">
+    <div class="showcase-item reveal">
+      <div class="showcase-text">
+        <div class="section-label">Quick Switch</div>
+        <h3>Navigate hidden apps at the speed of thought</h3>
+        <p>Press <kbd>⌃ ⇧ Tab</kbd> to cycle through your hidden apps without touching the mouse. The overlay appears instantly and disappears the moment you release. Built for flow state.</p>
+      </div>
+      <div class="showcase-visual">
+        <svg width="320" height="180" viewBox="0 0 320 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="40" y="50" width="60" height="60" rx="14" fill="rgba(139,92,246,0.2)" stroke="rgba(139,92,246,0.4)" stroke-width="1"/>
+          <text x="70" y="85" text-anchor="middle" fill="rgba(139,92,246,0.8)" font-size="24">S</text>
+          <rect x="120" y="40" width="80" height="80" rx="18" fill="rgba(6,182,212,0.15)" stroke="rgba(6,182,212,0.5)" stroke-width="2"/>
+          <text x="160" y="87" text-anchor="middle" fill="rgba(6,182,212,0.9)" font-size="30">X</text>
+          <text x="160" y="140" text-anchor="middle" fill="rgba(228,232,241,0.6)" font-size="11" font-family="Inter">Xcode</text>
+          <rect x="220" y="50" width="60" height="60" rx="14" fill="rgba(236,72,153,0.15)" stroke="rgba(236,72,153,0.3)" stroke-width="1"/>
+          <text x="250" y="85" text-anchor="middle" fill="rgba(236,72,153,0.7)" font-size="24">F</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="showcase-item reverse reveal">
+      <div class="showcase-text">
+        <div class="section-label">CLI</div>
+        <h3>Full power from your terminal</h3>
+        <p>GhostTile 2.0 ships with a full-featured CLI. List, hide, unhide, toggle — pipe it into scripts, cron jobs, or your dotfiles. First-class terminal citizen.</p>
+      </div>
+      <div class="showcase-visual">
+        <svg width="320" height="180" viewBox="0 0 320 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="40" y="28" width="240" height="124" rx="8" fill="rgba(15,19,32,0.8)" stroke="rgba(28,34,64,0.8)" stroke-width="1"/>
+          <circle cx="56" cy="42" r="4" fill="rgba(239,68,68,0.6)"/>
+          <circle cx="68" cy="42" r="4" fill="rgba(245,158,11,0.6)"/>
+          <circle cx="80" cy="42" r="4" fill="rgba(34,197,94,0.6)"/>
+          <text x="52" y="68" fill="rgba(139,92,246,0.7)" font-size="10" font-family="JetBrains Mono, monospace">$</text>
+          <text x="64" y="68" fill="rgba(228,232,241,0.6)" font-size="10" font-family="JetBrains Mono, monospace">ghosttile list</text>
+          <text x="52" y="84" fill="rgba(122,132,160,0.5)" font-size="10" font-family="JetBrains Mono, monospace">Safari       hidden</text>
+          <text x="52" y="97" fill="rgba(122,132,160,0.5)" font-size="10" font-family="JetBrains Mono, monospace">Slack        hidden</text>
+          <text x="52" y="110" fill="rgba(122,132,160,0.5)" font-size="10" font-family="JetBrains Mono, monospace">Mail         visible</text>
+          <text x="52" y="128" fill="rgba(139,92,246,0.7)" font-size="10" font-family="JetBrains Mono, monospace">$</text>
+          <text x="64" y="128" fill="rgba(228,232,241,0.6)" font-size="10" font-family="JetBrains Mono, monospace">ghosttile hide Mail</text>
+          <rect x="63" y="132" width="7" height="13" rx="1" fill="rgba(139,92,246,0.5)">
+            <animate attributeName="opacity" values="1;0;1" dur="1.2s" repeatCount="indefinite"/>
+          </rect>
+        </svg>
+      </div>
+    </div>
+
+    <div class="showcase-item reveal">
+      <div class="showcase-text">
+        <div class="section-label">Automation</div>
+        <h3>Your Dock, on autopilot</h3>
+        <p>Set per-app rules to auto-hide on launch. Use the CLI in scripts and cron jobs, or integrate with Alfred, Raycast, and Shortcuts via the <code class="mono" style="font-size:13px;color:var(--accent)">ghosttile://</code> URL scheme.</p>
+      </div>
+      <div class="showcase-visual">
+        <svg width="320" height="180" viewBox="0 0 320 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="40" y="36" width="240" height="28" rx="6" fill="rgba(139,92,246,0.1)" stroke="rgba(139,92,246,0.2)" stroke-width="1"/>
+          <text x="56" y="54" fill="rgba(139,92,246,0.7)" font-size="10" font-family="JetBrains Mono, monospace">$ ghosttile hide Slack Mail</text>
+          <rect x="40" y="74" width="240" height="28" rx="6" fill="rgba(6,182,212,0.1)" stroke="rgba(6,182,212,0.2)" stroke-width="1"/>
+          <text x="56" y="92" fill="rgba(6,182,212,0.7)" font-size="10" font-family="JetBrains Mono, monospace">ghosttile://unhide/Xcode</text>
+          <rect x="40" y="112" width="240" height="28" rx="6" fill="rgba(34,197,94,0.1)" stroke="rgba(34,197,94,0.2)" stroke-width="1"/>
+          <text x="56" y="130" fill="rgba(34,197,94,0.7)" font-size="10" font-family="JetBrains Mono, monospace">$ ghosttile toggle --all</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- Use Cases -->
+  <section class="usecases-section" id="use-cases">
+    <div class="usecases-header reveal">
+      <div class="section-label">Use Cases</div>
+      <h2 class="section-title">Who needs GhostTile?</h2>
+      <p class="section-sub">If your Dock is overflowing, you already know.</p>
+    </div>
+
+    <div class="usecases-grid">
+      <div class="usecase reveal">
+        <div class="usecase-emoji">🎯</div>
+        <h3>Focus sessions</h3>
+        <p>Hide Slack, Mail, and Messages during deep work. They keep running — you just stop seeing them. Bring them back with a shortcut when you're ready.</p>
+      </div>
+      <div class="usecase reveal">
+        <div class="usecase-emoji">🖥️</div>
+        <h3>Screen sharing & demos</h3>
+        <p>Clean up your Dock before presenting. Hide the apps you don't want your audience to see — no quitting, no awkward shuffling.</p>
+      </div>
+      <div class="usecase reveal">
+        <div class="usecase-emoji">🧰</div>
+        <h3>Background utilities</h3>
+        <p>Apps like menu bar helpers, sync tools, and dev servers don't belong in the Dock. Hide them permanently with per-app auto-hide rules.</p>
+      </div>
+      <div class="usecase reveal">
+        <div class="usecase-emoji">⚡</div>
+        <h3>Minimal setups</h3>
+        <p>Keep only what you need visible. A clean Dock means less visual noise and faster app switching — especially on smaller screens.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="how-section" id="how">
+    <div class="how-header reveal">
+      <div class="section-label">Get Started</div>
+      <h2 class="section-title">Get started in seconds</h2>
+      <p class="section-sub">Install, launch, hide. That's it.</p>
+    </div>
+
+    <div class="how-steps">
+      <div class="how-step reveal">
+        <div class="step-num">1</div>
+        <h3>Install</h3>
+        <p>Download directly or install via Homebrew.</p>
+        <code class="mono">brew install --cask ghosttile</code>
+      </div>
+      <div class="how-step reveal">
+        <div class="step-num">2</div>
+        <h3>Launch & grant access</h3>
+        <p>Open GhostTile and allow Accessibility permissions. One-time setup, takes 10 seconds.</p>
+      </div>
+      <div class="how-step reveal">
+        <div class="step-num">3</div>
+        <h3>Hide apps</h3>
+        <p>Click any app in the list to hide it, or run <code class="mono" style="font-size:12px">ghosttile hide Safari</code> from your terminal.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Story -->
+  <section class="story-section" id="story">
+    <div class="story-box reveal">
+      <div class="section-label">The Story</div>
+      <h2>Rewritten from scratch <span class="dim">after a decade</span></h2>
+      <div class="story-body">
+        <p>
+          GhostTile started in 2014 with a simple idea: <strong>"Dock is too full? Just try GhostTile!"</strong>
+          It grew into the go-to utility for hiding running apps from the Dock — drag &amp; drop, per-app config,
+          keyboard shortcuts, Alfred workflows. Thousands of Mac users relied on it daily.
+        </p>
+        <p>
+          But macOS changed a lot in ten years. SIP, notarization, Apple Silicon, new sandboxing rules —
+          many of the old tricks simply died. We rebuilt everything from scratch in Swift to bring back as much
+          of that magic as possible. Not every trick survived, but the core experience is here.
+          <strong>GhostTile 2.0 is free</strong> — a sincere rewrite, from the heart, for the community.
+        </p>
+      </div>
+      <div class="story-timeline">
+        <div class="timeline-item">
+          <div class="timeline-year">2014</div>
+          <div class="timeline-desc">First release. Objective-C, mach_inject, OS X 10.8+.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2017</div>
+          <div class="timeline-desc">Touch Bar support, Quick Switch, URL schemes.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2026</div>
+          <div class="timeline-desc">Complete rewrite in Swift. Native APIs. Apple Silicon native.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section" id="download">
+    <div class="cta-box reveal">
+      <h2>Ready to reclaim your Dock?</h2>
+      <p>GhostTile 2.0 is completely free. Download and start hiding apps today.</p>
+      <div class="hero-actions">
+        <a href="#" class="btn-primary">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M8 2v9m0 0l-3-3m3 3l3-3M3 14h10"/>
+          </svg>
+          Download for macOS
+        </a>
+        <a href="https://github.com/hewigovens/ghosttile-cli" class="btn-secondary">View on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-left">
+      Enjoy GhostTile? <a href="https://github.com/sponsors/hewigovens" style="color:var(--accent);font-weight:600;text-decoration:none;">&#10084; Sponsor on GitHub</a>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/hewigovens/ghosttile-cli">GitHub</a>
+      <a href="https://github.com/hewigovens/ghosttile-cli/releases">Releases</a>
+      <a href="https://github.com/hewigovens/ghosttile-cli/issues">Support</a>
+    </div>
+  </footer>
+
+  <script>
+    // Scroll-triggered reveal
+    (function () {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+      );
+
+      document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+    })();
+  </script>
+</body>
+
+</html>

@@ -73,10 +73,10 @@ targets:
       - path: /bin/sh
         name: Stage GhostTile Resources
         inputFiles:
-          - $(PROJECT_DIR)/Resources/status_menu_v.pdf
-          - $(PROJECT_DIR)/Resources/ghost-icon.png
-          - $(PROJECT_DIR)/Resources/appIcon-old.png
-          - $(PROJECT_DIR)/Resources/appIcon-new.png
+          - $(PROJECT_DIR)/docs/imgs/status_menu_v.pdf
+          - $(PROJECT_DIR)/docs/imgs/ghost-icon.png
+          - $(PROJECT_DIR)/docs/imgs/appIcon-old.png
+          - $(PROJECT_DIR)/docs/imgs/appIcon-new.png
           - $(PROJECT_DIR)/.build/ghosthide.dylib
           - $(PROJECT_DIR)/.build/release/ghosttile
         outputFiles:
@@ -90,10 +90,10 @@ targets:
           set -euo pipefail
           resources_dir="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
           mkdir -p "${resources_dir}"
-          cp "${PROJECT_DIR}/Resources/status_menu_v.pdf" "${resources_dir}/"
-          cp "${PROJECT_DIR}/Resources/ghost-icon.png" "${resources_dir}/"
-          cp "${PROJECT_DIR}/Resources/appIcon-old.png" "${resources_dir}/"
-          cp "${PROJECT_DIR}/Resources/appIcon-new.png" "${resources_dir}/"
+          cp "${PROJECT_DIR}/docs/imgs/status_menu_v.pdf" "${resources_dir}/"
+          cp "${PROJECT_DIR}/docs/imgs/ghost-icon.png" "${resources_dir}/"
+          cp "${PROJECT_DIR}/docs/imgs/appIcon-old.png" "${resources_dir}/"
+          cp "${PROJECT_DIR}/docs/imgs/appIcon-new.png" "${resources_dir}/"
           cp "${PROJECT_DIR}/.build/ghosthide.dylib" "${resources_dir}/ghosthide.dylib"
           cp "${PROJECT_DIR}/.build/release/ghosttile" "${resources_dir}/ghosttile-cli"
   ghosttile:
