@@ -1,7 +1,6 @@
 # Swift / SPM
 .build/
 .swiftpm/
-Package.resolved
 *.xcodeproj/
 GhostTile.xcodeproj/
 xcuserdata/
@@ -24,3 +23,4 @@ Sources/GhostTileApp/app.icon/Assets/ghost.svg
 *~
 .idea/
 .vscode/
+

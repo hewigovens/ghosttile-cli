@@ -93,7 +93,8 @@ dist: build
 sign-release: build
     #!/usr/bin/env bash
     set -euo pipefail
-    signing_identity="${DEVELOPER_ID_APPLICATION:-Developer ID Application: Tao Xu (V28VJH6B6S)}"
+    : "${DEVELOPER_ID_APPLICATION:?Set DEVELOPER_ID_APPLICATION to your Developer ID Application identity.}"
+    signing_identity="${DEVELOPER_ID_APPLICATION}"
     echo "Signing {{app}} with ${signing_identity}..."
     # Sign all binaries and nested bundles (Sparkle framework, XPCs)
     find "{{app}}" -type f \( -name "*.dylib" -o -perm +111 \) -not -name "*.swift*" | while read binary; do
@@ -109,7 +110,8 @@ sign-release: build
 notarize-release: sign-release
     #!/usr/bin/env bash
     set -euo pipefail
-    notary_profile="${NOTARY_PROFILE:-notarytool}"
+    : "${NOTARY_PROFILE:?Set NOTARY_PROFILE to your xcrun notarytool keychain profile.}"
+    notary_profile="${NOTARY_PROFILE}"
     mkdir -p dist
     rm -f "dist/GhostTile-{{version}}.zip"
     ditto -c -k --keepParent "{{app}}" "dist/GhostTile-{{version}}.zip"
@@ -125,20 +127,23 @@ notarize-release: sign-release
 release: notarize-release
     #!/usr/bin/env bash
     set -euo pipefail
+    : "${SPARKLE_SIGN_UPDATE:?Set SPARKLE_SIGN_UPDATE to Sparkle's sign_update binary.}"
     zip_path="dist/GhostTile-{{version}}.zip"
+    notes_path="releases/{{version}}.html"
     # Sign for Sparkle
-    sparkle_bin=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -type f 2>/dev/null | head -1)
-    sig=""
-    if [ -n "$sparkle_bin" ]; then
-        sig=$("$sparkle_bin" "$zip_path" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
-    fi
+    sig=$("${SPARKLE_SIGN_UPDATE}" "$zip_path" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
     # Update appcast
     python3 scripts/update-appcast.py "{{version}}" "{{build_number}}" "$zip_path" docs/appcast.xml "$sig"
     # Create GitHub release
     if gh release view "v{{version}}" &>/dev/null; then
         echo "Release v{{version}} already exists"
     else
-        gh release create "v{{version}}" --draft --title "v{{version}}" --notes "Release {{version}}"
+        if [ -f "$notes_path" ]; then
+            gh release create "v{{version}}" --draft --title "v{{version}}" --notes-file "$notes_path"
+        else
+            echo "Warning: no release notes found at $notes_path; creating draft release with fallback notes."
+            gh release create "v{{version}}" --draft --title "v{{version}}" --notes "Release {{version}}"
+        fi
     fi
     gh release upload "v{{version}}" "$zip_path" --clobber
     echo "Draft release v{{version}} created. Review and publish on GitHub."
@@ -158,6 +163,15 @@ update-cask:
       -e "s/sha256 \"[^\"]*\"/sha256 \"$sha256\"/" \
       "$cask_path"
     echo "Updated $cask_path with version {{version}} sha256 $sha256"
+
+release-dry-run: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p dist
+    rm -f "dist/GhostTile-{{version}}.zip"
+    ditto -c -k --keepParent "{{app}}" "dist/GhostTile-{{version}}.zip"
+    echo "Created unsigned dist/GhostTile-{{version}}.zip ($(du -sh "dist/GhostTile-{{version}}.zip" | cut -f1))"
+    shasum -a 256 "dist/GhostTile-{{version}}.zip"
 
 lint:
     swiftlint lint --quiet Sources/ Tests/

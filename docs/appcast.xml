@@ -10,6 +10,13 @@
             <sparkle:version>17</sparkle:version>
             <sparkle:shortVersionString>2.0.0</sparkle:shortVersionString>
             <pubDate>Mon, 23 Mar 2026 02:32:39 +0000</pubDate>
+            <description><![CDATA[
+                <ul>
+                    <li>Complete Swift rewrite with shared core, CLI, and macOS app targets</li>
+                    <li>New menu bar workflow, Overview, onboarding refresh, and global shortcuts</li>
+                    <li>Cleaner app preparation and restore paths for modern macOS</li>
+                </ul>
+            ]]></description>
             <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v2.0.0/GhostTile-2.0.0.zip"
                        sparkle:edSignature="6fkMiaTY0TBXiLQZxnjKZX2r6eASZH+48GnVJ9y52ftV+j7OYz+ij/QjLFlEun64rjzg0cd/jF5ODs0JgkZFCw=="
                        length="3905322"
