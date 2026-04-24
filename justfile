@@ -78,8 +78,9 @@ install: build
     cp -r "{{app}}" /Applications/
     @echo "Installed to /Applications/{{app}}"
 
-version := "2.0.0"
-build_number := "17"
+version := "2.0.1"
+build_number := "18"
+signing_identity := "Developer ID Application: Tao Xu (V28VJH6B6S)"
 
 dist: build
     #!/usr/bin/env bash
@@ -93,8 +94,7 @@ dist: build
 sign-release: build
     #!/usr/bin/env bash
     set -euo pipefail
-    : "${DEVELOPER_ID_APPLICATION:?Set DEVELOPER_ID_APPLICATION to your Developer ID Application identity.}"
-    signing_identity="${DEVELOPER_ID_APPLICATION}"
+    signing_identity="${DEVELOPER_ID_APPLICATION:-{{signing_identity}}}"
     echo "Signing {{app}} with ${signing_identity}..."
     # Sign all binaries and nested bundles (Sparkle framework, XPCs)
     find "{{app}}" -type f \( -name "*.dylib" -o -perm +111 \) -not -name "*.swift*" | while read binary; do
@@ -110,8 +110,7 @@ sign-release: build
 notarize-release: sign-release
     #!/usr/bin/env bash
     set -euo pipefail
-    : "${NOTARY_PROFILE:?Set NOTARY_PROFILE to your xcrun notarytool keychain profile.}"
-    notary_profile="${NOTARY_PROFILE}"
+    notary_profile="${NOTARY_PROFILE:-notarytool}"
     mkdir -p dist
     rm -f "dist/GhostTile-{{version}}.zip"
     ditto -c -k --keepParent "{{app}}" "dist/GhostTile-{{version}}.zip"
@@ -127,11 +126,17 @@ notarize-release: sign-release
 release: notarize-release
     #!/usr/bin/env bash
     set -euo pipefail
-    : "${SPARKLE_SIGN_UPDATE:?Set SPARKLE_SIGN_UPDATE to Sparkle's sign_update binary.}"
     zip_path="dist/GhostTile-{{version}}.zip"
     notes_path="releases/{{version}}.html"
-    # Sign for Sparkle
-    sig=$("${SPARKLE_SIGN_UPDATE}" "$zip_path" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
+    sparkle_bin="${SPARKLE_SIGN_UPDATE:-}"
+    if [ -z "$sparkle_bin" ]; then
+        sparkle_bin=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path "*/GhostTile-*/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update" -type f 2>/dev/null | head -1)
+    fi
+    if [ -z "$sparkle_bin" ] || [ ! -x "$sparkle_bin" ]; then
+        echo "Could not locate Sparkle sign_update. Set SPARKLE_SIGN_UPDATE or run 'just build' first." >&2
+        exit 1
+    fi
+    sig=$("$sparkle_bin" "$zip_path" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
     # Update appcast
     python3 scripts/update-appcast.py "{{version}}" "{{build_number}}" "$zip_path" docs/appcast.xml "$sig"
     # Create GitHub release
