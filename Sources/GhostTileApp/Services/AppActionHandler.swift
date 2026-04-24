@@ -107,7 +107,10 @@ final class AppActionHandler {
 
         let appPath = url.path
         if AppManager.isSIPProtected(appPath) || AppManager.isAppleFirstParty(appPath) {
-            viewModel.showError(message: "\(bundle.infoDictionary?["CFBundleName"] as? String ?? bundleId) cannot be hidden.")
+            viewModel
+                .showError(
+                    message: "\(bundle.infoDictionary?["CFBundleName"] as? String ?? bundleId) cannot be hidden."
+                )
             return
         }
 

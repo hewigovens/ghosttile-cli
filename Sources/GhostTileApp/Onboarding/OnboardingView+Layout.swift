@@ -149,9 +149,11 @@ extension OnboardingView {
                 Text("Permissions")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
 
-                Text("GhostTile needs App Management to prepare apps safely. Terminal helps with protected apps, and Screen & System Audio Recording enables live Overview previews.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                Text(
+                    "GhostTile needs App Management to prepare apps safely. Terminal helps with protected apps, and Screen & System Audio Recording enables live Overview previews."
+                )
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
 
                 PermissionsView()
             }

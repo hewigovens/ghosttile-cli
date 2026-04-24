@@ -66,7 +66,8 @@ final class OverviewViewModel: ObservableObject {
         }
 
         if let selectedBundleId,
-           filteredApps.contains(where: { $0.id == selectedBundleId }) {
+           filteredApps.contains(where: { $0.id == selectedBundleId })
+        {
             return
         }
 

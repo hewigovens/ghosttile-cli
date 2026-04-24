@@ -60,7 +60,8 @@ final class AttentionObserverManager {
 
         let now = Date()
         if let lastShown = lastNotificationAt[bundleId],
-           now.timeIntervalSince(lastShown) < Self.cooldown {
+           now.timeIntervalSince(lastShown) < Self.cooldown
+        {
             Log.debug("Skipping duplicate attention notification for \(bundleId)")
             return
         }
