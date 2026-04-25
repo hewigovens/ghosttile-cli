@@ -177,14 +177,20 @@ update-cask:
       "$cask_path"
     echo "Updated $cask_path with version {{version}} sha256 $sha256"
 
+# Build a Release .app locally with ad-hoc signing (via `build`) and produce a
+# zip + sha256 sidecar. No notarization, no network calls — sanity-check a
+# release candidate before invoking the full `release` pipeline.
 release-dry-run: build
     #!/usr/bin/env bash
     set -euo pipefail
+    codesign --verify --deep --strict --verbose=2 "{{app}}"
     mkdir -p dist
-    rm -f "dist/GhostTile-{{version}}.zip"
-    ditto -c -k --keepParent "{{app}}" "dist/GhostTile-{{version}}.zip"
-    echo "Created unsigned dist/GhostTile-{{version}}.zip ($(du -sh "dist/GhostTile-{{version}}.zip" | cut -f1))"
-    shasum -a 256 "dist/GhostTile-{{version}}.zip"
+    zip_path="dist/GhostTile-{{version}}-dryrun.zip"
+    rm -f "$zip_path" "$zip_path.sha256"
+    ditto -c -k --keepParent "{{app}}" "$zip_path"
+    echo "Created ad-hoc signed $zip_path ($(du -sh "$zip_path" | cut -f1))"
+    shasum -a 256 "$zip_path" | tee "$zip_path.sha256"
+    echo "Dry-run artifact: $zip_path"
 
 lint:
     swiftlint lint --quiet Sources/ Tests/
