@@ -3,7 +3,17 @@ import Foundation
 import SwiftUI
 
 final class PermissionOverlayWindowController: NSWindowController {
-    private let windowSize = NSSize(width: 420, height: 124)
+    static var windowWidth: CGFloat {
+        480
+    }
+
+    private static let windowHeight: CGFloat = 124
+    private static let bottomInset: CGFloat = 24
+
+    private let windowSize = NSSize(
+        width: PermissionOverlayWindowController.windowWidth,
+        height: PermissionOverlayWindowController.windowHeight
+    )
     private let arrowCenterX: CGFloat = 38
 
     init(
@@ -75,11 +85,11 @@ final class PermissionOverlayWindowController: NSWindowController {
     }
 
     private func origin(for settingsFrame: CGRect, visibleFrame: CGRect) -> NSPoint {
-        let contentOffsetX = min(max(settingsFrame.width * 0.32, 220), 460)
+        let contentOffsetX = min(max(settingsFrame.width * 0.32, 220), PermissionOverlayWindowController.windowWidth)
         let contentMinX = settingsFrame.minX + contentOffsetX
         let addButtonCenterX = contentMinX + 34
         let preferredX = addButtonCenterX - arrowCenterX
-        let preferredY = settingsFrame.minY + 76
+        let preferredY = settingsFrame.minY + Self.bottomInset
         let minX = visibleFrame.minX + 8
         let maxX = visibleFrame.maxX - windowSize.width - 8
         let minY = visibleFrame.minY + 8
