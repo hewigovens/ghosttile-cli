@@ -75,11 +75,11 @@ final class PermissionOverlayWindowController: NSWindowController {
     }
 
     private func origin(for settingsFrame: CGRect, visibleFrame: CGRect) -> NSPoint {
-        let sidebarWidth: CGFloat = 170
-        let contentMinX = settingsFrame.minX + sidebarWidth
+        let contentOffsetX = min(max(settingsFrame.width * 0.32, 220), 460)
+        let contentMinX = settingsFrame.minX + contentOffsetX
         let addButtonCenterX = contentMinX + 34
         let preferredX = addButtonCenterX - arrowCenterX
-        let preferredY = settingsFrame.minY + 14
+        let preferredY = settingsFrame.minY + 76
         let minX = visibleFrame.minX + 8
         let maxX = visibleFrame.maxX - windowSize.width - 8
         let minY = visibleFrame.minY + 8
