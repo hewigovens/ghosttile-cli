@@ -27,11 +27,14 @@
 - `Config`: reads/writes `~/.config/ghosttile/config.json`.
 
 ### GhostTileApp — services
-- `ManagedAppsStore`: owns managed app list, publishes snapshots, drives config watching.
-- `ConfigWatcher`: file system monitoring with dispatch sources.
-- `DockVisibilityController`: auto-hide, reapply, notification sending.
-- `AppOperations`: high-level hide/launch/remove workflows.
-- `CLIPaths`: consolidated CLI binary path resolution.
+- Service implementations live in focused subfolders under `Sources/GhostTileApp/Services`.
+- `Services/ManagedApps`: managed app list, snapshots, config watching.
+- `Services/Permissions`: System Settings permission guidance and helper overlay.
+- `Services/Attention`: attention/notification observation and delivery.
+- `Services/DockVisibility`: auto-hide, reapply, notification sending.
+- `Services/AppActions`: high-level hide/launch/remove workflows.
+- `Services/CLI`: consolidated CLI binary path resolution.
+- `Services/Shortcuts`, `Services/Sponsors`, `Services/Updates`, `Services/Config`: focused support services.
 
 ### GhostTileApp — view models
 - `AppViewModel`: app-wide coordinator for loading state, errors, workspace observers.
@@ -68,8 +71,10 @@ Sparkle release notes come from `releases/<version>.html`. Do not publish a rele
 
 ## Code Style
 - Only add comments that explain *why*, not *what*. If the code is self-explanatory, skip the comment.
+- Keep one top-level Swift `enum` or `struct` per file, with the filename matching the type name.
 
 ## Editing Guidance
+- Put new app service code in a feature subfolder under `Sources/GhostTileApp/Services`; do not add new service files directly at the Services root.
 - Prefer changes in `GhostTileCore` when logic is shared between the app and CLI.
 - Use the existing service/view-model split. Don't route new behavior through `AppViewModel` — put logic in focused services or `AppOperations`.
 - `ManagedAppItem` is the UI-facing app type. `ManagedAppRecord` is the core type. Don't mix them.
@@ -82,6 +87,7 @@ Sparkle release notes come from `releases/<version>.html`. Do not publish a rele
 ## Validation Expectations
 - Always run `just format` and `just lint` before committing.
 - Always run `swift build` after code changes.
+- Add a focused unit test or UI test for regression fixes when automation can reasonably cover the behavior.
 - If you change packaging or resources, also run `just build`.
 - If you change app/core interaction, verify at least one CLI path and one GUI path conceptually, even if you cannot execute the full macOS workflow in automation.
 

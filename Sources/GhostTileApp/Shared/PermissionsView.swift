@@ -1,20 +1,6 @@
 import AppKit
 import SwiftUI
 
-enum SystemSettings {
-    static func openAppManagement() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles") {
-            NSWorkspace.shared.open(url)
-        }
-    }
-
-    static func openScreenCapture() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-            NSWorkspace.shared.open(url)
-        }
-    }
-}
-
 struct PermissionsView: View {
     var body: some View {
         VStack(spacing: 10) {
@@ -24,7 +10,12 @@ struct PermissionsView: View {
                 systemImage: "eye.slash.circle.fill",
                 tint: .blue,
                 actionTitle: "Grant",
-                action: SystemSettings.openAppManagement
+                action: {
+                    PermissionGuidanceController.shared.present(
+                        pane: .appManagement,
+                        target: .ghostTile()
+                    )
+                }
             )
             PermissionCard(
                 title: "Terminal",
@@ -32,7 +23,12 @@ struct PermissionsView: View {
                 systemImage: "terminal.fill",
                 tint: .purple,
                 actionTitle: "Grant",
-                action: SystemSettings.openAppManagement
+                action: {
+                    PermissionGuidanceController.shared.present(
+                        pane: .appManagement,
+                        target: .terminal()
+                    )
+                }
             )
             PermissionCard(
                 title: "Screen & System Audio Recording",
@@ -40,7 +36,12 @@ struct PermissionsView: View {
                 systemImage: "rectangle.on.rectangle",
                 tint: .orange,
                 actionTitle: "Grant",
-                action: SystemSettings.openScreenCapture
+                action: {
+                    PermissionGuidanceController.shared.present(
+                        pane: .screenRecording,
+                        target: .ghostTile()
+                    )
+                }
             )
         }
     }

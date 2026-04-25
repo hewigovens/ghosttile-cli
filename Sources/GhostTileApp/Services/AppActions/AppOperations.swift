@@ -1,10 +1,5 @@
 import GhostTileCore
 
-enum HideAppOperationResult {
-    case hidden
-    case requiresSudo(command: String)
-}
-
 enum AppOperations {
     static func hideApp(_ app: AppInfo, cliPath: String) throws -> HideAppOperationResult {
         Log.info("Hiding app: \(app.name) (\(app.bundleId))")
