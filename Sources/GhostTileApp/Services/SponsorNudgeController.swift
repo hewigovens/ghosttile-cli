@@ -52,7 +52,8 @@ final class SponsorNudgeController: ObservableObject {
         guard usageCount >= nextUsageThreshold else { return }
 
         if let lastPromptAt = defaults.object(forKey: Keys.lastPromptAt) as? Date,
-           Date().timeIntervalSince(lastPromptAt) < remindCooldown {
+           Date().timeIntervalSince(lastPromptAt) < remindCooldown
+        {
             return
         }
 

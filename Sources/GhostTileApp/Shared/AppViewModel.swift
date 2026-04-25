@@ -86,7 +86,8 @@ class AppViewModel: ObservableObject, ManagedAppActions {
                 guard let self else { return }
                 if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
                     as? NSRunningApplication,
-                    let bundleId = app.bundleIdentifier {
+                    let bundleId = app.bundleIdentifier
+                {
                     Task { @MainActor [weak self] in
                         self?.autoHideIfNeeded(bundleId)
                     }

@@ -5,7 +5,8 @@ public enum Log {
     private static let osLog = OSLog(subsystem: "dev.hewig.ghosttile", category: "general")
     private static let logFileURL: URL = {
         let home: String = if let sudoUser = ProcessInfo.processInfo.environment["SUDO_USER"],
-                              let passwd = getpwnam(sudoUser) {
+                              let passwd = getpwnam(sudoUser)
+        {
             String(cString: passwd.pointee.pw_dir)
         } else {
             FileManager.default.homeDirectoryForCurrentUser.path

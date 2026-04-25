@@ -202,13 +202,30 @@ enum MachOEditor {
     private struct SegmentLayout {
         let fileoffAt: Int, nsectsAt: Int, headerSize: Int, sectionFileoffAt: Int, sectionSize: Int, use64: Bool
 
-        static let segment32 = SegmentLayout(fileoffAt: 32, nsectsAt: 48, headerSize: 56, sectionFileoffAt: 40, sectionSize: 68, use64: false)
-        static let segment64 = SegmentLayout(fileoffAt: 40, nsectsAt: 64, headerSize: 72, sectionFileoffAt: 48, sectionSize: 80, use64: true)
+        static let segment32 = SegmentLayout(
+            fileoffAt: 32,
+            nsectsAt: 48,
+            headerSize: 56,
+            sectionFileoffAt: 40,
+            sectionSize: 68,
+            use64: false
+        )
+        static let segment64 = SegmentLayout(
+            fileoffAt: 40,
+            nsectsAt: 64,
+            headerSize: 72,
+            sectionFileoffAt: 48,
+            sectionSize: 80,
+            use64: true
+        )
     }
 
     private static func segmentMinOffset(_ data: Data, at cursor: Int, layout: SegmentLayout, current: Int) -> Int {
         var minOffset = current
-        let fileoff = layout.use64 ? Int(readUInt64LE(data, at: cursor + layout.fileoffAt)) : Int(readUInt32LE(data, at: cursor + layout.fileoffAt))
+        let fileoff = layout.use64 ? Int(readUInt64LE(data, at: cursor + layout.fileoffAt)) : Int(readUInt32LE(
+            data,
+            at: cursor + layout.fileoffAt
+        ))
         let nsects = Int(readUInt32LE(data, at: cursor + layout.nsectsAt))
         minOffset = updateMin(minOffset, fileoff)
         var sectionOffset = cursor + layout.headerSize
@@ -272,7 +289,10 @@ enum MachOEditor {
         let upperBound = min(offset + maxLength, data.count)
         let bytes = data[offset ..< upperBound]
         let nulIndex = bytes.firstIndex(of: 0) ?? upperBound
-        return String(decoding: data[offset ..< nulIndex], as: UTF8.self) // swiftlint:disable:this optional_data_string_conversion
+        return String(
+            decoding: data[offset ..< nulIndex],
+            as: UTF8.self
+        ) // swiftlint:disable:this optional_data_string_conversion
     }
 
     private static func readUInt32LE(_ data: Data, at offset: Int) -> UInt32 {

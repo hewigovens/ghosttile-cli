@@ -6,10 +6,33 @@
         <description>GhostTile updates</description>
         <language>en</language>
         <item>
+            <title>Version 2.0.1</title>
+            <sparkle:version>18</sparkle:version>
+            <sparkle:shortVersionString>2.0.1</sparkle:shortVersionString>
+            <pubDate>Fri, 24 Apr 2026 22:26:09 +0000</pubDate>
+            <description><![CDATA[
+                <ul>
+                  <li>Test build to validate the Sparkle auto-update flow end to end</li>
+                  <li>Minor stability fixes and polish</li>
+                </ul>
+            ]]></description>
+            <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v2.0.1/GhostTile-2.0.1.zip"
+                       sparkle:edSignature="ch+yz2opECkp7/RR5jVdeyV2aMcjyJ0MiMcch0VwmGaQSaxR372VxV5DKOgo6269bG1togJmDm8CjxzuvirdBg=="
+                       length="3917213"
+                       type="application/octet-stream"/>
+        </item>
+        <item>
             <title>Version 2.0.0</title>
             <sparkle:version>17</sparkle:version>
             <sparkle:shortVersionString>2.0.0</sparkle:shortVersionString>
             <pubDate>Mon, 23 Mar 2026 02:32:39 +0000</pubDate>
+            <description><![CDATA[
+                <ul>
+                    <li>Complete Swift rewrite with shared core, CLI, and macOS app targets</li>
+                    <li>New menu bar workflow, Overview, onboarding refresh, and global shortcuts</li>
+                    <li>Cleaner app preparation and restore paths for modern macOS</li>
+                </ul>
+            ]]></description>
             <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v2.0.0/GhostTile-2.0.0.zip"
                        sparkle:edSignature="6fkMiaTY0TBXiLQZxnjKZX2r6eASZH+48GnVJ9y52ftV+j7OYz+ij/QjLFlEun64rjzg0cd/jF5ODs0JgkZFCw=="
                        length="3905322"

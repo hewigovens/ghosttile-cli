@@ -12,7 +12,7 @@
 - `Sources/GhostTileApp`: SwiftUI views, app lifecycle, and status bar integration.
 - `Resources`: app bundle resources, `Info.plist`, icons, and `ghosthide.m`.
 - `justfile`: local build, packaging, install, and release helpers.
-- `docs/refactor.md`: architecture decisions and refactor completion status.
+- `docs/dev/roadmap.md`: shipped work and near-term follow-up.
 
 ## Architecture
 
@@ -55,6 +55,16 @@
 - `just build`: assemble `GhostTile.app`, compile `ghosthide.dylib`, and codesign the bundle.
 - `just run`: rebuild and open the app bundle.
 - `just build-cli`: build only the CLI in release.
+
+## Release Pipeline
+1. Bump `version` and `build_number` in `justfile`, `CFBundleShortVersionString` / `CFBundleVersion` in `project.yml`, `CFBundleShortVersionString` / `CFBundleVersion` in `Resources/Info.plist`, and `version` / `build` in `Sources/GhostTileCore/BuildInfo.swift`.
+2. Write release notes to `releases/<version>.html` as an HTML body fragment with no wrapper tags.
+3. Run `just build` to verify the release still builds.
+4. Run `just release-dry-run` if you want a local package check without signing or notarization.
+5. Run `just release` to sign, notarize, zip, update `docs/appcast.xml`, and upload the draft GitHub release.
+6. Update the Homebrew tap via `just update-cask` after the final release zip exists.
+
+Sparkle release notes come from `releases/<version>.html`. Do not publish a release with an empty appcast description.
 
 ## Code Style
 - Only add comments that explain *why*, not *what*. If the code is self-explanatory, skip the comment.

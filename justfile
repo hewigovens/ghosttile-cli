@@ -78,8 +78,9 @@ install: build
     cp -r "{{app}}" /Applications/
     @echo "Installed to /Applications/{{app}}"
 
-version := "2.0.0"
-build_number := "17"
+version := "2.0.1"
+build_number := "18"
+signing_identity := "Developer ID Application: Tao Xu (V28VJH6B6S)"
 
 dist: build
     #!/usr/bin/env bash
@@ -93,7 +94,7 @@ dist: build
 sign-release: build
     #!/usr/bin/env bash
     set -euo pipefail
-    signing_identity="${DEVELOPER_ID_APPLICATION:-Developer ID Application: Tao Xu (V28VJH6B6S)}"
+    signing_identity="${DEVELOPER_ID_APPLICATION:-{{signing_identity}}}"
     echo "Signing {{app}} with ${signing_identity}..."
     # Sign all binaries and nested bundles (Sparkle framework, XPCs)
     find "{{app}}" -type f \( -name "*.dylib" -o -perm +111 \) -not -name "*.swift*" | while read binary; do
@@ -126,11 +127,23 @@ release: notarize-release
     #!/usr/bin/env bash
     set -euo pipefail
     zip_path="dist/GhostTile-{{version}}.zip"
-    # Sign for Sparkle
-    sparkle_bin=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -type f 2>/dev/null | head -1)
-    sig=""
-    if [ -n "$sparkle_bin" ]; then
-        sig=$("$sparkle_bin" "$zip_path" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
+    notes_path="releases/{{version}}.html"
+    sparkle_bin="${SPARKLE_SIGN_UPDATE:-}"
+    if [ -z "$sparkle_bin" ]; then
+        sparkle_bin=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path "*/GhostTile-*/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update" -type f 2>/dev/null | head -1)
+    fi
+    if [ -z "$sparkle_bin" ] || [ ! -x "$sparkle_bin" ]; then
+        echo "Could not locate Sparkle sign_update. Set SPARKLE_SIGN_UPDATE or run 'just build' first." >&2
+        exit 1
+    fi
+    sign_output=$("$sparkle_bin" "$zip_path" 2>&1) || {
+        echo "Error: Sparkle sign_update failed: $sign_output" >&2
+        exit 1
+    }
+    sig=$(printf '%s' "$sign_output" | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
+    if [ -z "$sig" ]; then
+        echo "Error: no Sparkle edSignature in sign_update output: $sign_output" >&2
+        exit 1
     fi
     # Update appcast
     python3 scripts/update-appcast.py "{{version}}" "{{build_number}}" "$zip_path" docs/appcast.xml "$sig"
@@ -138,7 +151,12 @@ release: notarize-release
     if gh release view "v{{version}}" &>/dev/null; then
         echo "Release v{{version}} already exists"
     else
-        gh release create "v{{version}}" --draft --title "v{{version}}" --notes "Release {{version}}"
+        if [ -f "$notes_path" ]; then
+            gh release create "v{{version}}" --draft --title "v{{version}}" --notes-file "$notes_path"
+        else
+            echo "Warning: no release notes found at $notes_path; creating draft release with fallback notes."
+            gh release create "v{{version}}" --draft --title "v{{version}}" --notes "Release {{version}}"
+        fi
     fi
     gh release upload "v{{version}}" "$zip_path" --clobber
     echo "Draft release v{{version}} created. Review and publish on GitHub."
@@ -158,6 +176,21 @@ update-cask:
       -e "s/sha256 \"[^\"]*\"/sha256 \"$sha256\"/" \
       "$cask_path"
     echo "Updated $cask_path with version {{version}} sha256 $sha256"
+
+# Build a Release .app locally with ad-hoc signing (via `build`) and produce a
+# zip + sha256 sidecar. No notarization, no network calls — sanity-check a
+# release candidate before invoking the full `release` pipeline.
+release-dry-run: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    codesign --verify --deep --strict --verbose=2 "{{app}}"
+    mkdir -p dist
+    zip_path="dist/GhostTile-{{version}}-dryrun.zip"
+    rm -f "$zip_path" "$zip_path.sha256"
+    ditto -c -k --keepParent "{{app}}" "$zip_path"
+    echo "Created ad-hoc signed $zip_path ($(du -sh "$zip_path" | cut -f1))"
+    shasum -a 256 "$zip_path" | tee "$zip_path.sha256"
+    echo "Dry-run artifact: $zip_path"
 
 lint:
     swiftlint lint --quiet Sources/ Tests/

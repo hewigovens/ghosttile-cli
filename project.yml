@@ -13,16 +13,16 @@ settings:
 packages:
   swift-argument-parser:
     url: https://github.com/apple/swift-argument-parser
-    from: 1.3.0
+    exactVersion: 1.7.0
   LSAppCategory:
     url: https://github.com/hewigovens/LSAppCategory
-    branch: main
+    revision: fe8edb78aaa41206e1a98b9bfbd0b0f26ed625c9
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
-    from: 2.3.0
+    exactVersion: 2.4.0
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
-    from: 2.7.0
+    exactVersion: 2.9.0
 targets:
   GhostTileCore:
     type: library.static
@@ -55,8 +55,8 @@ targets:
       properties:
         CFBundleDisplayName: GhostTile
         CFBundleIconName: app
-        CFBundleShortVersionString: 2.0.0
-        CFBundleVersion: "17"
+        CFBundleShortVersionString: 2.0.1
+        CFBundleVersion: "18"
         LSUIElement: true
         LSMinimumSystemVersion: "15.0"
         NSHighResolutionCapable: true

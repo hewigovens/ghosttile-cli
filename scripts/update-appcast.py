@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Generate Sparkle appcast.xml from release artifacts."""
+"""Update Sparkle appcast.xml with idempotent entries and release notes."""
+
 import os
+import re
 import sys
 from datetime import datetime, timezone
 
@@ -14,32 +16,78 @@ zip_path = sys.argv[3]
 appcast_path = sys.argv[4]
 signature = sys.argv[5] if len(sys.argv) > 5 else "PENDING"
 
+
+def insert_after_first(pattern: str, content: str, snippet: str, anchor_name: str) -> str:
+    updated, count = re.subn(pattern, lambda match: match.group(0) + snippet, content, count=1)
+    if count != 1:
+        print(f"ERROR: could not locate {anchor_name} in {appcast_path}", file=sys.stderr)
+        sys.exit(1)
+    return updated
+
 file_size = os.path.getsize(zip_path)
 pub_date = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S %z")
 
-appcast = f"""<?xml version="1.0" encoding="utf-8"?>
+repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+notes_path = os.path.join(repo_root, "releases", f"{version}.html")
+description_block = ""
+if os.path.exists(notes_path):
+    with open(notes_path, "r", encoding="utf-8") as handle:
+        notes_html = handle.read().strip()
+    indented = "\n".join("                " + line for line in notes_html.splitlines())
+    description_block = f"""            <description><![CDATA[
+{indented}
+            ]]></description>
+"""
+else:
+    print(
+        f"WARNING: no release notes found at {notes_path}\n"
+        f"         the appcast entry will publish without a <description> block.\n"
+        f"         create the file (HTML body, no wrapper tags) before re-running.",
+        file=sys.stderr,
+    )
+
+new_item = f"""        <item>
+            <title>Version {version}</title>
+            <sparkle:version>{build_number}</sparkle:version>
+            <sparkle:shortVersionString>{version}</sparkle:shortVersionString>
+            <pubDate>{pub_date}</pubDate>
+{description_block}            <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v{version}/GhostTile-{version}.zip"
+                       sparkle:edSignature="{signature}"
+                       length="{file_size}"
+                       type="application/octet-stream"/>
+        </item>
+"""
+
+if os.path.exists(appcast_path) and os.path.getsize(appcast_path) > 0:
+    with open(appcast_path, "r", encoding="utf-8") as handle:
+        content = handle.read()
+
+    pattern = re.compile(
+        r"^[ \t]*<item>\s*<title>Version " + re.escape(version) + r"</title>.*?</item>\s*",
+        re.MULTILINE | re.DOTALL,
+    )
+    content = pattern.sub("", content)
+
+    if "</language>" in content:
+        content = insert_after_first(r"</language>\s*", content, new_item, "</language>")
+    else:
+        content = insert_after_first(r"<channel>\s*", content, new_item, "<channel>")
+
+    with open(appcast_path, "w", encoding="utf-8") as handle:
+        handle.write(content)
+else:
+    content = f"""<?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
     <channel>
         <title>GhostTile</title>
         <link>https://raw.githubusercontent.com/hewigovens/ghosttile-cli/main/docs/appcast.xml</link>
         <description>GhostTile updates</description>
         <language>en</language>
-        <item>
-            <title>Version {version}</title>
-            <sparkle:version>{build_number}</sparkle:version>
-            <sparkle:shortVersionString>{version}</sparkle:shortVersionString>
-            <pubDate>{pub_date}</pubDate>
-            <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v{version}/GhostTile-{version}.zip"
-                       sparkle:edSignature="{signature}"
-                       length="{file_size}"
-                       type="application/octet-stream"/>
-        </item>
-    </channel>
+{new_item}    </channel>
 </rss>
 """
-
-with open(appcast_path, "w") as f:
-    f.write(appcast)
+    with open(appcast_path, "w", encoding="utf-8") as handle:
+        handle.write(content)
 
 print(f"Updated {appcast_path}")
 print(f"  Version: {version} ({build_number})")

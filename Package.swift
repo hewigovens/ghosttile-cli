@@ -5,10 +5,13 @@ let package = Package(
     name: "GhostTile",
     platforms: [.macOS("15.0")],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
-        .package(url: "https://github.com/hewigovens/LSAppCategory", branch: "main"),
-        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "2.3.0"),
-        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.7.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser", exact: "1.7.0"),
+        .package(
+            url: "https://github.com/hewigovens/LSAppCategory",
+            revision: "fe8edb78aaa41206e1a98b9bfbd0b0f26ed625c9"
+        ),
+        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", exact: "2.4.0"),
+        .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.9.0"),
     ],
     targets: [
         .target(name: "GhostTileCore"),

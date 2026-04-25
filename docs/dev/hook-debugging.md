@@ -1,5 +1,7 @@
 # Hidden-App Hook Debugging
 
+This is an internal engineering note. It captures a specific debugging thread for contributors working on helper behavior and Dock re-promotion issues.
+
 ## Context
 
 GhostTile originally hid apps by injecting a helper into the target process and blocking the app from promoting itself back into the Dock.
@@ -37,14 +39,14 @@ These hooks were tested during debugging but are not kept in the release helper:
 
 Target app:
 
-- [Legcord source](/~/workspace/github/Legcord)
+- Legcord
 - Electron version `40.6.0`
 
-Relevant Legcord app code:
+Relevant Legcord app code that was inspected:
 
-- [tray.ts](/~/workspace/github/Legcord/src/discord/tray.ts)
+- `src/discord/tray.ts`
   - tray click calls `mainWindow.show()`
-- [window.ts](/~/workspace/github/Legcord/src/discord/window.ts)
+- `src/discord/window.ts`
   - app `activate` handler calls `app.show()`
 
 Relevant Electron macOS code that was checked:
