@@ -59,6 +59,11 @@
 - `just run`: rebuild and open the app bundle.
 - `just build-cli`: build only the CLI in release.
 
+## Version Control
+- Use `jj` for source control operations in this repo: status, diff, log, change descriptions, bookmark movement, and Git pushes.
+- Use `git` only when a task specifically needs GitHub/Git compatibility that `jj` does not cover.
+- Abandon only empty jj changes with no description, and never abandon user work or non-empty changes without explicit confirmation.
+
 ## Release Pipeline
 1. Bump `version` and `build_number` in `justfile`, `CFBundleShortVersionString` / `CFBundleVersion` in `project.yml`, `CFBundleShortVersionString` / `CFBundleVersion` in `Resources/Info.plist`, and `version` / `build` in `Sources/GhostTileCore/BuildInfo.swift`.
 2. Write release notes to `releases/<version>.html` as an HTML body fragment with no wrapper tags.
