@@ -136,7 +136,15 @@ release: notarize-release
         echo "Could not locate Sparkle sign_update. Set SPARKLE_SIGN_UPDATE or run 'just build' first." >&2
         exit 1
     fi
-    sig=$("$sparkle_bin" "$zip_path" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
+    sign_output=$("$sparkle_bin" "$zip_path" 2>&1) || {
+        echo "Error: Sparkle sign_update failed: $sign_output" >&2
+        exit 1
+    }
+    sig=$(printf '%s' "$sign_output" | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2 || true)
+    if [ -z "$sig" ]; then
+        echo "Error: no Sparkle edSignature in sign_update output: $sign_output" >&2
+        exit 1
+    fi
     # Update appcast
     python3 scripts/update-appcast.py "{{version}}" "{{build_number}}" "$zip_path" docs/appcast.xml "$sig"
     # Create GitHub release

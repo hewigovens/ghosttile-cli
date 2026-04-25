@@ -16,6 +16,14 @@ zip_path = sys.argv[3]
 appcast_path = sys.argv[4]
 signature = sys.argv[5] if len(sys.argv) > 5 else "PENDING"
 
+
+def insert_after_first(pattern: str, content: str, snippet: str, anchor_name: str) -> str:
+    updated, count = re.subn(pattern, lambda match: match.group(0) + snippet, content, count=1)
+    if count != 1:
+        print(f"ERROR: could not locate {anchor_name} in {appcast_path}", file=sys.stderr)
+        sys.exit(1)
+    return updated
+
 file_size = os.path.getsize(zip_path)
 pub_date = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S %z")
 
@@ -55,17 +63,15 @@ if os.path.exists(appcast_path) and os.path.getsize(appcast_path) > 0:
         content = handle.read()
 
     pattern = re.compile(
-        r"        <item>\n"
-        r"            <title>Version " + re.escape(version) + r"</title>\n"
-        r".*?</item>\n",
-        re.DOTALL,
+        r"^[ \t]*<item>\s*<title>Version " + re.escape(version) + r"</title>.*?</item>\s*",
+        re.MULTILINE | re.DOTALL,
     )
     content = pattern.sub("", content)
 
     if "</language>" in content:
-        content = content.replace("</language>\n", "</language>\n" + new_item, 1)
+        content = insert_after_first(r"</language>\s*", content, new_item, "</language>")
     else:
-        content = content.replace("<channel>\n", "<channel>\n" + new_item, 1)
+        content = insert_after_first(r"<channel>\s*", content, new_item, "<channel>")
 
     with open(appcast_path, "w", encoding="utf-8") as handle:
         handle.write(content)
