@@ -815,6 +815,29 @@
       position: relative;
     }
 
+    .download-note {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      margin-top: -12px;
+      margin-bottom: 28px;
+      color: var(--text-dim);
+      font-size: 13px;
+      position: relative;
+    }
+
+    .download-note a {
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .download-note a:hover {
+      color: var(--text);
+    }
+
     .cta-box .hero-actions {
       position: relative;
     }
@@ -960,7 +983,7 @@
         <a href="#use-cases">Use Cases</a>
         <a href="#story">Story</a>
         <a href="#how">Get Started</a>
-        <a href="https://github.com/hewigovens/ghosttile-cli" class="nav-cta">
+        <a href="#download" class="nav-cta">
           Download
         </a>
       </div>
@@ -1241,15 +1264,20 @@
   <section class="cta-section" id="download">
     <div class="cta-box reveal">
       <h2>Ready to reclaim your Dock?</h2>
-      <p>GhostTile 2.0 is completely free. Download and start hiding apps today.</p>
+      <p>GhostTile 2.0 is completely free. Download the latest release or install with Homebrew.</p>
+      <div class="download-note">
+        Latest release:
+        <a href="https://github.com/hewigovens/ghosttile-cli/releases/tag/v2.0.1">v2.0.1 on GitHub</a>
+      </div>
       <div class="hero-actions">
-        <a href="#" class="btn-primary">
+        <a href="https://github.com/hewigovens/ghosttile-cli/releases/download/v2.0.1/GhostTile-2.0.1.zip" class="btn-primary">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M8 2v9m0 0l-3-3m3 3l3-3M3 14h10"/>
           </svg>
           Download for macOS
         </a>
-        <a href="https://github.com/hewigovens/ghosttile-cli" class="btn-secondary">View on GitHub</a>
+        <a href="https://github.com/hewigovens/ghosttile-cli/releases" class="btn-secondary">GitHub Releases</a>
+        <a href="https://github.com/hewigovens/ghosttile-cli" class="btn-secondary">View source</a>
       </div>
     </div>
   </section>
