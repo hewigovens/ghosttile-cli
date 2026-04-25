@@ -33,16 +33,10 @@ enum SystemSettingsWindowTracker {
                 return nil
             }
 
-            guard let bounds = info[kCGWindowBounds as String] as? [String: CGFloat] else {
+            guard let cgFrame = cgRect(from: info[kCGWindowBounds as String]) else {
                 return nil
             }
 
-            let cgFrame = CGRect(
-                x: bounds["X"] ?? 0,
-                y: bounds["Y"] ?? 0,
-                width: bounds["Width"] ?? 0,
-                height: bounds["Height"] ?? 0
-            )
             let converted = appKitGeometry(from: cgFrame)
             guard converted.frame.width > 320, converted.frame.height > 240 else {
                 return nil
@@ -54,6 +48,34 @@ enum SystemSettingsWindowTracker {
         return windows.max {
             ($0.frame.width * $0.frame.height) < ($1.frame.width * $1.frame.height)
         }
+    }
+
+    private static func cgRect(from bounds: Any?) -> CGRect? {
+        guard let dictionary = bounds as? NSDictionary else {
+            return nil
+        }
+
+        if let rect = CGRect(dictionaryRepresentation: dictionary as CFDictionary) {
+            return rect
+        }
+
+        guard let originX = cgFloat(from: dictionary["X"]),
+              let originY = cgFloat(from: dictionary["Y"]),
+              let width = cgFloat(from: dictionary["Width"]),
+              let height = cgFloat(from: dictionary["Height"])
+        else {
+            return nil
+        }
+
+        return CGRect(x: originX, y: originY, width: width, height: height)
+    }
+
+    private static func cgFloat(from value: Any?) -> CGFloat? {
+        guard let number = value as? NSNumber else {
+            return nil
+        }
+
+        return CGFloat(number.doubleValue)
     }
 
     private static func appKitGeometry(from cgFrame: CGRect) -> (frame: CGRect, visibleFrame: CGRect) {
