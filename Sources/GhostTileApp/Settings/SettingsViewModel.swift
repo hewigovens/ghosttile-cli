@@ -9,12 +9,13 @@ final class SettingsViewModel: ObservableObject {
         case checking
         case notInstalled
         case installed
+        case updateAvailable(String)
         case failed(String)
     }
 
     @Published var cliStatus: CLIInstallStatus = .checking
 
-    let expectedCLIVersion = BuildInfo.displayVersion
+    let expectedCLIVersion = BuildInfo.cliDisplayVersion
 
     var versionTapCount = 0
     var lastVersionTapAt = Date.distantPast
@@ -29,6 +30,8 @@ final class SettingsViewModel: ObservableObject {
             "Checking"
         case .installed:
             "Installed"
+        case .updateAvailable:
+            "Update Available"
         case .notInstalled:
             "Optional"
         case .failed:
@@ -42,6 +45,8 @@ final class SettingsViewModel: ObservableObject {
             .secondary
         case .installed:
             .green
+        case .updateAvailable:
+            .blue
         case .notInstalled:
             .orange
         case .failed:
@@ -60,7 +65,7 @@ final class SettingsViewModel: ObservableObject {
 
     var cliActionTitle: String {
         switch cliStatus {
-        case .installed:
+        case .installed, .updateAvailable:
             "Reinstall CLI"
         case .checking, .notInstalled, .failed:
             "Install CLI"

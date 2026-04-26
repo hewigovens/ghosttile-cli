@@ -66,6 +66,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct GhostTileApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @Environment(\.openSettings) private var openSettings
     @StateObject private var viewModel = AppViewModel()
     @StateObject private var updater = SparkleUpdater()
     @State private var statusBar: StatusBarController?
@@ -82,7 +83,7 @@ struct GhostTileApp: App {
         window.title = "About GhostTile"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
-        window.setContentSize(NSSize(width: 300, height: 380))
+        window.setContentSize(NSSize(width: 340, height: 420))
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -128,6 +129,9 @@ struct GhostTileApp: App {
                         showMainWindow: showMainWindow,
                         showOverview: {
                             overviewController?.toggle()
+                        },
+                        showSettings: {
+                            openSettings()
                         }
                     )
                 }
