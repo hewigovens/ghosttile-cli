@@ -5,7 +5,24 @@
         <link>https://raw.githubusercontent.com/hewigovens/ghosttile-cli/main/docs/appcast.xml</link>
         <description>GhostTile updates</description>
         <language>en</language>
-                <item>
+                        <item>
+            <title>Version 2.0.3</title>
+            <sparkle:version>20</sparkle:version>
+            <sparkle:shortVersionString>2.0.3</sparkle:shortVersionString>
+            <pubDate>Sun, 26 Apr 2026 12:07:10 +0000</pubDate>
+            <description><![CDATA[
+                <ul>
+                  <li>Fixed the menu bar Settings item so it opens the Settings window reliably.</li>
+                  <li>Improved CLI install status messaging for app-only updates.</li>
+                  <li>Refined the About view with Sponsor and GitHub links.</li>
+                </ul>
+            ]]></description>
+            <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v2.0.3/GhostTile-2.0.3.zip"
+                       sparkle:edSignature="n3BFR00mbX+4r6LeKGDp6lPUCh7OQQtSnkUf2cAvW38lKFUTmtRwx8ZeFcWw4T96SAKB/QSpvz4IcGPtj6lnDA=="
+                       length="3957776"
+                       type="application/octet-stream"/>
+        </item>
+<item>
             <title>Version 2.0.2</title>
             <sparkle:version>19</sparkle:version>
             <sparkle:shortVersionString>2.0.2</sparkle:shortVersionString>

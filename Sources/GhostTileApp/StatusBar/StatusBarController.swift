@@ -11,18 +11,21 @@ class StatusBarController: NSObject, NSMenuDelegate {
     let updater: SparkleUpdater
     let showMainWindowAction: () -> Void
     let showOverview: () -> Void
+    let showSettings: () -> Void
     private lazy var menuBuilder = StatusBarMenuBuilder(controller: self)
 
     init(
         viewModel: AppViewModel,
         updater: SparkleUpdater,
         showMainWindow: @escaping () -> Void,
-        showOverview: @escaping () -> Void
+        showOverview: @escaping () -> Void,
+        showSettings: @escaping () -> Void
     ) {
         self.viewModel = viewModel
         self.updater = updater
         self.showMainWindowAction = showMainWindow
         self.showOverview = showOverview
+        self.showSettings = showSettings
         super.init()
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -100,7 +103,7 @@ class StatusBarController: NSObject, NSMenuDelegate {
 
     @objc func openSettings() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        showSettings()
     }
 
     @objc func openOverview() {

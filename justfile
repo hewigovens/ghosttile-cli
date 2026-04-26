@@ -78,8 +78,10 @@ install: build
     cp -r "{{app}}" /Applications/
     @echo "Installed to /Applications/{{app}}"
 
-version := "2.0.2"
-build_number := "19"
+# App release metadata. CLI versioning is independent; leave
+# BuildInfo.cliVersion/cliBuild unchanged for app-only releases.
+version := "2.0.3"
+build_number := "20"
 signing_identity := "Developer ID Application: Tao Xu (V28VJH6B6S)"
 
 dist: build

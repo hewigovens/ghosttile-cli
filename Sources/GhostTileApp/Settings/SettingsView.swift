@@ -161,6 +161,11 @@ struct SettingsView: View {
                                     case .installed:
                                         Text("Installed at \(CLIPaths.installedCLI) with support files.")
                                             .font(.system(size: 11)).foregroundStyle(.secondary)
+                                    case let .updateAvailable(installedVersion):
+                                        Text(
+                                            "Installed CLI is \(installedVersion). Bundled CLI is \(viewModel.expectedCLIVersion). Reinstall when you want the bundled copy."
+                                        )
+                                        .font(.system(size: 11)).foregroundStyle(.secondary)
                                     case .notInstalled:
                                         Text("Optional, but needed for some hardened or protected apps.")
                                             .font(.system(size: 11)).foregroundStyle(.secondary)

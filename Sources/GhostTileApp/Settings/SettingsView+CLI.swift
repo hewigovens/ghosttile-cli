@@ -13,9 +13,7 @@ extension SettingsViewModel {
                 if installedVersion == expectedCLIVersion {
                     cliStatus = .installed
                 } else {
-                    cliStatus = .failed(
-                        "Installed CLI is \(installedVersion). This app bundles \(expectedCLIVersion). Reinstall CLI to update it."
-                    )
+                    cliStatus = .updateAvailable(installedVersion)
                 }
             } catch {
                 cliStatus = .failed("Could not verify installed CLI version. Reinstall CLI to refresh it.")
