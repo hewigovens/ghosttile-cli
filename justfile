@@ -78,8 +78,8 @@ install: build
     cp -r "{{app}}" /Applications/
     @echo "Installed to /Applications/{{app}}"
 
-version := "2.0.1"
-build_number := "18"
+version := "2.0.2"
+build_number := "19"
 signing_identity := "Developer ID Application: Tao Xu (V28VJH6B6S)"
 
 dist: build
@@ -172,7 +172,7 @@ update-cask:
     sha256=$(shasum -a 256 "$zip_path" | cut -d' ' -f1)
     cask_path="../tap/Casks/ghosttile.rb"
     sed -i '' \
-      -e 's/version "[^"]*"/version "{{version}}"/' \
+      -e 's/version "[^"]*"/version "{{version}},{{build_number}}"/' \
       -e "s/sha256 \"[^\"]*\"/sha256 \"$sha256\"/" \
       "$cask_path"
     echo "Updated $cask_path with version {{version}} sha256 $sha256"
