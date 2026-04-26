@@ -5,7 +5,24 @@
         <link>https://raw.githubusercontent.com/hewigovens/ghosttile-cli/main/docs/appcast.xml</link>
         <description>GhostTile updates</description>
         <language>en</language>
-        <item>
+                <item>
+            <title>Version 2.0.2</title>
+            <sparkle:version>19</sparkle:version>
+            <sparkle:shortVersionString>2.0.2</sparkle:shortVersionString>
+            <pubDate>Sun, 26 Apr 2026 00:31:23 +0000</pubDate>
+            <description><![CDATA[
+                <ul>
+                  <li>Improved permission setup guidance for App Management and Screen &amp; System Audio Recording.</li>
+                  <li>Added a draggable helper overlay that follows System Settings and mirrors the permission list layout.</li>
+                  <li>Fixed Managed Apps ordering so non-running apps stay stable between refreshes.</li>
+                </ul>
+            ]]></description>
+            <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v2.0.2/GhostTile-2.0.2.zip"
+                       sparkle:edSignature="xmrregWMZQi8fePlhUJHO0wx3IzA/gZiZ9llKicOvDDhr3mAhRKeaCT8RXerOmtd59s73nCcekSl6SV1PIjQCQ=="
+                       length="3954107"
+                       type="application/octet-stream"/>
+        </item>
+<item>
             <title>Version 2.0.1</title>
             <sparkle:version>18</sparkle:version>
             <sparkle:shortVersionString>2.0.1</sparkle:shortVersionString>
