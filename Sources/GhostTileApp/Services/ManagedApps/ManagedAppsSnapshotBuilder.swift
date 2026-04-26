@@ -2,11 +2,6 @@ import AppKit
 import GhostTileCore
 import LSAppCategory
 
-struct ManagedAppsSnapshot {
-    let apps: [ManagedAppItem]
-    let managedBundleIds: Set<String>
-}
-
 enum ManagedAppsSnapshotBuilder {
     static func makeSnapshot() -> ManagedAppsSnapshot {
         let snapshot = ManagedAppStateReader.makeSnapshot()
