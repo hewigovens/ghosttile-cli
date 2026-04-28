@@ -5,7 +5,26 @@
         <link>https://raw.githubusercontent.com/hewigovens/ghosttile-cli/main/docs/appcast.xml</link>
         <description>GhostTile updates</description>
         <language>en</language>
-                        <item>
+                                <item>
+            <title>Version 2.0.4</title>
+            <sparkle:version>21</sparkle:version>
+            <sparkle:shortVersionString>2.0.4</sparkle:shortVersionString>
+            <pubDate>Tue, 28 Apr 2026 14:07:37 +0000</pubDate>
+            <description><![CDATA[
+                <ul>
+                  <li>Improved first-run onboarding with a Dock icon by default and a more compact permission setup flow.</li>
+                  <li>Added clearer permission guidance for App Management and Screen &amp; System Audio Recording.</li>
+                  <li>Installed the optional command line tool into <code>~/.local/bin</code> with PATH guidance when needed.</li>
+                  <li>Refined the main window sizing, empty state, settings update row, and onboarding visuals.</li>
+                  <li>Fixed Terminal command launch so manual sudo commands open a single Terminal window.</li>
+                </ul>
+            ]]></description>
+            <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v2.0.4/GhostTile-2.0.4.zip"
+                       sparkle:edSignature="LoV+P4ZZ6A0qnGLKukqyjFOe/lUFqcijQ0KbysDIGr+UjNwP5p9cDOKin1YH3yliy9LkO4zsHf9Qywi7tXbpAQ=="
+                       length="3998816"
+                       type="application/octet-stream"/>
+        </item>
+<item>
             <title>Version 2.0.3</title>
             <sparkle:version>20</sparkle:version>
             <sparkle:shortVersionString>2.0.3</sparkle:shortVersionString>
