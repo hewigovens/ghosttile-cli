@@ -6,7 +6,7 @@ import GhostTileCore
 class AppViewModel: ObservableObject, ManagedAppActions {
     @Published var showError = false
     @Published var errorMessage = ""
-    @Published var dockVisible = false
+    @Published var dockVisible = true
     @Published var sudoCommand: String?
 
     let managedAppsStore: ManagedAppsStore
@@ -66,7 +66,7 @@ class AppViewModel: ObservableObject, ManagedAppActions {
     }
 
     private func initializeState() {
-        let savedDockVisible = UserDefaults.standard.object(forKey: "showInDock") as? Bool ?? false
+        let savedDockVisible = UserDefaults.standard.object(forKey: "showInDock") as? Bool ?? true
         if savedDockVisible {
             NSApp.setActivationPolicy(.regular)
         } else {

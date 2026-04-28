@@ -6,7 +6,7 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage("autoHideOnLaunch") var autoHideOnLaunch = true
     @AppStorage("launchAtLogin") var launchAtLogin = false
-    @AppStorage("showInDock") var showInDock = false
+    @AppStorage("showInDock") var showInDock = true
     @StateObject var viewModel = SettingsViewModel()
     @ObservedObject var updater: SparkleUpdater
 
@@ -95,6 +95,7 @@ struct SettingsView: View {
                                 symbol: "arrow.clockwise.circle",
                                 action: { updater.checkForUpdates() }
                             )
+                            .disabled(!updater.canCheckForUpdates)
                         }
                     }
                 }
@@ -159,8 +160,19 @@ struct SettingsView: View {
                                         Text("Checking current installation status.")
                                             .font(.system(size: 11)).foregroundStyle(.secondary)
                                     case .installed:
-                                        Text("Installed at \(CLIPaths.installedCLI) with support files.")
+                                        Text("Installed at \(CLIPaths.installedDisplayPath) with support files.")
                                             .font(.system(size: 11)).foregroundStyle(.secondary)
+                                        if !viewModel.cliInstallDirectoryIsInPATH {
+                                            Text(
+                                                "\(CLIPaths.displayInstallDirectory) is not in your login shell PATH."
+                                            )
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(.secondary)
+                                            Text(viewModel.cliPathHint)
+                                                .font(.system(size: 10, design: .monospaced))
+                                                .foregroundStyle(.secondary)
+                                                .textSelection(.enabled)
+                                        }
                                     case let .updateAvailable(installedVersion):
                                         Text(
                                             "Installed CLI is \(installedVersion). Bundled CLI is \(viewModel.expectedCLIVersion). Reinstall when you want the bundled copy."

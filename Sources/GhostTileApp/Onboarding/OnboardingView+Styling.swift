@@ -34,12 +34,6 @@ extension OnboardingView {
                 .frame(width: 300, height: 300)
                 .blur(radius: 90)
                 .offset(x: 230, y: 220)
-
-            oldGhostTileWatermark
-                .frame(width: 110, height: 110)
-                .opacity(isDarkMode ? 0.08 : 0.06)
-                .rotationEffect(.degrees(-10))
-                .offset(x: 225, y: 185)
         }
         .ignoresSafeArea()
     }
@@ -99,14 +93,4 @@ extension OnboardingView {
         }
     }
 
-    @ViewBuilder
-    var oldGhostTileWatermark: some View {
-        let url = BundledResources.resourceURL(named: "appIcon-old.png")
-        if let img = NSImage(contentsOf: url) {
-            Image(nsImage: img)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .saturation(isDarkMode ? 0.2 : 0.1)
-        }
-    }
 }

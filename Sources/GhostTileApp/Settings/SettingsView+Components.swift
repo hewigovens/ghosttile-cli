@@ -72,20 +72,20 @@ enum SettingsUI {
         symbol: String,
         action: @escaping () -> Void
     ) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            SettingsRowIcon(symbol: symbol)
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 12) {
+                SettingsRowIcon(symbol: symbol)
 
-            Text(title)
-                .font(.system(size: 13, weight: .medium))
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
 
-            Spacer()
-
-            Button(action: action) {
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 11, weight: .semibold))
+                Spacer()
             }
-            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .foregroundStyle(.primary)
     }
 
     static var settingsBackground: some View {

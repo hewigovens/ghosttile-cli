@@ -57,7 +57,7 @@ targets:
         CFBundleIconName: app
         CFBundleShortVersionString: 2.0.3
         CFBundleVersion: "20"
-        LSUIElement: true
+        LSUIElement: false
         LSMinimumSystemVersion: "15.0"
         NSHighResolutionCapable: true
         NSAppleEventsUsageDescription: GhostTile needs permission to open Terminal for running commands with elevated privileges.

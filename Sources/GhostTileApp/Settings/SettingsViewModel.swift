@@ -14,6 +14,7 @@ final class SettingsViewModel: ObservableObject {
     }
 
     @Published var cliStatus: CLIInstallStatus = .checking
+    @Published var cliInstallDirectoryIsInPATH = true
 
     let expectedCLIVersion = BuildInfo.cliDisplayVersion
 
@@ -29,7 +30,7 @@ final class SettingsViewModel: ObservableObject {
         case .checking:
             "Checking"
         case .installed:
-            "Installed"
+            cliInstallDirectoryIsInPATH ? "Installed" : "Add to PATH"
         case .updateAvailable:
             "Update Available"
         case .notInstalled:
@@ -44,7 +45,7 @@ final class SettingsViewModel: ObservableObject {
         case .checking:
             .secondary
         case .installed:
-            .green
+            cliInstallDirectoryIsInPATH ? .green : .orange
         case .updateAvailable:
             .blue
         case .notInstalled:
@@ -70,5 +71,9 @@ final class SettingsViewModel: ObservableObject {
         case .checking, .notInstalled, .failed:
             "Install CLI"
         }
+    }
+
+    var cliPathHint: String {
+        CLIEnvironment.pathHint(for: CLIPaths.installDirectory)
     }
 }

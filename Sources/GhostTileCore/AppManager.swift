@@ -48,8 +48,8 @@ public enum AppManager {
         try AppPreparationManager.needsSudo(app)
     }
 
-    public static func prepare(_ app: AppInfo) throws {
-        try AppPreparationManager.prepare(app)
+    public static func prepare(_ app: AppInfo, cliPath: String = "ghosttile") throws {
+        try AppPreparationManager.prepare(app, cliPath: cliPath)
     }
 
     public static func extractEntitlements(_ binaryPath: String) throws -> [String: Any] {

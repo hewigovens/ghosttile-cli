@@ -35,7 +35,7 @@ struct OnboardingView: View {
             }
             .padding(24)
         }
-        .frame(width: 620, height: 520)
+        .frame(width: 660, height: 580)
         .background(OnboardingWindowCenterer())
         .onAppear { viewModel.onAppear() }
         .onDisappear { viewModel.onDisappear() }

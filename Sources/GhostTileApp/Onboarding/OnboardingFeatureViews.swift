@@ -37,18 +37,14 @@ struct WorkflowCard: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(tint.opacity(0.12))
-                VStack(spacing: 4) {
-                    Text(step)
-                        .font(.system(size: 16, weight: .bold))
-                    Image(systemName: systemImage)
-                        .font(.system(size: 16, weight: .semibold))
-                }
-                .foregroundStyle(tint)
+                Image(systemName: systemImage)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(tint)
             }
             .frame(width: 64, height: 64)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text("\(step). \(title)")
                     .font(.system(size: 15, weight: .semibold))
                 Text(subtitle)
                     .font(.system(size: 12))

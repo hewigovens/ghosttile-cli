@@ -35,7 +35,12 @@ struct MainWindowView: View {
             .padding(.top, 20)
             .padding(.bottom, 22)
         }
-        .frame(minWidth: 940, idealWidth: 1040, minHeight: 680, idealHeight: 760)
+        .frame(
+            minWidth: MainWindowLayoutMetrics.minWidth,
+            idealWidth: MainWindowLayoutMetrics.idealWidth,
+            minHeight: MainWindowLayoutMetrics.minHeight,
+            idealHeight: MainWindowLayoutMetrics.idealHeight
+        )
         .onAppear { appViewModel.refresh() }
         .alert("Error", isPresented: $appViewModel.showError) {
             Button("OK") {}

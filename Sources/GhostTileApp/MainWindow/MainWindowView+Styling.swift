@@ -35,11 +35,14 @@ extension MainWindowView {
                 .blur(radius: 100)
                 .offset(x: 260, y: 240)
 
+        }
+        .overlay(alignment: .bottomTrailing) {
             oldGhostTileWatermark
                 .frame(width: 108, height: 108)
                 .opacity(isDarkMode ? 0.08 : 0.06)
                 .rotationEffect(.degrees(-8))
-                .offset(x: 440, y: 300)
+                .padding(.trailing, 28)
+                .padding(.bottom, 24)
         }
         .ignoresSafeArea()
     }
