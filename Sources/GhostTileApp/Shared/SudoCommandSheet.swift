@@ -60,8 +60,8 @@ struct SudoCommandSheet: View {
         let escaped = cmd.escapedForAppleScript
         let script = """
         tell application "Terminal"
-            activate
             do script "\(escaped)"
+            activate
         end tell
         """
         if let appleScript = NSAppleScript(source: script) {

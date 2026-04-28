@@ -9,11 +9,15 @@ enum AppOperations {
         }
 
         if try AppManager.needsSudo(app) {
-            return .requiresSudo(command: "sudo \(cliPath) manage \(app.bundleId)")
+            return .requiresSudo(command: ShellCommand.format(
+                executable: cliPath,
+                arguments: ["manage", app.bundleId],
+                requiresSudo: true
+            ))
         }
 
         if try AppManager.needsPreparation(app) {
-            try AppManager.prepare(app)
+            try AppManager.prepare(app, cliPath: cliPath)
         }
 
         try AppManager.quit(app.bundleId)

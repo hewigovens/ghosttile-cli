@@ -140,7 +140,10 @@ struct GhostTileApp: App {
                 SponsorNudgeController.shared.considerPrompt()
             }
         }
-        .defaultSize(width: 1040, height: 760)
+        .defaultSize(
+            width: MainWindowLayoutMetrics.idealWidth,
+            height: MainWindowLayoutMetrics.idealHeight
+        )
         .windowResizability(onboardingComplete ? .contentMinSize : .contentSize)
         .defaultPosition(.center)
 
@@ -149,15 +152,26 @@ struct GhostTileApp: App {
         }
         .commands {
             CommandGroup(replacing: .appInfo) {
-                Button("About GhostTile") {
+                Button {
                     showAboutWindow()
+                } label: {
+                    Label("About GhostTile", systemImage: "info.circle")
                 }
-            }
-            CommandGroup(after: .appInfo) {
-                Button("Check for Updates…") {
+
+                Button {
                     updater.checkForUpdates()
+                } label: {
+                    Label("Check for Updates…", systemImage: "arrow.down.circle")
                 }
                 .disabled(!updater.canCheckForUpdates)
+
+                Divider()
+
+                Button {
+                    CLIInstaller.installWithFeedback()
+                } label: {
+                    Label("Install Command Line Tool…", systemImage: "terminal")
+                }
             }
         }
     }

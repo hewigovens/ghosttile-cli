@@ -36,6 +36,7 @@ extension OnboardingView {
                     }
                 }
                 .buttonStyle(.bordered)
+                .accessibilityIdentifier("onboarding.back")
             }
 
             if viewModel.step < viewModel.totalSteps - 1 {
@@ -45,12 +46,14 @@ extension OnboardingView {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("onboarding.continue")
             } else {
                 Button("Get Started") {
                     viewModel.completeOnboarding()
                     withAnimation { isComplete = true }
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("onboarding.getStarted")
             }
         }
     }
@@ -150,12 +153,13 @@ extension OnboardingView {
                     .font(.system(size: 22, weight: .bold, design: .rounded))
 
                 Text(
-                    "GhostTile needs App Management to prepare apps safely. Terminal helps with protected apps, and Screen & System Audio Recording enables live Overview previews."
+                    "Grant GhostTile first. Terminal and CLI are optional recovery tools for protected apps."
                 )
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
+                .lineLimit(2)
 
-                PermissionsView()
+                PermissionsView(isCompact: true)
             }
         }
     }

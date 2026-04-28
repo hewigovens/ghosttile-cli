@@ -25,7 +25,7 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>
-	<true/>
+	<false/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>GhostTile needs permission to open Terminal for running commands with elevated privileges.</string>
 	<key>NSHighResolutionCapable</key>

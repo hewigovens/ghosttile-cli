@@ -46,7 +46,7 @@ enum AppPreparationManager {
         Log.info("Backed up binary for \(app.name) to \(destination)")
     }
 
-    static func prepare(_ app: AppInfo) throws {
+    static func prepare(_ app: AppInfo, cliPath: String = "ghosttile") throws {
         Log.info("Preparing \(app.name) (\(app.bundleId)) at \(app.appPath)")
 
         try backupBinary(app)
@@ -93,7 +93,7 @@ enum AppPreparationManager {
         } catch {
             Log.error("Failed to re-sign bundle for \(app.name): \(error)")
             throw GhostTileError(
-                "\(app.name) requires a manual step. Run in Terminal: sudo ghosttile hide \(app.bundleId)"
+                "\(app.name) requires a manual step. Run in Terminal: \(ShellCommand.format(executable: cliPath, arguments: ["manage", app.bundleId], requiresSudo: true))"
             )
         }
     }

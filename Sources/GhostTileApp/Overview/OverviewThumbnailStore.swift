@@ -19,6 +19,7 @@ final class OverviewThumbnailStore: ObservableObject {
 
     private var lastCaptureAt: [String: Date] = [:]
     private var inFlight: Set<String> = []
+    private var permissionRefreshTask: Task<Void, Never>?
     private let captureCooldown: TimeInterval = 15
     private let targetSize = NSSize(width: 520, height: 320)
 
@@ -95,7 +96,22 @@ final class OverviewThumbnailStore: ObservableObject {
     }
 
     private func refreshCapturePermissionState() {
-        capturePermissionState = CGPreflightScreenCaptureAccess() ? .available : .needsAccess
+        permissionRefreshTask?.cancel()
+
+        if CGPreflightScreenCaptureAccess() {
+            capturePermissionState = .available
+            permissionRefreshTask = nil
+            return
+        }
+
+        capturePermissionState = .unknown
+        permissionRefreshTask = Task { @MainActor in
+            let isAllowed = await ScreenCapturePermissionStatusReader.isAllowed()
+            guard !Task.isCancelled else { return }
+
+            capturePermissionState = isAllowed ? .available : .needsAccess
+            permissionRefreshTask = nil
+        }
     }
 
     private func shouldCapture(bundleId: String, force: Bool) -> Bool {

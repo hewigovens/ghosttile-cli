@@ -10,6 +10,10 @@ struct PermissionGuidanceTarget {
     let bundleURL: URL
     let icon: NSImage
 
+    var bundleIdentifier: String? {
+        Bundle(url: bundleURL)?.bundleIdentifier
+    }
+
     var fileName: String {
         let name = bundleURL.lastPathComponent
         return name.isEmpty ? "\(displayName).app" : name

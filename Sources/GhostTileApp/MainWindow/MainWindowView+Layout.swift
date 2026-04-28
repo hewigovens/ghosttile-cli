@@ -151,7 +151,7 @@ extension MainWindowView {
     var managedEmptyState: some View {
         let emptyTitle = viewModel.query.isEmpty ? "No managed apps yet" : "No matching managed apps"
         let emptySubtitle = viewModel.query.isEmpty
-            ? "Add an app or drag one in from Finder to start building your hidden set."
+            ? "Drop an app here, or use Add App in the toolbar to choose one from Finder."
             : "Try a different search term or clear the search field."
 
         return VStack(spacing: 18) {
@@ -172,10 +172,6 @@ extension MainWindowView {
                     .frame(maxWidth: 420)
             }
 
-            if viewModel.query.isEmpty {
-                Button("Add App", action: { viewModel.selectAppToHide(with: appViewModel) })
-                    .buttonStyle(.borderedProminent)
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(32)

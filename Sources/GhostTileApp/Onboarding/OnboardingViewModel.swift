@@ -8,6 +8,9 @@ final class OnboardingViewModel: ObservableObject {
     @Published var iconOpacity = 0.0
 
     let totalSteps = 3
+    private static let iconLoopInitialDelay: Duration = .seconds(1.1)
+    private static let iconFlipDuration = 0.8
+    private static let iconFlipInterval: Duration = .seconds(1.8)
     private var iconLoopTask: Task<Void, Never>?
 
     func onAppear() {
@@ -30,14 +33,14 @@ final class OnboardingViewModel: ObservableObject {
     private func startIconLoop() {
         iconLoopTask?.cancel()
         iconLoopTask = Task {
-            try? await Task.sleep(for: .seconds(0.9))
+            try? await Task.sleep(for: Self.iconLoopInitialDelay)
             while !Task.isCancelled {
                 await MainActor.run {
-                    withAnimation(.easeInOut(duration: 0.7)) {
+                    withAnimation(.easeInOut(duration: Self.iconFlipDuration)) {
                         iconFlipped.toggle()
                     }
                 }
-                try? await Task.sleep(for: .seconds(1.4))
+                try? await Task.sleep(for: Self.iconFlipInterval)
             }
         }
     }

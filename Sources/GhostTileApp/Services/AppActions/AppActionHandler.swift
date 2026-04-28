@@ -92,7 +92,11 @@ final class AppActionHandler {
         } onResult: { [weak viewModel] _ in
             viewModel?.recordSponsorUse()
         } onError: { [weak viewModel] _ in
-            viewModel?.sudoCommand = "sudo \(cli) restore \(info.bundleId)"
+            viewModel?.sudoCommand = ShellCommand.format(
+                executable: cli,
+                arguments: ["restore", info.bundleId],
+                requiresSudo: true
+            )
         }
     }
 
