@@ -80,8 +80,8 @@ install: build
 
 # App release metadata. CLI versioning is independent; leave
 # BuildInfo.cliVersion/cliBuild unchanged for app-only releases.
-version := "2.0.3"
-build_number := "20"
+version := "2.0.4"
+build_number := "21"
 signing_identity := "Developer ID Application: Tao Xu (V28VJH6B6S)"
 
 dist: build
