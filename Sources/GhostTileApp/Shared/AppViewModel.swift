@@ -66,7 +66,7 @@ class AppViewModel: ObservableObject, ManagedAppActions {
     }
 
     private func initializeState() {
-        let savedDockVisible = UserDefaults.standard.object(forKey: "showInDock") as? Bool ?? true
+        let savedDockVisible = AppUserDefaults.store.object(forKey: "showInDock") as? Bool ?? true
         if savedDockVisible {
             NSApp.setActivationPolicy(.regular)
         } else {
@@ -151,7 +151,7 @@ class AppViewModel: ObservableObject, ManagedAppActions {
     // MARK: - Dock Visibility
 
     func autoHideIfNeeded(_ bundleId: String) {
-        let autoHide = UserDefaults.standard.object(forKey: "autoHideOnLaunch") as? Bool ?? true
+        let autoHide = AppUserDefaults.store.object(forKey: "autoHideOnLaunch") as? Bool ?? true
         dockVisibilityController.autoHideIfNeeded(bundleId, autoHideEnabled: autoHide)
     }
 
@@ -173,7 +173,7 @@ class AppViewModel: ObservableObject, ManagedAppActions {
             dockVisible = true
             openWindow?()
         }
-        UserDefaults.standard.set(dockVisible, forKey: "showInDock")
+        AppUserDefaults.store.set(dockVisible, forKey: "showInDock")
     }
 
     // MARK: - ManagedAppActions

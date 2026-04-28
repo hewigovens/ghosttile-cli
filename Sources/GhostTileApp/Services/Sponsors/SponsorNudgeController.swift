@@ -15,7 +15,7 @@ final class SponsorNudgeController: ObservableObject {
         static let completed = "sponsorNudgeCompleted"
     }
 
-    private let defaults = UserDefaults.standard
+    private let defaults = AppUserDefaults.store
     private let firstPromptUsageThreshold = 6
     private let repeatPromptUsageInterval = 15
     private let remindCooldown: TimeInterval = 60 * 60 * 24 * 14

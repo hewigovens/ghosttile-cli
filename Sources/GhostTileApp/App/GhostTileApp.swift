@@ -71,7 +71,7 @@ struct GhostTileApp: App {
     @StateObject private var updater = SparkleUpdater()
     @State private var statusBar: StatusBarController?
     @State private var overviewController: OverviewWindowController?
-    @AppStorage("onboardingComplete") private var onboardingComplete = false
+    @AppStorage("onboardingComplete", store: AppUserDefaults.store) private var onboardingComplete = false
 
     private func showAboutWindow() {
         if let existing = NSApp.windows.first(where: { $0.title == "About GhostTile" }) {

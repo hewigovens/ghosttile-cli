@@ -10,7 +10,7 @@ public enum ManagedAppStateReader {
         let visibleRunningApps = runningApps
             .filter { app in
                 guard let bundleId = app.bundleIdentifier else { return false }
-                if bundleId == "dev.hewig.ghosttile" { return false }
+                if bundleId == AppConstants.bundleIdentifier { return false }
                 return app.activationPolicy == .regular || config.hidden[bundleId] != nil
             }
 
