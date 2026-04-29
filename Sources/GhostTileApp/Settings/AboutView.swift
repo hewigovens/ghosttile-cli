@@ -3,7 +3,7 @@ import GhostTileCore
 import SwiftUI
 
 struct AboutView: View {
-    @AppStorage("onboardingComplete") var onboardingComplete = true
+    @AppStorage("onboardingComplete", store: AppUserDefaults.store) var onboardingComplete = false
 
     var body: some View {
         VStack(spacing: 0) {

@@ -23,6 +23,25 @@ packages:
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     exactVersion: 2.9.0
+schemes:
+  GhostTileApp:
+    build:
+      targets:
+        GhostTileApp: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  GhostTileUITests:
+    build:
+      targets:
+        GhostTileApp: all
+        GhostTileUITests: test
+    test:
+      config: Debug
+      gatherCoverageData: false
+      targets:
+        - GhostTileUITests
 targets:
   GhostTileCore:
     type: library.static
@@ -110,3 +129,16 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.hewig.ghosttile.cli
         PRODUCT_NAME: ghosttile
+  GhostTileUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: Tests/GhostTileUITests
+    dependencies:
+      - target: GhostTileApp
+      - target: GhostTileCore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: GhostTileApp

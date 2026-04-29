@@ -26,10 +26,6 @@ final class OnboardingViewModel: ObservableObject {
         iconLoopTask = nil
     }
 
-    func completeOnboarding() {
-        UserDefaults.standard.set(true, forKey: "onboardingComplete")
-    }
-
     private func startIconLoop() {
         iconLoopTask?.cancel()
         iconLoopTask = Task {

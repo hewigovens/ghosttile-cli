@@ -2,7 +2,7 @@ import Foundation
 import os.log
 
 public enum Log {
-    private static let osLog = OSLog(subsystem: "dev.hewig.ghosttile", category: "general")
+    private static let osLog = OSLog(subsystem: AppConstants.bundleIdentifier, category: "general")
     private static let logFileURL: URL = {
         let home: String = if let sudoUser = ProcessInfo.processInfo.environment["SUDO_USER"],
                               let passwd = getpwnam(sudoUser)

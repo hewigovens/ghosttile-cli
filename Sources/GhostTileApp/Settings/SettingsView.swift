@@ -4,9 +4,9 @@ import KeyboardShortcuts
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("autoHideOnLaunch") var autoHideOnLaunch = true
-    @AppStorage("launchAtLogin") var launchAtLogin = false
-    @AppStorage("showInDock") var showInDock = true
+    @AppStorage("autoHideOnLaunch", store: AppUserDefaults.store) var autoHideOnLaunch = true
+    @AppStorage("launchAtLogin", store: AppUserDefaults.store) var launchAtLogin = false
+    @AppStorage("showInDock", store: AppUserDefaults.store) var showInDock = true
     @StateObject var viewModel = SettingsViewModel()
     @ObservedObject var updater: SparkleUpdater
 

@@ -57,6 +57,9 @@ jobs:
       - name: Run tests
         run: swift test
 
+      - name: Run UI tests
+        run: just test-ui
+
       - name: Install Raycast extension dependencies
         working-directory: raycast
         run: pnpm install --frozen-lockfile

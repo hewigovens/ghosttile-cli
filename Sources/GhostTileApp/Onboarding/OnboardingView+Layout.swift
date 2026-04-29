@@ -49,7 +49,6 @@ extension OnboardingView {
                 .accessibilityIdentifier("onboarding.continue")
             } else {
                 Button("Get Started") {
-                    viewModel.completeOnboarding()
                     withAnimation { isComplete = true }
                 }
                 .buttonStyle(.borderedProminent)

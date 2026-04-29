@@ -74,6 +74,27 @@ kill:
 
 restart: kill run
 
+# Run macOS UI tests. Pass a test id to narrow the run, e.g.:
+#   just test-ui GhostTileUITests/OnboardingFlowTests/testCompletesOnboardingToMainWindow
+test-ui test_id='': build-cli
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p Sources/GhostTileApp/app.icon/Assets
+    cp docs/imgs/icon.svg Sources/GhostTileApp/app.icon/Assets/ghost.svg
+    xcodegen generate --spec project.yml --project .
+    args=(
+        -project GhostTile.xcodeproj
+        -scheme GhostTileUITests
+        -configuration Debug
+        -sdk macosx
+        -derivedDataPath .build/DerivedData
+        -parallel-testing-enabled NO
+    )
+    if [[ -n "{{test_id}}" ]]; then
+        args+=(-only-testing:"{{test_id}}")
+    fi
+    xcodebuild "${args[@]}" test | xcbeautify
+
 install: build
     cp -r "{{app}}" /Applications/
     @echo "Installed to /Applications/{{app}}"
