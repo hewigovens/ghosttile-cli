@@ -60,10 +60,53 @@
       font-family: 'JetBrains Mono', 'SF Mono', monospace;
     }
 
+    /* ── Beta banner ── */
+    .beta-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 101;
+      padding: 8px 16px;
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.15), rgba(236, 72, 153, 0.15));
+      border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .beta-banner .beta-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      margin-right: 8px;
+      border-radius: 4px;
+      background: var(--orange);
+      color: #06080f;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+
+    .beta-banner a {
+      color: var(--orange);
+      font-weight: 600;
+      text-decoration: none;
+      margin-left: 6px;
+    }
+
+    .beta-banner a:hover {
+      text-decoration: underline;
+    }
+
     /* ── Nav ── */
     nav {
       position: fixed;
-      top: 0;
+      top: 36px;
       left: 0;
       right: 0;
       z-index: 100;
@@ -145,7 +188,7 @@
       position: relative;
       max-width: 1100px;
       margin: 0 auto;
-      padding: 160px 24px 80px;
+      padding: 196px 24px 80px;
       text-align: center;
     }
 
@@ -877,7 +920,16 @@
     /* ── Responsive ── */
     @media (max-width: 768px) {
       .hero {
-        padding-top: 120px;
+        padding-top: 156px;
+      }
+
+      .beta-banner {
+        font-size: 12px;
+        padding: 6px 12px;
+      }
+
+      nav {
+        top: 32px;
       }
 
       .hero h1 {
@@ -970,6 +1022,11 @@
 </head>
 
 <body>
+
+  <!-- Beta banner -->
+  <div class="beta-banner">
+    <span class="beta-tag">Beta</span>GhostTile 2.0 is in early beta testing — feedback and bug reports welcome.<a href="https://github.com/hewigovens/ghosttile-cli/issues">Report an issue →</a>
+  </div>
 
   <!-- Nav -->
   <nav>
