@@ -2,6 +2,7 @@ import Foundation
 
 enum MachOEditor {
     static let ghosthideInstallName = "@rpath/ghosthide.dylib"
+    static let frameworksRpath = "@executable_path/../Frameworks"
 
     private static let fatMagic: UInt32 = 0xCAFE_BABE
     private static let fatMagic64: UInt32 = 0xCAFE_BABF
@@ -12,6 +13,7 @@ enum MachOEditor {
     private static let lcLoadDylib: UInt32 = 0xC
     private static let lcLoadWeakDylib: UInt32 = 0x18 | 0x8000_0000
     private static let lcSegment64: UInt32 = 0x19
+    private static let lcRpath: UInt32 = 0x1C | 0x8000_0000
     private static let lcBuildVersion: UInt32 = 0x32
     private static let reservedCodeSignatureCommandSpace = 16
 
@@ -33,6 +35,25 @@ enum MachOEditor {
         for slice in try slices(in: data) {
             // swiftlint:disable:next for_where
             if try insertGhosthideLoadCommand(into: &data, slice: slice) {
+                modified = true
+            }
+        }
+
+        if modified {
+            try data.write(to: URL(fileURLWithPath: binaryPath))
+        }
+
+        return modified
+    }
+
+    @discardableResult
+    static func ensureFrameworksRpath(in binaryPath: String) throws -> Bool {
+        var data = try Data(contentsOf: URL(fileURLWithPath: binaryPath))
+        var modified = false
+
+        for slice in try slices(in: data) {
+            // swiftlint:disable:next for_where
+            if try insertRpathIfMissing(into: &data, slice: slice, rpath: frameworksRpath) {
                 modified = true
             }
         }
@@ -80,11 +101,15 @@ enum MachOEditor {
     private static func sliceHasGhosthideLoadCommand(_ data: Data, slice: Slice) throws -> Bool {
         let header = try parseHeader(data, slice: slice)
         var cursor = header.commandsOffset
+        let commandsEnd = header.commandsOffset + header.sizeofcmds
         for _ in 0 ..< header.ncmds {
+            let cmdsize = try validateLoadCommand(data, at: cursor, end: commandsEnd)
             let cmd = readUInt32LE(data, at: cursor)
-            let cmdsize = Int(readUInt32LE(data, at: cursor + 4))
             if cmd == lcLoadDylib || cmd == lcLoadWeakDylib {
                 let nameOffset = Int(readUInt32LE(data, at: cursor + 8))
+                guard nameOffset >= 12, nameOffset < cmdsize else {
+                    throw GhostTileError("Malformed load command: name offset out of bounds.")
+                }
                 let name = readCString(data, at: cursor + nameOffset, maxLength: cmdsize - nameOffset)
                 if name == ghosthideInstallName {
                     return true
@@ -101,6 +126,56 @@ enum MachOEditor {
         }
 
         let command = makeDylibCommand(path: ghosthideInstallName)
+        return try insertCommand(into: &data, slice: slice, command: command, label: "ghosthide.dylib")
+    }
+
+    private static func insertRpathIfMissing(into data: inout Data, slice: Slice, rpath: String) throws -> Bool {
+        if try sliceHasRpath(data, slice: slice, rpath: rpath) {
+            return false
+        }
+        let command = makeRpathCommand(path: rpath)
+        return try insertCommand(into: &data, slice: slice, command: command, label: "rpath \(rpath)")
+    }
+
+    private static func sliceHasRpath(_ data: Data, slice: Slice, rpath: String) throws -> Bool {
+        let header = try parseHeader(data, slice: slice)
+        var cursor = header.commandsOffset
+        let commandsEnd = header.commandsOffset + header.sizeofcmds
+        for _ in 0 ..< header.ncmds {
+            let cmdsize = try validateLoadCommand(data, at: cursor, end: commandsEnd)
+            let cmd = readUInt32LE(data, at: cursor)
+            if cmd == lcRpath {
+                let pathOffset = Int(readUInt32LE(data, at: cursor + 8))
+                guard pathOffset >= 12, pathOffset < cmdsize else {
+                    throw GhostTileError("Malformed LC_RPATH: path offset out of bounds.")
+                }
+                let name = readCString(data, at: cursor + pathOffset, maxLength: cmdsize - pathOffset)
+                if name == rpath {
+                    return true
+                }
+            }
+            cursor += cmdsize
+        }
+        return false
+    }
+
+    private static func validateLoadCommand(_ data: Data, at cursor: Int, end: Int) throws -> Int {
+        guard cursor + 8 <= end, cursor + 8 <= data.count else {
+            throw GhostTileError("Malformed Mach-O: load command header runs past commands region.")
+        }
+        let cmdsize = Int(readUInt32LE(data, at: cursor + 4))
+        guard cmdsize >= 8, cursor + cmdsize <= end else {
+            throw GhostTileError("Malformed Mach-O: load command size invalid (\(cmdsize)).")
+        }
+        return cmdsize
+    }
+
+    private static func insertCommand(
+        into data: inout Data,
+        slice: Slice,
+        command: Data,
+        label: String
+    ) throws -> Bool {
         var header = try parseHeader(data, slice: slice)
         var availableSpace = try availableHeaderSpace(data, slice: slice, header: header)
 
@@ -116,7 +191,7 @@ enum MachOEditor {
 
         guard availableSpace >= command.count + reservedCodeSignatureCommandSpace else {
             throw GhostTileError(
-                "Not enough Mach-O header space to add ghosthide.dylib to \(sliceDescription(slice, header: header))."
+                "Not enough Mach-O header space to add \(label) to \(sliceDescription(slice, header: header))."
             )
         }
 
@@ -196,6 +271,17 @@ enum MachOEditor {
         writeUInt32LE(&command, at: 16, value: 0)
         writeUInt32LE(&command, at: 20, value: 0)
         command.replaceSubrange(24 ..< (24 + pathBytes.count), with: pathBytes)
+        return command
+    }
+
+    private static func makeRpathCommand(path: String) -> Data {
+        let pathBytes = Array(path.utf8) + [0]
+        let cmdsize = align(12 + pathBytes.count, to: 8)
+        var command = Data(count: cmdsize)
+        writeUInt32LE(&command, at: 0, value: lcRpath)
+        writeUInt32LE(&command, at: 4, value: UInt32(cmdsize))
+        writeUInt32LE(&command, at: 8, value: 12)
+        command.replaceSubrange(12 ..< (12 + pathBytes.count), with: pathBytes)
         return command
     }
 

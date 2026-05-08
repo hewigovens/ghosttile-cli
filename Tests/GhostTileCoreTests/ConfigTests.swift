@@ -1,31 +1,26 @@
+import Foundation
 @testable import GhostTileCore
-import XCTest
+import Testing
 
-final class ConfigTests: XCTestCase {
-    private var tempDir: URL!
+@Suite("Config", .serialized) // Config.configDirOverride is global state — must not race.
+final class ConfigTests {
+    private let tempDir: TestTempDirectory
 
-    override func setUp() {
-        super.setUp()
-        tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ghosttile-config-tests-\(UUID().uuidString)")
-        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+    init() throws {
+        tempDir = try TestTempDirectory(prefix: "ghosttile-config-tests")
         Config.configDirOverride = tempDir.path
     }
 
-    override func tearDown() {
+    deinit {
         Config.configDirOverride = nil
-        if let tempDir {
-            try? FileManager.default.removeItem(at: tempDir)
-        }
-        super.tearDown()
     }
 
-    func testLoadReturnsDefaultWhenNoFile() {
+    @Test func loadReturnsDefaultWhenNoFile() {
         let config = Config.load()
-        XCTAssertTrue(config.hidden.isEmpty, "default config should have no hidden apps")
+        #expect(config.hidden.isEmpty, "default config should have no hidden apps")
     }
 
-    func testSaveAndLoadRoundTrip() throws {
+    @Test func saveAndLoadRoundTrip() throws {
         var config = GhostTileConfig()
         config.hidden["com.example.app"] = HiddenApp(
             name: "Example",
@@ -37,13 +32,13 @@ final class ConfigTests: XCTestCase {
         try Config.save(config)
         let loaded = Config.load()
 
-        XCTAssertEqual(loaded.hidden.count, 1)
-        XCTAssertEqual(loaded.hidden["com.example.app"]?.name, "Example")
-        XCTAssertEqual(loaded.hidden["com.example.app"]?.appPath, "/Applications/Example.app")
-        XCTAssertEqual(loaded.hidden["com.example.app"]?.prepared, true)
+        #expect(loaded.hidden.count == 1)
+        #expect(loaded.hidden["com.example.app"]?.name == "Example")
+        #expect(loaded.hidden["com.example.app"]?.appPath == "/Applications/Example.app")
+        #expect(loaded.hidden["com.example.app"]?.prepared == true)
     }
 
-    func testAddHidden() throws {
+    @Test func addHidden() throws {
         try Config.addHidden("com.test.app", app: HiddenApp(
             name: "Test",
             appPath: "/Applications/Test.app",
@@ -52,11 +47,11 @@ final class ConfigTests: XCTestCase {
         ))
 
         let config = Config.load()
-        XCTAssertNotNil(config.hidden["com.test.app"])
-        XCTAssertEqual(config.hidden["com.test.app"]?.name, "Test")
+        #expect(config.hidden["com.test.app"] != nil)
+        #expect(config.hidden["com.test.app"]?.name == "Test")
     }
 
-    func testRemoveHidden() throws {
+    @Test func removeHidden() throws {
         try Config.addHidden("com.test.app", app: HiddenApp(
             name: "Test",
             appPath: "/Applications/Test.app",
@@ -66,6 +61,6 @@ final class ConfigTests: XCTestCase {
 
         try Config.removeHidden("com.test.app")
         let config = Config.load()
-        XCTAssertNil(config.hidden["com.test.app"])
+        #expect(config.hidden["com.test.app"] == nil)
     }
 }

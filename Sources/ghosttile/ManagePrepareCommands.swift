@@ -8,6 +8,10 @@ extension GhostTile {
             abstract: "Add an app to the managed list and hide it from Dock."
         )
         @Flag(name: .long, help: "Force re-preparation before relaunching the app.") var forcePrepare = false
+        @Flag(
+            name: .long,
+            help: "Proceed despite compatibility warnings about features that may break after preparation."
+        ) var acceptWarnings = false
         @Argument(help: "Bundle ID, app name, or app bundle path.") var app: String
 
         func run() throws {
@@ -21,7 +25,8 @@ extension GhostTile {
             }
 
             try validateNotSIPProtected(resolved)
-            try prepareIfNeeded(resolved, force: forcePrepare)
+            try validateCompatibility(resolved, acceptWarnings: acceptWarnings)
+            try prepareIfNeeded(resolved, force: forcePrepare, acceptWarnings: acceptWarnings)
 
             print("Restarting \(resolved.name)...")
             try AppManager.quit(resolved.bundleId)
@@ -49,6 +54,10 @@ extension GhostTile {
             abstract: "Prepare an app for GhostTile without relaunching it."
         )
         @Flag(name: .long, help: "Force re-preparation even if the app already appears prepared.") var force = false
+        @Flag(
+            name: .long,
+            help: "Proceed despite compatibility warnings about features that may break after preparation."
+        ) var acceptWarnings = false
         @Argument(help: "Bundle ID, app name, or app bundle path.") var app: String
 
         func run() throws {
@@ -61,7 +70,8 @@ extension GhostTile {
                 return
             }
 
-            try prepareIfNeeded(resolved, force: force)
+            try validateCompatibility(resolved, acceptWarnings: acceptWarnings)
+            try prepareIfNeeded(resolved, force: force, acceptWarnings: acceptWarnings)
             print("\(resolved.name) prepared. No relaunch performed.")
         }
     }

@@ -13,6 +13,10 @@ final class AppActionHandler {
     }
 
     func hideRunningApp(_ app: ManagedAppItem) {
+        hideRunningApp(app, acceptWarnings: false)
+    }
+
+    private func hideRunningApp(_ app: ManagedAppItem, acceptWarnings: Bool) {
         guard let viewModel, !loading.contains(app.id) else { return }
 
         if app.isSIPProtected {
@@ -20,10 +24,12 @@ final class AppActionHandler {
             return
         }
 
+        guard ensureAppManagementPermission() else { return }
+
         let info = app.appInfo
         let cli = viewModel.cliPath
         performAsync(for: app.id) {
-            try AppOperations.hideApp(info, cliPath: cli)
+            try AppOperations.hideApp(info, cliPath: cli, acceptWarnings: acceptWarnings)
         } onResult: { [weak self, weak viewModel] result in
             switch result {
             case .hidden:
@@ -31,7 +37,58 @@ final class AppActionHandler {
             case let .requiresSudo(command):
                 viewModel?.sudoCommand = command
                 self?.loading.remove(info.bundleId)
+            case let .requiresWarningConfirmation(warnings):
+                Task { @MainActor [weak self] in
+                    self?.confirmCompatibilityWarnings(for: app, warnings: warnings)
+                }
             }
+        } onError: { [weak self, weak viewModel] error in
+            if let gtError = error as? GhostTileError, case .appManagementDenied = gtError {
+                self?.presentAppManagementPermissionAlert()
+            } else {
+                viewModel?.errorMessage = error.localizedDescription
+                viewModel?.showError = true
+            }
+        }
+    }
+
+    /// Adhoc dev rebuilds reset TCC identity (cdhash changes); Developer-ID release updates don't.
+    private func ensureAppManagementPermission() -> Bool {
+        if AppManagementPermissionStatusReader.currentProcessIsAllowed() != false {
+            return true
+        }
+        presentAppManagementPermissionAlert()
+        return false
+    }
+
+    private func presentAppManagementPermissionAlert() {
+        let openSettings = AlertPresenter.confirm(
+            "GhostTile needs App Management permission",
+            body: "Click Allow in the Privacy & Security notification on the top right corner,"
+                + " or turn on GhostTile under System Settings → Privacy & Security → App Management."
+                + "\n\nThen quit and relaunch GhostTile.",
+            confirmButton: "Open System Settings"
+        )
+        if openSettings {
+            PermissionGuidanceController.shared.present(
+                pane: .appManagement,
+                target: .ghostTile()
+            )
+        }
+    }
+
+    private func confirmCompatibilityWarnings(
+        for app: ManagedAppItem,
+        warnings: [AppCompatibility.Warning]
+    ) {
+        let confirmed = AlertPresenter.confirm(
+            "Hide-from-Dock may disable some \(app.name) features",
+            body: warnings.map { "• \($0.impact)" }.joined(separator: "\n"),
+            style: .warning,
+            confirmButton: "Continue Anyway"
+        )
+        if confirmed {
+            hideRunningApp(app, acceptWarnings: true)
         }
     }
 
@@ -152,25 +209,26 @@ final class AppActionHandler {
     ) {
         if showLoading { loading.insert(bundleId) }
         DispatchQueue.global(qos: .userInitiated).async { [weak self, weak viewModel] in
+            // Cleanup runs inside the result Task so a re-entrant onResult can't race a stray cleanup.
             do {
                 let result = try work()
-                Task { @MainActor in
+                Task { @MainActor [weak self, weak viewModel] in
                     onResult(result)
+                    self?.loading.remove(bundleId)
+                    viewModel?.scheduleRefresh(after: refreshDelay)
                 }
             } catch {
                 Log.error("Operation failed for \(bundleId): \(error)")
-                Task { @MainActor [weak viewModel] in
+                Task { @MainActor [weak self, weak viewModel] in
                     if let onError {
                         onError(error)
                     } else {
                         viewModel?.errorMessage = error.localizedDescription
                         viewModel?.showError = true
                     }
+                    self?.loading.remove(bundleId)
+                    viewModel?.scheduleRefresh(after: refreshDelay)
                 }
-            }
-            Task { @MainActor [weak self, weak viewModel] in
-                self?.loading.remove(bundleId)
-                viewModel?.scheduleRefresh(after: refreshDelay)
             }
         }
     }

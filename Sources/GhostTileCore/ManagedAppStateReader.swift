@@ -10,7 +10,7 @@ public enum ManagedAppStateReader {
         let visibleRunningApps = runningApps
             .filter { app in
                 guard let bundleId = app.bundleIdentifier else { return false }
-                if bundleId == AppConstants.bundleIdentifier { return false }
+                if AppConstants.bundleIdentifiers.contains(bundleId) { return false }
                 return app.activationPolicy == .regular || config.hidden[bundleId] != nil
             }
 

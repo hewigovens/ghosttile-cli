@@ -48,13 +48,17 @@ public enum AppManager {
         try AppPreparationManager.needsSudo(app)
     }
 
-    public static func prepare(_ app: AppInfo, cliPath: String = "ghosttile") throws {
-        try AppPreparationManager.prepare(app, cliPath: cliPath)
+    public static func prepare(_ app: AppInfo, cliPath: String = "ghosttile", acceptWarnings: Bool = false) throws {
+        try AppPreparationManager.prepare(app, cliPath: cliPath, acceptWarnings: acceptWarnings)
     }
 
     public static func extractEntitlements(_ binaryPath: String) throws -> [String: Any] {
         try AppPreparationManager
             .extractEntitlements(binaryPath)
+    }
+
+    public static func assessCompatibility(_ app: AppInfo) throws -> AppCompatibility {
+        try AppCompatibility.assess(app)
     }
 
     /// Restore

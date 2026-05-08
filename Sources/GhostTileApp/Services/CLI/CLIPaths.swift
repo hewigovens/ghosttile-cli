@@ -34,7 +34,7 @@ enum CLIPaths {
     }
 
     static var resolved: String {
-        if isInstalled { return installedCLI }
+        if installedIsCurrent { return installedCLI }
         if let bundled = bundledCLI { return bundled }
         return executableName
     }
@@ -42,6 +42,17 @@ enum CLIPaths {
     static var isInstalled: Bool {
         installPairExists(cli: installedCLI, dylib: installedDylib)
     }
+
+    /// Cached `--version` check; a stale installed CLI can't parse new flags like `--accept-warnings`.
+    static var installedIsCurrent: Bool {
+        cachedInstalledIsCurrent
+    }
+
+    private static let cachedInstalledIsCurrent: Bool = {
+        guard isInstalled else { return false }
+        let installedVersion = try? AppManager.run(installedCLI, ["--version"])
+        return installedVersion == BuildInfo.cliDisplayVersion
+    }()
 
     private static func bundledResource(named name: String) -> String? {
         let path = BundledResources.resourcePath(named: name)
