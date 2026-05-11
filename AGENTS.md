@@ -65,14 +65,14 @@
 - Abandon only empty jj changes with no description, and never abandon user work or non-empty changes without explicit confirmation.
 
 ## Release Pipeline
-1. Bump the app release metadata: `version` and `build_number` in `justfile`, `CFBundleShortVersionString` / `CFBundleVersion` in `project.yml`, `CFBundleShortVersionString` / `CFBundleVersion` in `Resources/Info.plist`, and `version` / `build` in `Sources/GhostTileCore/BuildInfo.swift`.
+1. Bump the app version + build with `just set-version` (auto-bumps patch + build by default; pass explicit values like `just set-version 2.1.0 23` for major/minor). The `VERSION` file at repo root is the single source — the recipe also mirrors it into `project.yml`, `Resources/Info.plist`, and `BuildInfo.swift`.
 2. Write release notes to `releases/<version>.html` as an HTML body fragment with no wrapper tags.
 3. Run `just build` to verify the release still builds.
 4. Run `just release-dry-run` if you want a local package check without signing or notarization.
 5. Run `just release` to sign, notarize, zip, update `docs/appcast.xml`, and upload the draft GitHub release.
 6. Update the Homebrew tap via `just update-cask` after the final release zip exists.
 
-`BuildInfo.cliVersion` and `BuildInfo.cliBuild` are independent from app releases. Leave them unchanged for app-only releases; bump them only when the bundled CLI behavior or support payload changes and installed users should reinstall the CLI.
+`BuildInfo.cliVersion` and `BuildInfo.cliBuild` are independent from app releases and not covered by `just set-version`. Leave them unchanged for app-only releases; edit `BuildInfo.swift` by hand only when the bundled CLI behavior or support payload changes and installed users should reinstall the CLI.
 Sparkle release notes come from `releases/<version>.html`. Do not publish a release with an empty appcast description.
 
 ## Code Style

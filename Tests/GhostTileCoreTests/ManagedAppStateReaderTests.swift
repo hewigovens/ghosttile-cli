@@ -1,8 +1,9 @@
 @testable import GhostTileCore
-import XCTest
+import Testing
 
-final class ManagedAppStateReaderTests: XCTestCase {
-    func testSortedRecordsUsesStableNameBundleAndPathOrder() {
+@Suite("ManagedAppStateReader")
+struct ManagedAppStateReaderTests {
+    @Test func sortedRecordsUsesStableNameBundleAndPathOrder() {
         let records = [
             record(name: "WeChat", bundleId: "com.tencent.xinWeChat", appPath: "/Applications/WeChat.app"),
             record(name: "LocalSend", bundleId: "org.localsend.localsend", appPath: "/Applications/LocalSend.app"),
@@ -12,7 +13,7 @@ final class ManagedAppStateReaderTests: XCTestCase {
 
         let sorted = ManagedAppStateReader.sortedRecords(records)
 
-        XCTAssertEqual(sorted.map(\.appPath), [
+        #expect(sorted.map(\.appPath) == [
             "/Applications/LocalSend Beta.app",
             "/Users/me/LocalSend Beta.app",
             "/Applications/LocalSend.app",

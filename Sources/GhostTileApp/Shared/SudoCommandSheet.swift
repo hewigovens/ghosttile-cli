@@ -16,7 +16,7 @@ struct SudoCommandSheet: View {
                 .font(.system(size: 16, weight: .semibold))
 
             Text(command)
-                .font(.system(size: 13, design: .monospaced))
+                .font(.system(size: 11, design: .monospaced))
                 .textSelection(.enabled)
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)

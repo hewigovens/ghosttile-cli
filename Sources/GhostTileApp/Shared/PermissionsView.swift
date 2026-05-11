@@ -23,8 +23,9 @@ struct PermissionsView: View {
                     PermissionCard(
                         title: "App Management",
                         subtitle: isCompact
-                            ? "Prepare and restore app bundles."
-                            : "Lets GhostTile prepare and restore app bundles.",
+                            ? "Prepare and restore app bundles. Re-grant after each upgrade."
+                            :
+                            "Lets GhostTile prepare and restore app bundles. Re-grant after each upgrade — click Allow when macOS asks, or toggle below.",
                         systemImage: "eye.slash.circle.fill",
                         tint: .blue,
                         isGranted: ghostTileAppManagementAllowed == true,

@@ -46,7 +46,7 @@ enum AppPreparationManager {
         Log.info("Backed up binary for \(app.name) to \(destination)")
     }
 
-    static func prepare(_ app: AppInfo, cliPath: String = "ghosttile") throws {
+    static func prepare(_ app: AppInfo, cliPath: String = "ghosttile", acceptWarnings: Bool = false) throws {
         Log.info("Preparing \(app.name) (\(app.bundleId)) at \(app.appPath)")
 
         try backupBinary(app)
@@ -57,7 +57,11 @@ enum AppPreparationManager {
         try FileOperations.createDirectory(atPath: helperDir)
         try FileOperations.replaceFile(from: helperSourcePath, to: helperInstallPath)
 
+        // Preserve original entitlements; strip TCC keys (AMFI launch kill) and add CS overrides.
         var entitlements = try extractEntitlements(app.binaryPath)
+        for key in AppCompatibility.entitlementsToStrip() {
+            entitlements.removeValue(forKey: key)
+        }
         entitlements["com.apple.security.cs.allow-dyld-environment-variables"] = true
         entitlements["com.apple.security.cs.disable-library-validation"] = true
 
@@ -75,6 +79,7 @@ enum AppPreparationManager {
 
         try FileManager.default.copyItem(atPath: app.binaryPath, toPath: temporaryBinary)
         try stripSignatureIfPresent(at: temporaryBinary)
+        _ = try MachOEditor.ensureFrameworksRpath(in: temporaryBinary)
         _ = try MachOEditor.insertGhosthideLoadCommand(in: temporaryBinary)
         try ShellRunner.run(
             "/usr/bin/codesign",
@@ -92,20 +97,23 @@ enum AppPreparationManager {
             Log.info("Re-signed bundle for \(app.name)")
         } catch {
             Log.error("Failed to re-sign bundle for \(app.name): \(error)")
+            var arguments = ["manage", app.bundleId]
+            if acceptWarnings { arguments.append("--accept-warnings") }
             throw GhostTileError(
-                "\(app.name) requires a manual step. Run in Terminal: \(ShellCommand.format(executable: cliPath, arguments: ["manage", app.bundleId], requiresSudo: true))"
+                "\(app.name) requires a manual step. Run in Terminal: \(ShellCommand.format(executable: cliPath, arguments: arguments, requiresSudo: true))"
             )
         }
     }
 
     static func extractEntitlements(_ binaryPath: String) throws -> [String: Any] {
+        // codesign writes the XML plist to stdout on macOS 14+; older releases used stderr.
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
-        process.arguments = ["-d", "--entitlements", "-", binaryPath]
+        process.arguments = ["-d", "--entitlements", "-", "--xml", binaryPath]
 
         let pipe = Pipe()
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = pipe
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
 
         try process.run()
         let data = pipe.fileHandleForReading.readDataToEndOfFile()

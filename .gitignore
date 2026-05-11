@@ -8,6 +8,7 @@ DerivedData/
 
 # App bundle output
 GhostTile.app/
+GhostTile Dev.app/
 dist/
 
 # Generated during build (copied from docs/imgs/icon.svg)

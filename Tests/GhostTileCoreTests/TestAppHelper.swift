@@ -13,6 +13,12 @@ enum TestAppHelper {
     static let testAppSourcePath: String = repoRoot
         .appendingPathComponent("Tests/GhostTileCoreTests/Resources/TestApp/main.m").path
 
+    /// True when the prebuilt dylib is available — use with `@Test(.enabled(if:))` to gate
+    /// tests that depend on the dylib being built (`just build` produces it).
+    static var hasDylib: Bool {
+        FileManager.default.fileExists(atPath: dylibPath)
+    }
+
     struct BuiltApp {
         let bundlePath: String
         let binaryPath: String

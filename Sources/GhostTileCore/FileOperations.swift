@@ -8,6 +8,12 @@ enum FileOperations {
             }
             try FileManager.default.copyItem(atPath: source, toPath: destination)
         } catch {
+            // App Management denial returns EPERM, and TCC blocks even root, so the admin
+            // fallback would also fail after a useless password prompt. Surface a tagged
+            // error so the UI can route it to a "grant permission" alert instead.
+            if GhostTileError.isAppManagementDenied(error) {
+                throw GhostTileError.appManagementDenied(path: destination)
+            }
             Log.info("Direct file replace failed for \(destination), trying via admin")
             try HelperClient.copyFile(from: source, to: destination)
         }

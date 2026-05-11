@@ -1,9 +1,10 @@
 @testable import GhostTileCore
-import XCTest
+import Testing
 
-final class BuildInfoTests: XCTestCase {
-    func testAppAndCLIDisplayVersionsUseIndependentComponents() {
-        XCTAssertEqual(BuildInfo.displayVersion, "\(BuildInfo.version) (\(BuildInfo.build))")
-        XCTAssertEqual(BuildInfo.cliDisplayVersion, "\(BuildInfo.cliVersion) (\(BuildInfo.cliBuild))")
+@Suite("BuildInfo")
+struct BuildInfoTests {
+    @Test func appAndCLIDisplayVersionsUseIndependentComponents() {
+        #expect(BuildInfo.displayVersion == "\(BuildInfo.version) (\(BuildInfo.build))")
+        #expect(BuildInfo.cliDisplayVersion == "\(BuildInfo.cliVersion) (\(BuildInfo.cliBuild))")
     }
 }

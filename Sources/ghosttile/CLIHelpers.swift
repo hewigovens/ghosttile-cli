@@ -39,11 +39,41 @@ func validateNotSIPProtected(_ app: AppInfo) throws {
     }
 }
 
-func prepareIfNeeded(_ app: AppInfo, force: Bool) throws {
+func validateCompatibility(_ app: AppInfo, acceptWarnings: Bool) throws {
+    switch try AppManager.assessCompatibility(app) {
+    case .compatible:
+        return
+    case let .unsupported(reason):
+        throw GhostTileError(reason)
+    case let .warnings(warnings):
+        let stderr = FileHandle.standardError
+        stderr.write(Data("Compatibility warnings for \(app.name):\n".utf8))
+        for warning in warnings {
+            stderr.write(Data("  • \(warning.impact) (\(warning.entitlement))\n".utf8))
+        }
+        if acceptWarnings {
+            stderr.write(Data("Continuing because --accept-warnings was set.\n".utf8))
+            return
+        }
+        // Require an explicit flag for non-interactive runs so scripts can't silently proceed.
+        if isatty(0) == 0 {
+            throw GhostTileError(
+                "\(app.name) may lose features after preparation. Re-run with --accept-warnings to proceed."
+            )
+        }
+        stderr.write(Data("Continue anyway? [y/N]: ".utf8))
+        let response = (readLine() ?? "").lowercased().trimmingCharacters(in: .whitespaces)
+        guard response == "y" || response == "yes" else {
+            throw GhostTileError("Cancelled by user.")
+        }
+    }
+}
+
+func prepareIfNeeded(_ app: AppInfo, force: Bool, acceptWarnings: Bool = false) throws {
     let shouldPrepare = try force || AppManager.needsPreparation(app)
     guard shouldPrepare else { return }
     print("Preparing \(app.name)...")
-    try AppManager.prepare(app)
+    try AppManager.prepare(app, acceptWarnings: acceptWarnings)
 }
 
 func addToConfig(_ app: AppInfo) throws {

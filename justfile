@@ -2,8 +2,12 @@ default:
     @just --list
 
 app := "GhostTile.app"
+dev_app := "GhostTile Dev.app"
+bundle_id := "dev.hewig.ghosttile"
+dev_bundle_id := bundle_id + ".dev"
 deployment_target := "15.0"
 
+# Build the release GhostTile.app (ad-hoc signed). Canonical artifact for `dist`, `release`, and `install`.
 build: build-cli
     #!/usr/bin/env bash
     set -euo pipefail
@@ -18,6 +22,20 @@ build: build-cli
     codesign --force --sign - "{{app}}"
     echo "Built {{app}} ($(du -sh "{{app}}" | cut -f1))"
 
+# Build a side-by-side dev variant `GhostTile Dev.app` with bundle id `dev.hewig.ghosttile.dev`.
+build-dev: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -rf "{{dev_app}}"
+    cp -R "{{app}}" "{{dev_app}}"
+    plist="{{dev_app}}/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier {{dev_bundle_id}}" "$plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName GhostTile Dev" "$plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleName GhostTile Dev" "$plist"
+    codesign --force --sign - --deep "{{dev_app}}"
+    echo "Built {{dev_app}} (bundle id: {{dev_bundle_id}})"
+
+# Build the `ghosttile` CLI binary and `ghosthide.dylib` helper. Set GHOSTHIDE_DEBUG=1 to enable dylib debug logging.
 build-cli:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -33,12 +51,14 @@ build-cli:
         -o .build/ghosthide.dylib Resources/ghosthide.m Resources/ghosthide_debug.m Resources/fishhook.c
     cp .build/ghosthide.dylib .build/release/ghosthide.dylib
 
+# Re-prepare a single managed app (forces backup + Mach-O patch + resign).
 resign app:
     #!/usr/bin/env bash
     set -euo pipefail
     just build-cli
     sudo .build/release/ghosttile prepare --force "{{app}}"
 
+# Re-prepare every managed app. Iterates `ghosttile status --json` and runs `prepare --force` for each.
 resign-all:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -59,6 +79,7 @@ resign-all:
         sudo .build/release/ghosttile prepare --force "$app_path"
     done <<< "$app_paths"
 
+# Build a Debug GhostTile.app and open it from DerivedData.
 run: kill build-cli
     #!/usr/bin/env bash
     set -euo pipefail
@@ -69,13 +90,18 @@ run: kill build-cli
     app_path="$(xcodebuild -project GhostTile.xcodeproj -scheme GhostTileApp -configuration Debug -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/GhostTile.app"
     open "$app_path"
 
+# Build the dev variant and open it.
+run-dev: build-dev
+    open "{{dev_app}}"
+
+# Kill any running GhostTile process.
 kill:
     -pkill -f "{{app}}/Contents/MacOS/GhostTile"
 
+# Kill then `run` — quick rebuild + relaunch cycle.
 restart: kill run
 
-# Run macOS UI tests. Pass a test id to narrow the run, e.g.:
-#   just test-ui GhostTileUITests/OnboardingFlowTests/testCompletesOnboardingToMainWindow
+# Run macOS UI tests. Pass a test id to narrow the run.
 test-ui test_id='': build-cli
     #!/usr/bin/env bash
     set -euo pipefail
@@ -95,16 +121,58 @@ test-ui test_id='': build-cli
     fi
     xcodebuild "${args[@]}" test | xcbeautify
 
+# Install the release build to /Applications/GhostTile.app. Replaces any existing install.
 install: build
     cp -r "{{app}}" /Applications/
     @echo "Installed to /Applications/{{app}}"
 
-# App release metadata. CLI versioning is independent; leave
-# BuildInfo.cliVersion/cliBuild unchanged for app-only releases.
-version := "2.0.4"
-build_number := "21"
+# Install the dev variant to /Applications/GhostTile Dev.app. Side-by-side with the prod install.
+install-dev: build-dev
+    rm -rf "/Applications/{{dev_app}}"
+    cp -R "{{dev_app}}" "/Applications/{{dev_app}}"
+    @echo "Installed to /Applications/{{dev_app}}"
+
+# App release metadata. Sole source is the VERSION file at repo root; CLI versioning lives in
+# BuildInfo.cliVersion/cliBuild and is bumped manually (independent of the app version).
+version := `grep '^VERSION=' VERSION | cut -d= -f2`
+build_number := `grep '^BUILD=' VERSION | cut -d= -f2`
 signing_identity := "Developer ID Application: Tao Xu (V28VJH6B6S)"
 
+# Bump the app version + build, mirror to project.yml/Info.plist/BuildInfo.swift. No args = auto patch + build. Usage: just set-version | just set-version 2.1.0 23
+set-version new_version='' new_build='':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # shellcheck disable=SC1091
+    source ./VERSION
+    if [[ -z "{{new_version}}" && -z "{{new_build}}" ]]; then
+        IFS='.' read -r maj min pat <<< "$VERSION"
+        next_version="$maj.$min.$((pat + 1))"
+        next_build=$((BUILD + 1))
+    elif [[ -n "{{new_version}}" && -n "{{new_build}}" ]]; then
+        next_version="{{new_version}}"
+        next_build="{{new_build}}"
+    else
+        echo "Error: pass both version and build, or neither (auto-bump patch + build)." >&2
+        exit 1
+    fi
+    if [[ ! "$next_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "Error: version must be X.Y.Z, got '$next_version'" >&2
+        exit 1
+    fi
+    if [[ ! "$next_build" =~ ^[0-9]+$ ]]; then
+        echo "Error: build must be a positive integer, got '$next_build'" >&2
+        exit 1
+    fi
+    printf 'VERSION=%s\nBUILD=%s\n' "$next_version" "$next_build" > VERSION
+    sed -i '' -E "s/CFBundleShortVersionString: .*/CFBundleShortVersionString: $next_version/" project.yml
+    sed -i '' -E "s/CFBundleVersion: \".*\"/CFBundleVersion: \"$next_build\"/" project.yml
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $next_version" Resources/Info.plist
+    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $next_build" Resources/Info.plist
+    sed -i '' -E "s/let version = \"[^\"]*\"/let version = \"$next_version\"/" Sources/GhostTileCore/BuildInfo.swift
+    sed -i '' -E "s/let build = \"[^\"]*\"/let build = \"$next_build\"/" Sources/GhostTileCore/BuildInfo.swift
+    echo "Bumped to $next_version ($next_build). Remember to write releases/$next_version.html."
+
+# Produce dist/GhostTile-<version>.zip (ad-hoc signed). Used by `release-dry-run`; full `release` reuses the zip after notarization.
 dist: build
     #!/usr/bin/env bash
     set -euo pipefail
@@ -114,6 +182,7 @@ dist: build
     echo "Created dist/GhostTile-{{version}}.zip ($(du -sh "GhostTile-{{version}}.zip" | cut -f1))"
     shasum -a 256 "GhostTile-{{version}}.zip"
 
+# Re-sign the build with the Developer ID identity (env DEVELOPER_ID_APPLICATION overrides). Prerequisite for notarization.
 sign-release: build
     #!/usr/bin/env bash
     set -euo pipefail
@@ -130,6 +199,7 @@ sign-release: build
     codesign --verify --deep --strict --verbose=2 "{{app}}"
     echo "Signed {{app}}"
 
+# Submit the signed build for notarization, staple the ticket, and rebuild the dist zip. Env NOTARY_PROFILE overrides keychain profile.
 notarize-release: sign-release
     #!/usr/bin/env bash
     set -euo pipefail
@@ -146,6 +216,7 @@ notarize-release: sign-release
     echo "Created notarized dist/GhostTile-{{version}}.zip ($(du -sh "dist/GhostTile-{{version}}.zip" | cut -f1))"
     shasum -a 256 "dist/GhostTile-{{version}}.zip"
 
+# Full release: sign + notarize + Sparkle-sign + update appcast + create draft GitHub release. Review & publish on GitHub when done.
 release: notarize-release
     #!/usr/bin/env bash
     set -euo pipefail
@@ -184,6 +255,7 @@ release: notarize-release
     gh release upload "v{{version}}" "$zip_path" --clobber
     echo "Draft release v{{version}} created. Review and publish on GitHub."
 
+# Update the Homebrew tap cask at ../tap/Casks/ghosttile.rb with the new version + sha256. Run after `just release`.
 update-cask:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -200,9 +272,7 @@ update-cask:
       "$cask_path"
     echo "Updated $cask_path with version {{version}} sha256 $sha256"
 
-# Build a Release .app locally with ad-hoc signing (via `build`) and produce a
-# zip + sha256 sidecar. No notarization, no network calls — sanity-check a
-# release candidate before invoking the full `release` pipeline.
+# Build ad-hoc signed zip + sha256 sidecar — no notarization or network, sanity check before `release`.
 release-dry-run: build
     #!/usr/bin/env bash
     set -euo pipefail
@@ -215,14 +285,18 @@ release-dry-run: build
     shasum -a 256 "$zip_path" | tee "$zip_path.sha256"
     echo "Dry-run artifact: $zip_path"
 
+# Run SwiftLint over Sources/ and Tests/.
 lint:
     swiftlint lint --quiet Sources/ Tests/
 
+# Apply SwiftFormat edits to Sources/ and Tests/.
 format:
     swiftformat Sources/ Tests/
 
+# Check SwiftFormat compliance without modifying files (CI-style).
 format-check:
     swiftformat --lint Sources/ Tests/
 
+# Remove .build, the local GhostTile.app, and dist/ artifacts.
 clean:
     rm -rf .build "{{app}}" dist
