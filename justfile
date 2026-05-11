@@ -239,8 +239,9 @@ release: notarize-release
         echo "Error: no Sparkle edSignature in sign_update output: $sign_output" >&2
         exit 1
     fi
-    # Update appcast
+    # Update appcast + the docs site download link
     python3 scripts/update-appcast.py "{{version}}" "{{build_number}}" "$zip_path" docs/appcast.xml "$sig"
+    just update-download
     # Create GitHub release
     if gh release view "v{{version}}" &>/dev/null; then
         echo "Release v{{version}} already exists"
@@ -254,6 +255,17 @@ release: notarize-release
     fi
     gh release upload "v{{version}}" "$zip_path" --clobber
     echo "Draft release v{{version}} created. Review and publish on GitHub."
+
+# Update the download link + "Latest release" badge in docs/index.html to point at the current version. Called from `just release`.
+update-download:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sed -i '' -E \
+      -e "s|releases/tag/v[0-9]+\.[0-9]+\.[0-9]+|releases/tag/v{{version}}|g" \
+      -e "s|releases/download/v[0-9]+\.[0-9]+\.[0-9]+/GhostTile-[0-9]+\.[0-9]+\.[0-9]+\.zip|releases/download/v{{version}}/GhostTile-{{version}}.zip|g" \
+      -e "s|>v[0-9]+\.[0-9]+\.[0-9]+ on GitHub<|>v{{version}} on GitHub<|g" \
+      docs/index.html
+    echo "Updated docs/index.html download links to v{{version}}"
 
 # Update the Homebrew tap cask at ../tap/Casks/ghosttile.rb with the new version + sha256. Run after `just release`.
 update-cask:
