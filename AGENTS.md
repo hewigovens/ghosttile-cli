@@ -69,8 +69,10 @@
 2. Write release notes to `releases/<version>.html` as an HTML body fragment with no wrapper tags.
 3. Run `just build` to verify the release still builds.
 4. Run `just release-dry-run` if you want a local package check without signing or notarization.
-5. Run `just release` to sign, notarize, zip, update `docs/appcast.xml`, and upload the draft GitHub release.
-6. Update the Homebrew tap via `just update-cask` after the final release zip exists.
+5. Run `just release` to sign, notarize, zip, update `docs/appcast.xml`, update the `docs/index.html` download link (`just update-download`), and upload the draft GitHub release.
+6. Publish the draft GitHub release (`gh release edit v<version> --draft=false`) so the `v<version>` tag exists and the binary download URL works.
+7. Commit and push `docs/appcast.xml` + `docs/index.html` to `main` so Sparkle clients and the marketing site see the new version.
+8. Update the Homebrew tap via `just update-cask`, then commit + push `../tap/Casks/ghosttile.rb`.
 
 `BuildInfo.cliVersion` and `BuildInfo.cliBuild` are independent from app releases and not covered by `just set-version`. Leave them unchanged for app-only releases; edit `BuildInfo.swift` by hand only when the bundled CLI behavior or support payload changes and installed users should reinstall the CLI.
 Sparkle release notes come from `releases/<version>.html`. Do not publish a release with an empty appcast description.
