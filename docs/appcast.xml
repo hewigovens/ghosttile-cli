@@ -5,7 +5,27 @@
         <link>https://raw.githubusercontent.com/hewigovens/ghosttile-cli/main/docs/appcast.xml</link>
         <description>GhostTile updates</description>
         <language>en</language>
-                                <item>
+                                        <item>
+            <title>Version 2.0.5</title>
+            <sparkle:version>22</sparkle:version>
+            <sparkle:shortVersionString>2.0.5</sparkle:shortVersionString>
+            <pubDate>Mon, 11 May 2026 14:50:13 +0000</pubDate>
+            <description><![CDATA[
+                <ul>
+                  <li>Detect apps with system extensions or driver entitlements and refuse to manage them, with a clear explanation that modifying them would break their drivers.</li>
+                  <li>Warn before managing apps with TCC-protected entitlements (microphone, camera, contacts, calendars, location, photos, AppleEvents) — Hide-from-Dock requires re-signing, which revokes the original capability grant.</li>
+                  <li>Compatibility warnings now show a confirmation dialog (Continue / Cancel) in the GUI and a <code>y/N</code> prompt in the CLI, instead of blocking with an error.</li>
+                  <li>Preserve non-TCC entitlements (App Sandbox, application groups, keychain access, network, custom developer entitlements) during Hide-from-Dock. Previously they were silently stripped due to a codesign-extract bug that read from the wrong stream and returned empty.</li>
+                  <li>App Management permission denials now show a guided alert pointing to System Settings → Privacy &amp; Security → App Management, instead of a raw <code>Operation not permitted</code> error.</li>
+                  <li>Fixed a launch crash for apps without an existing <code>@executable_path/../Frameworks</code> rpath (e.g. RME TotalMix FX). GhostTile now adds the rpath when needed so the injected helper resolves correctly.</li>
+                </ul>
+            ]]></description>
+            <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v2.0.5/GhostTile-2.0.5.zip"
+                       sparkle:edSignature="uJwKv+swGn6iC8JlAdJoLHNnT74VnkOM3c5WLgcL/21LcccQkeMkjqqCjucf+OBQAUMKAtFQM3Y5U3EMQDLNCg=="
+                       length="4881402"
+                       type="application/octet-stream"/>
+        </item>
+<item>
             <title>Version 2.0.4</title>
             <sparkle:version>21</sparkle:version>
             <sparkle:shortVersionString>2.0.4</sparkle:shortVersionString>
