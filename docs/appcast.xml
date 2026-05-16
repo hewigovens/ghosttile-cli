@@ -5,7 +5,23 @@
         <link>https://raw.githubusercontent.com/hewigovens/ghosttile-cli/main/docs/appcast.xml</link>
         <description>GhostTile updates</description>
         <language>en</language>
-                                        <item>
+                                                <item>
+            <title>Version 2.0.6</title>
+            <sparkle:version>23</sparkle:version>
+            <sparkle:shortVersionString>2.0.6</sparkle:shortVersionString>
+            <pubDate>Sat, 16 May 2026 13:02:02 +0000</pubDate>
+            <description><![CDATA[
+                <ul>
+                  <li>Added Spotlight / App Shortcuts integration. Hide, show, and focus managed apps directly from Spotlight (or Shortcuts.app) — type phrases like "Hide Slack with GhostTile" or "Open GhostTile".</li>
+                  <li>Removed the Raycast extension. The new Spotlight actions provide the same functionality natively, with no extra install.</li>
+                </ul>
+            ]]></description>
+            <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v2.0.6/GhostTile-2.0.6.zip"
+                       sparkle:edSignature="qTuzzIwwKCjRxnrsBm8UaOGgCOE9O9669+of6WIzsSiC94Lia81P3PYLByhVKr3spUNujJgzRNauRpe9iyvKAQ=="
+                       length="4957081"
+                       type="application/octet-stream"/>
+        </item>
+<item>
             <title>Version 2.0.5</title>
             <sparkle:version>22</sparkle:version>
             <sparkle:shortVersionString>2.0.5</sparkle:shortVersionString>
