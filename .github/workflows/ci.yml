@@ -21,18 +21,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.8.1
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: pnpm
-          cache-dependency-path: raycast/pnpm-lock.yaml
-
       - name: Install tools
         run: brew install just xcodegen swiftlint swiftformat
 
@@ -59,11 +47,3 @@ jobs:
 
       - name: Run UI tests
         run: just test-ui
-
-      - name: Install Raycast extension dependencies
-        working-directory: raycast
-        run: pnpm install --frozen-lockfile
-
-      - name: Typecheck Raycast extension
-        working-directory: raycast
-        run: pnpm run typecheck
