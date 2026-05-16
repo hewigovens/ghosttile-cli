@@ -67,9 +67,9 @@ Use `--json` with `list` and `status` for machine-readable output.
 - Some apps can still promote themselves back into the Dock after launch
 - App preparation modifies the target bundle in place, so use `restore` before troubleshooting unrelated app issues
 
-## Raycast Extension
+## Spotlight Actions
 
-The Raycast extension lives in [`raycast`](raycast) and shells out to the `ghosttile` CLI.
+GhostTile registers App Shortcuts so you can hide, show, and focus managed apps straight from Spotlight (and Shortcuts.app). Open Spotlight and type "GhostTile" to see the available actions.
 
 ## Auto-update
 

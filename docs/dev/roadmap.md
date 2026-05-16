@@ -10,7 +10,7 @@ This is a brief contributor-facing roadmap for the current rewrite.
 - Restored the status bar workflow, Overview, onboarding refresh, and global shortcuts.
 - Added attention notifications for hidden apps.
 - Added CI, tests for the helper and Mach-O paths, and a cleaner release workflow.
-- Added a local Raycast extension built on top of the CLI.
+- Added Spotlight / App Shortcuts integration for hide, show, focus, and open actions.
 
 ## Next
 

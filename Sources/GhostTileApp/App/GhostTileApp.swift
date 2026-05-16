@@ -3,7 +3,13 @@ import SwiftUI
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var viewModel: AppViewModel?
+    let viewModel = AppViewModel()
+    var openMainWindow: (() -> Void)?
+    private lazy var intentListener = IntentRequestListener(viewModel: viewModel)
+
+    func applicationDidFinishLaunching(_: Notification) {
+        intentListener.start()
+    }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
@@ -12,7 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDockMenu(_: NSApplication) -> NSMenu? {
         let menu = NSMenu()
 
-        if let viewModel, !viewModel.hiddenApps.isEmpty {
+        if !viewModel.hiddenApps.isEmpty {
             for app in viewModel.hiddenApps {
                 let item = app.menuItem(icon: app.icon)
                 let submenu = NSMenu(title: app.name)
@@ -37,29 +43,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_: Notification) {
-        viewModel?.refreshForPresentation()
+        viewModel.refreshForPresentation()
     }
 
     @objc private func hideFromDock() {
-        viewModel?.toggleSelfDock()
+        viewModel.toggleSelfDock()
     }
 
     @objc private func dockMenuHideApp(_ sender: NSMenuItem) {
         guard let bundleId = sender.representedObject as? String,
-              let app = viewModel?.managedApp(bundleId: bundleId) else { return }
-        viewModel?.setDockVisibility(app, hidden: true)
+              let app = viewModel.managedApp(bundleId: bundleId) else { return }
+        viewModel.setDockVisibility(app, hidden: true)
     }
 
     @objc private func dockMenuShowApp(_ sender: NSMenuItem) {
         guard let bundleId = sender.representedObject as? String,
-              let app = viewModel?.managedApp(bundleId: bundleId) else { return }
-        viewModel?.setDockVisibility(app, hidden: false)
+              let app = viewModel.managedApp(bundleId: bundleId) else { return }
+        viewModel.setDockVisibility(app, hidden: false)
     }
 
     @objc private func dockMenuActivateApp(_ sender: NSMenuItem) {
         guard let bundleId = sender.representedObject as? String,
-              let app = viewModel?.managedApp(bundleId: bundleId) else { return }
-        viewModel?.activateManagedApp(app)
+              let app = viewModel.managedApp(bundleId: bundleId) else { return }
+        viewModel.activateManagedApp(app)
     }
 }
 
@@ -67,11 +73,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 struct GhostTileApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @Environment(\.openSettings) private var openSettings
-    @StateObject private var viewModel = AppViewModel()
+    @Environment(\.openWindow) private var openWindow
     @StateObject private var updater = SparkleUpdater()
     @State private var statusBar: StatusBarController?
     @State private var overviewController: OverviewWindowController?
     @AppStorage("onboardingComplete", store: AppUserDefaults.store) private var onboardingComplete = false
+
+    private var viewModel: AppViewModel {
+        appDelegate.viewModel
+    }
 
     private func showAboutWindow() {
         if let existing = NSApp.windows.first(where: { $0.title == "About GhostTile" }) {
@@ -91,13 +101,13 @@ struct GhostTileApp: App {
 
     private func showMainWindow() {
         NSApp.activate(ignoringOtherApps: true)
-        for window in NSApp.windows {
-            if window.identifier?.rawValue.contains("main") == true || window.title == "GhostTile" {
-                window.makeKeyAndOrderFront(nil)
-                viewModel.refreshForPresentation()
-                SponsorNudgeController.shared.considerPrompt()
-                return
-            }
+        let existing = NSApp.windows.first { window in
+            window.identifier?.rawValue == "main" || window.title == "GhostTile"
+        }
+        if let existing {
+            existing.makeKeyAndOrderFront(nil)
+        } else {
+            openWindow(id: "main")
         }
         viewModel.refreshForPresentation()
         SponsorNudgeController.shared.considerPrompt()
@@ -136,7 +146,7 @@ struct GhostTileApp: App {
                     )
                 }
                 AttentionNotificationController.shared.start(viewModel: viewModel)
-                appDelegate.viewModel = viewModel
+                appDelegate.openMainWindow = { openWindow(id: "main") }
                 SponsorNudgeController.shared.considerPrompt()
             }
         }
