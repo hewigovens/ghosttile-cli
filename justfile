@@ -176,11 +176,9 @@ set-version new_version='' new_build='':
 dist: build
     #!/usr/bin/env bash
     set -euo pipefail
-    mkdir -p dist
-    cd dist && rm -f GhostTile-{{version}}.zip
-    ditto -c -k --keepParent "../{{app}}" "GhostTile-{{version}}.zip"
-    echo "Created dist/GhostTile-{{version}}.zip ($(du -sh "GhostTile-{{version}}.zip" | cut -f1))"
-    shasum -a 256 "GhostTile-{{version}}.zip"
+    zip_path="dist/GhostTile-{{version}}.zip"
+    bash scripts/package-release-zip.sh "{{app}}" "$zip_path"
+    bash scripts/verify-release-archive.sh "$zip_path" signed
 
 # Re-sign the build with the Developer ID identity (env DEVELOPER_ID_APPLICATION overrides). Prerequisite for notarization.
 sign-release: build
@@ -204,17 +202,14 @@ notarize-release: sign-release
     #!/usr/bin/env bash
     set -euo pipefail
     notary_profile="${NOTARY_PROFILE:-notarytool}"
-    mkdir -p dist
-    rm -f "dist/GhostTile-{{version}}.zip"
-    ditto -c -k --keepParent "{{app}}" "dist/GhostTile-{{version}}.zip"
-    echo "Submitting dist/GhostTile-{{version}}.zip for notarization with profile ${notary_profile}..."
-    xcrun notarytool submit "dist/GhostTile-{{version}}.zip" --keychain-profile "${notary_profile}" --wait
+    zip_path="dist/GhostTile-{{version}}.zip"
+    bash scripts/package-release-zip.sh "{{app}}" "$zip_path"
+    echo "Submitting $zip_path for notarization with profile ${notary_profile}..."
+    xcrun notarytool submit "$zip_path" --keychain-profile "${notary_profile}" --wait
     xcrun stapler staple "{{app}}"
     xcrun stapler validate "{{app}}"
-    rm -f "dist/GhostTile-{{version}}.zip"
-    ditto -c -k --keepParent "{{app}}" "dist/GhostTile-{{version}}.zip"
-    echo "Created notarized dist/GhostTile-{{version}}.zip ($(du -sh "dist/GhostTile-{{version}}.zip" | cut -f1))"
-    shasum -a 256 "dist/GhostTile-{{version}}.zip"
+    bash scripts/package-release-zip.sh "{{app}}" "$zip_path"
+    bash scripts/verify-release-archive.sh "$zip_path" notarized
 
 # Full release: sign + notarize + Sparkle-sign + update appcast + create draft GitHub release. Review & publish on GitHub when done.
 release: notarize-release
@@ -289,11 +284,10 @@ release-dry-run: build
     #!/usr/bin/env bash
     set -euo pipefail
     codesign --verify --deep --strict --verbose=2 "{{app}}"
-    mkdir -p dist
     zip_path="dist/GhostTile-{{version}}-dryrun.zip"
-    rm -f "$zip_path" "$zip_path.sha256"
-    ditto -c -k --keepParent "{{app}}" "$zip_path"
-    echo "Created ad-hoc signed $zip_path ($(du -sh "$zip_path" | cut -f1))"
+    rm -f "$zip_path.sha256"
+    bash scripts/package-release-zip.sh "{{app}}" "$zip_path"
+    bash scripts/verify-release-archive.sh "$zip_path" signed
     shasum -a 256 "$zip_path" | tee "$zip_path.sha256"
     echo "Dry-run artifact: $zip_path"
 

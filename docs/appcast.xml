@@ -5,7 +5,22 @@
         <link>https://raw.githubusercontent.com/hewigovens/ghosttile-cli/main/docs/appcast.xml</link>
         <description>GhostTile updates</description>
         <language>en</language>
-                                                        <item>
+                                                                <item>
+            <title>Version 2.0.8</title>
+            <sparkle:version>25</sparkle:version>
+            <sparkle:shortVersionString>2.0.8</sparkle:shortVersionString>
+            <pubDate>Sun, 17 May 2026 23:27:32 +0000</pubDate>
+            <description><![CDATA[
+                <ul>
+                  <li>Fixed release zip packaging so downloaded builds no longer include AppleDouble metadata files that can break embedded framework code-signing validation.</li>
+                </ul>
+            ]]></description>
+            <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v2.0.8/GhostTile-2.0.8.zip"
+                       sparkle:edSignature="JZsyT4N3nVxuO4RO/fEnHuKRYoTOLtpo51ZdR2VJa/af+zEquxFnSrIVi6/Qy8FyEVXb/zd+RqnlKD0BxMOhDQ=="
+                       length="4956438"
+                       type="application/octet-stream"/>
+        </item>
+<item>
             <title>Version 2.0.7</title>
             <sparkle:version>24</sparkle:version>
             <sparkle:shortVersionString>2.0.7</sparkle:shortVersionString>

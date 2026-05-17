@@ -1,6 +1,6 @@
 public enum BuildInfo {
-    public static let version = "2.0.7"
-    public static let build = "24"
+    public static let version = "2.0.8"
+    public static let build = "25"
 
     public static let displayVersion = "\(version) (\(build))"
 

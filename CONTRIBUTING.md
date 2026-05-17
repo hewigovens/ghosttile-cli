@@ -47,6 +47,14 @@ That avoids leaking maintainer-specific signing identities into contributor work
 
 Release notes live in `releases/<version>.html` and are embedded into Sparkle appcast entries. Keep them as an HTML body fragment with no wrapper tags.
 
+Before publishing a release, verify the exact archive after extraction:
+
+```bash
+bash scripts/verify-release-archive.sh dist/GhostTile-<version>.zip notarized
+```
+
+The verifier rejects AppleDouble metadata, checks the extracted app signature, validates the stapled ticket, and runs `spctl -av` on the extracted `GhostTile.app`.
+
 ## Security
 
 Please follow [SECURITY.md](SECURITY.md) for sensitive reports involving binary patching, signing, or privilege boundaries.
