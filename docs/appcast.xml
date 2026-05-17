@@ -5,7 +5,22 @@
         <link>https://raw.githubusercontent.com/hewigovens/ghosttile-cli/main/docs/appcast.xml</link>
         <description>GhostTile updates</description>
         <language>en</language>
-                                                <item>
+                                                        <item>
+            <title>Version 2.0.7</title>
+            <sparkle:version>24</sparkle:version>
+            <sparkle:shortVersionString>2.0.7</sparkle:shortVersionString>
+            <pubDate>Sun, 17 May 2026 07:01:30 +0000</pubDate>
+            <description><![CDATA[
+                <ul>
+                  <li>Fixed App Management permission detection. GhostTile no longer keeps showing the permission alert after access has already been granted.</li>
+                </ul>
+            ]]></description>
+            <enclosure url="https://github.com/hewigovens/ghosttile-cli/releases/download/v2.0.7/GhostTile-2.0.7.zip"
+                       sparkle:edSignature="0cQltqgX0w0LuqmRkJ39Hvnlm7O+04F2EAZhAbyJKaqAJR1pIbg51PxWW+FkNBcoI+6mdZTcG+mQSlobnNUIBQ=="
+                       length="5024235"
+                       type="application/octet-stream"/>
+        </item>
+<item>
             <title>Version 2.0.6</title>
             <sparkle:version>23</sparkle:version>
             <sparkle:shortVersionString>2.0.6</sparkle:shortVersionString>
