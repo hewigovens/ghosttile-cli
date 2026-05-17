@@ -74,8 +74,8 @@ targets:
       properties:
         CFBundleDisplayName: GhostTile
         CFBundleIconName: app
-        CFBundleShortVersionString: 2.0.6
-        CFBundleVersion: "23"
+        CFBundleShortVersionString: 2.0.7
+        CFBundleVersion: "24"
         LSUIElement: false
         LSMinimumSystemVersion: "15.0"
         NSHighResolutionCapable: true

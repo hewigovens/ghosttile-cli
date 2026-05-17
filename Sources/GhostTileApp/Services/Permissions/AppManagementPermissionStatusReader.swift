@@ -5,6 +5,7 @@ enum AppManagementPermissionStatusReader {
     private static let frameworkPath = "/System/Library/PrivateFrameworks/TCC.framework/TCC"
     private static let preflightSymbolName = "TCCAccessPreflight"
     private static let appManagementServiceSymbolName = "kTCCServiceSystemPolicyAppBundles"
+    private static let preflightGranted: Int32 = 0
 
     private typealias TCCAccessPreflightFunction = @convention(c) (
         CFString,
@@ -26,6 +27,10 @@ enum AppManagementPermissionStatusReader {
             to: TCCAccessPreflightFunction.self
         )
         let service = serviceSymbol.assumingMemoryBound(to: CFString.self).pointee
-        return preflight(service, nil) != 0
+        return isAllowed(preflightResult: preflight(service, nil))
+    }
+
+    static func isAllowed(preflightResult: Int32) -> Bool {
+        preflightResult == preflightGranted
     }
 }

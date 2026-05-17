@@ -37,5 +37,9 @@ let package = Package(
             dependencies: ["GhostTileCore"],
             exclude: ["Resources"]
         ),
+        .testTarget(
+            name: "GhostTileAppTests",
+            dependencies: ["GhostTileApp"]
+        ),
     ]
 )
