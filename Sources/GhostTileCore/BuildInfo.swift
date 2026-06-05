@@ -1,10 +1,10 @@
 public enum BuildInfo {
-    public static let version = "2.0.8"
-    public static let build = "25"
+    public static let version = "2.0.9"
+    public static let build = "26"
 
     public static let displayVersion = "\(version) (\(build))"
 
-    public static let cliVersion = "2.0.1"
-    public static let cliBuild = "18"
+    public static let cliVersion = "2.0.3"
+    public static let cliBuild = "20"
     public static let cliDisplayVersion = "\(cliVersion) (\(cliBuild))"
 }

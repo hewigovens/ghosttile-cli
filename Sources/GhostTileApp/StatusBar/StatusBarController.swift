@@ -81,6 +81,11 @@ class StatusBarController: NSObject, NSMenuDelegate {
         viewModel.removeApp(app)
     }
 
+    @objc func readdManagedApp(_ sender: NSMenuItem) {
+        guard let app = managedApp(from: sender) else { return }
+        viewModel.readd(app)
+    }
+
     func managedApp(from sender: NSMenuItem) -> ManagedAppItem? {
         guard let bundleId = sender.representedObject as? String else { return nil }
         return viewModel.managedApp(bundleId: bundleId)

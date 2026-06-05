@@ -54,13 +54,30 @@ struct StatusBarMenuBuilder {
     private func managedAppSubmenu(for app: ManagedAppItem) -> NSMenu {
         let submenu = NSMenu(title: app.name)
 
-        let stateText = app.isRunning
-            ? (app.isHiddenFromDock ? "Running Hidden" : "Running Visible")
-            : "Not Running"
-        let stateItem = NSMenuItem(title: stateText, action: nil, keyEquivalent: "")
+        let stateItem = NSMenuItem(title: app.displayState.detailedLabel, action: nil, keyEquivalent: "")
         stateItem.isEnabled = false
         submenu.addItem(stateItem)
+
+        if let versionText = app.versionText {
+            let versionItem = NSMenuItem(title: "Version \(versionText)", action: nil, keyEquivalent: "")
+            versionItem.isEnabled = false
+            submenu.addItem(versionItem)
+        }
+
         submenu.addItem(.separator())
+
+        if app.requiresReAdd {
+            let readd = makeItem(
+                ManagedAppItem.PrimaryAction.reAdd.menuTitle,
+                action: #selector(StatusBarController.readdManagedApp(_:))
+            )
+            readd.representedObject = app.id
+            readd.image = NSImage(
+                systemSymbolName: ManagedAppItem.PrimaryAction.reAdd.systemImage,
+                accessibilityDescription: nil
+            )
+            submenu.addItem(readd)
+        }
 
         for item in app.visibilityMenuItems(
             target: controller,

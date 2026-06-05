@@ -4,6 +4,8 @@ public enum AppCompatibility: Sendable, Equatable {
     case compatible
     case warnings([Warning])
     case unsupported(reason: String)
+    /// Blocked by default, but the user can manage it anyway by running it unsandboxed.
+    case requiresUnsandbox(reason: String)
 
     public struct Warning: Sendable, Equatable {
         public let entitlement: String
@@ -24,8 +26,14 @@ public enum AppCompatibility: Sendable, Equatable {
 
         if let key = HardFailEntitlement.firstMatch(in: entitlements) {
             return .unsupported(
+                reason: "\(app.name) needs '\(key)', which breaks when modified."
+            )
+        }
+
+        if entitlements[appGroupsKey] != nil {
+            return .requiresUnsandbox(
                 reason:
-                "\(app.name) declares '\(key)', which only works under its original signature. Modifying it would break that capability."
+                "\(app.name) uses app groups, so GhostTile must run it without the sandbox — less protection, and it may not see its existing data. Prefer a non-App-Store build if one exists."
             )
         }
 
@@ -34,17 +42,28 @@ public enum AppCompatibility: Sendable, Equatable {
         return warnings.isEmpty ? .compatible : .warnings(warnings)
     }
 
-    /// Keys that trigger AMFI launch kill under ad-hoc resign — must be stripped before codesign.
-    public static func entitlementsToStrip() -> Set<String> {
-        Set(WarnEntitlement.tccKeys.map(\.key))
+    static let appGroupsKey = "com.apple.security.application-groups"
+
+    /// Identity + sandbox entitlements stripped only for the manage-anyway path (clears AMFI + sandbox).
+    private static let unsandboxKeys: Set<String> = [
+        appGroupsKey,
+        "com.apple.application-identifier",
+        "com.apple.developer.team-identifier",
+        "com.apple.security.app-sandbox",
+    ]
+
+    /// Keys that trigger AMFI launch kill under ad-hoc resign; `unsandbox` also strips identity/sandbox keys for manage-anyway.
+    public static func entitlementsToStrip(unsandbox: Bool = false) -> Set<String> {
+        var keys = Set(WarnEntitlement.tccKeys.map(\.key))
+        if unsandbox { keys.formUnion(unsandboxKeys) }
+        return keys
     }
 
     private static func bundleStructureBlocker(for app: AppInfo) -> String? {
         let sysExtDir = (app.appPath as NSString)
             .appendingPathComponent("Contents/Library/SystemExtensions")
         if FileManager.default.fileExists(atPath: sysExtDir) {
-            return
-                "\(app.name) bundles a system extension. Modifying it would prevent the system extension from loading and break the hardware or service it provides."
+            return "\(app.name) bundles a system extension and can't be modified safely."
         }
         return nil
     }
@@ -97,10 +116,9 @@ public enum AppCompatibility: Sendable, Equatable {
             ("com.apple.security.automation.apple-events", "AppleScript / cross-app automation"),
         ]
 
-        /// Team-id-bound keys — preserved in the binary but warned about, since they silently fail without a team id.
+        /// Team-id-bound keys — preserved but warned about, since they silently fail without a team id (application-groups is a separate blocker).
         static let teamIdBoundKeys: [(key: String, impact: String)] = [
             ("com.apple.security.app-sandbox", "App Sandbox"),
-            ("com.apple.security.application-groups", "Shared app group containers"),
             ("keychain-access-groups", "Shared keychain access"),
         ]
 

@@ -12,21 +12,37 @@ extension GhostTile {
             name: .long,
             help: "Proceed despite compatibility warnings about features that may break after preparation."
         ) var acceptWarnings = false
+        @Flag(
+            name: .long,
+            help: "Manage an app-group app anyway by running it unsandboxed (loses sandbox protection)."
+        ) var unsandbox = false
         @Argument(help: "Bundle ID, app name, or app bundle path.") var app: String
 
         func run() throws {
             let resolved = try AppManager.resolve(app)
+            let hiddenApp = Config.load().hidden[resolved.bundleId]
+            let requiresReAdd = hiddenApp != nil && !GhosthidePatch.isApplied(to: resolved.binaryPath)
 
-            if Config.load().hidden[resolved.bundleId] != nil {
-                if AppManager.runningApps(resolved.bundleId).first?.activationPolicy == .accessory, !forcePrepare {
+            if hiddenApp != nil {
+                let alreadyHidden = AppManager.runningApps(resolved.bundleId).first?.activationPolicy == .accessory
+                if requiresReAdd {
+                    print(
+                        "\(resolved.name) was updated since GhostTile prepared it. Re-preparing this version..."
+                    )
+                } else if alreadyHidden, !forcePrepare {
                     print("\(resolved.name) is already managed and hidden.")
                     return
                 }
             }
 
+            let options = PrepareOptions(
+                acceptWarnings: acceptWarnings,
+                refreshBackup: requiresReAdd,
+                unsandbox: unsandbox
+            )
             try validateNotSIPProtected(resolved)
-            try validateCompatibility(resolved, acceptWarnings: acceptWarnings)
-            try prepareIfNeeded(resolved, force: forcePrepare, acceptWarnings: acceptWarnings)
+            try validateCompatibility(resolved, options: options)
+            try prepareIfNeeded(resolved, force: forcePrepare || requiresReAdd, options: options)
 
             print("Restarting \(resolved.name)...")
             try AppManager.quit(resolved.bundleId)
@@ -58,6 +74,10 @@ extension GhostTile {
             name: .long,
             help: "Proceed despite compatibility warnings about features that may break after preparation."
         ) var acceptWarnings = false
+        @Flag(
+            name: .long,
+            help: "Manage an app-group app anyway by running it unsandboxed (loses sandbox protection)."
+        ) var unsandbox = false
         @Argument(help: "Bundle ID, app name, or app bundle path.") var app: String
 
         func run() throws {
@@ -70,8 +90,17 @@ extension GhostTile {
                 return
             }
 
-            try validateCompatibility(resolved, acceptWarnings: acceptWarnings)
-            try prepareIfNeeded(resolved, force: force, acceptWarnings: acceptWarnings)
+            // Re-preparing an updated managed app must refresh the stale pre-update backup.
+            let hiddenApp = Config.load().hidden[resolved.bundleId]
+            let requiresReAdd = hiddenApp != nil && !GhosthidePatch.isApplied(to: resolved.binaryPath)
+            let options = PrepareOptions(
+                acceptWarnings: acceptWarnings,
+                refreshBackup: requiresReAdd,
+                unsandbox: unsandbox
+            )
+
+            try validateCompatibility(resolved, options: options)
+            try prepareIfNeeded(resolved, force: force, options: options)
             print("\(resolved.name) prepared. No relaunch performed.")
         }
     }

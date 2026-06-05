@@ -19,3 +19,8 @@ final class TestTempDirectory {
         url.path
     }
 }
+
+/// Serializes config-mutating suites; a semaphore (not NSLock) since init/deinit may run on separate threads.
+enum ConfigTestIsolation {
+    static let semaphore = DispatchSemaphore(value: 1)
+}

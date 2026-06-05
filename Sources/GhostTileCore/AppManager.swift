@@ -7,7 +7,12 @@ public struct AppInfo {
     public let appPath: String
     public let binaryPath: String
 
-    public init(bundleId: String, name: String, appPath: String, binaryPath: String) {
+    public init(
+        bundleId: String,
+        name: String,
+        appPath: String,
+        binaryPath: String
+    ) {
         self.bundleId = bundleId
         self.name = name
         self.appPath = appPath
@@ -44,12 +49,16 @@ public enum AppManager {
             .needsPreparation(app)
     }
 
-    public static func needsSudo(_ app: AppInfo) throws -> Bool {
-        try AppPreparationManager.needsSudo(app)
+    public static func needsSudo(_ app: AppInfo, forcePrepare: Bool = false) throws -> Bool {
+        try AppPreparationManager.needsSudo(app, forcePrepare: forcePrepare)
     }
 
-    public static func prepare(_ app: AppInfo, cliPath: String = "ghosttile", acceptWarnings: Bool = false) throws {
-        try AppPreparationManager.prepare(app, cliPath: cliPath, acceptWarnings: acceptWarnings)
+    public static func prepare(
+        _ app: AppInfo,
+        cliPath: String = "ghosttile",
+        options: PrepareOptions = .init()
+    ) throws {
+        try AppPreparationManager.prepare(app, cliPath: cliPath, options: options)
     }
 
     public static func extractEntitlements(_ binaryPath: String) throws -> [String: Any] {
@@ -62,8 +71,20 @@ public enum AppManager {
     }
 
     /// Restore
-    public static func restoreBinary(_ bundleId: String, binaryPath: String, appPath: String) throws {
-        try AppRestoreManager.restoreBinary(bundleId, binaryPath: binaryPath, appPath: appPath)
+    public static func restoreBinary(
+        _ bundleId: String,
+        binaryPath: String,
+        appPath: String
+    ) throws {
+        try AppRestoreManager.restoreBinary(
+            bundleId,
+            binaryPath: binaryPath,
+            appPath: appPath
+        )
+    }
+
+    public static func discardInjection(_ bundleId: String, appPath: String) {
+        AppRestoreManager.discardInjection(bundleId, appPath: appPath)
     }
 
     /// Running app lookup

@@ -6,7 +6,12 @@ public struct HiddenApp: Codable {
     public let binaryPath: String
     public var prepared: Bool
 
-    public init(name: String, appPath: String, binaryPath: String, prepared: Bool) {
+    public init(
+        name: String,
+        appPath: String,
+        binaryPath: String,
+        prepared: Bool
+    ) {
         self.name = name
         self.appPath = appPath
         self.binaryPath = binaryPath

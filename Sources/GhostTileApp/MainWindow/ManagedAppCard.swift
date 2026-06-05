@@ -57,22 +57,6 @@ struct ManagedAppCard: View {
         app.statusColor
     }
 
-    private var primaryActionTitle: String {
-        if !app.isRunning {
-            return "Launch"
-        }
-
-        return app.isHiddenFromDock ? "Show" : "Hide"
-    }
-
-    private var primaryActionIcon: String {
-        if !app.isRunning {
-            return "play.fill"
-        }
-
-        return app.isHiddenFromDock ? "eye" : "eye.slash"
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ZStack(alignment: .topLeading) {
@@ -98,6 +82,17 @@ struct ManagedAppCard: View {
                                 .font(.system(size: 20, weight: .bold, design: .rounded))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.78)
+                            if app.requiresReAdd {
+                                Text("Re-add required")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(statusColor)
+                                    .lineLimit(1)
+                            } else if let versionText = app.versionText {
+                                Text("v\(versionText)")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
                         }
                     }
                 }
@@ -117,7 +112,7 @@ struct ManagedAppCard: View {
                     Spacer()
                 } else {
                     Button(action: onPrimaryAction) {
-                        Label(primaryActionTitle, systemImage: primaryActionIcon)
+                        Label(app.primaryAction.title, systemImage: app.primaryAction.systemImage)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)

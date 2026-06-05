@@ -76,16 +76,8 @@ final class MachOEditorTests {
     // MARK: - Helpers
 
     private func compileMinimalBinary() throws -> String {
-        let sourcePath = tempDir.url.appendingPathComponent("main.c").path
         let binaryPath = tempDir.url.appendingPathComponent("main").path
-        try "int main(){return 0;}".write(toFile: sourcePath, atomically: true, encoding: .utf8)
-
-        let xcrun = try ShellRunner.run("/usr/bin/xcrun", arguments: ["--find", "clang"])
-        try ShellRunner.run(xcrun, arguments: [
-            "-o", binaryPath, sourcePath,
-            "-mmacosx-version-min=15.0",
-        ])
-
+        try AppMock.compileStubBinary(at: binaryPath)
         return binaryPath
     }
 

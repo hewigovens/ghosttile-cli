@@ -57,7 +57,9 @@ struct SudoCommandSheet: View {
     }
 
     private func openInTerminal(_ cmd: String) {
-        let escaped = cmd.escapedForAppleScript
+        // `do script` before `activate` avoids an empty launch window; we don't auto-close since Terminal's window control is unreliable.
+        let hint = "echo ''; echo 'GhostTile finished. You can quit Terminal (Cmd-Q).'"
+        let escaped = "\(cmd); \(hint); exit".escapedForAppleScript
         let script = """
         tell application "Terminal"
             do script "\(escaped)"
