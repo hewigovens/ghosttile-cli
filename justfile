@@ -79,7 +79,7 @@ resign-all:
         sudo .build/release/ghosttile prepare --force "$app_path"
     done <<< "$app_paths"
 
-# Build a Debug GhostTile.app and open it from DerivedData.
+# Build a Debug GhostTile.app, point ./GhostTile.app at it, and open it.
 run: kill build-cli
     #!/usr/bin/env bash
     set -euo pipefail
@@ -88,7 +88,10 @@ run: kill build-cli
     xcodegen generate --spec project.yml --project .
     xcodebuild -project GhostTile.xcodeproj -scheme GhostTileApp -configuration Debug build 2>&1 | xcbeautify
     app_path="$(xcodebuild -project GhostTile.xcodeproj -scheme GhostTileApp -configuration Debug -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')/GhostTile.app"
-    open "$app_path"
+    rm -rf "{{app}}"
+    ln -s "$app_path" "{{app}}"
+    echo "Linked {{app}} -> $app_path"
+    open "{{app}}"
 
 # Build the dev variant and open it.
 run-dev: build-dev
