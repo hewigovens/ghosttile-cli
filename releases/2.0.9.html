@@ -2,5 +2,6 @@
   <li>Apps updated after being managed are now handled gracefully: GhostTile detects when an update has stripped its patch, flags the app as needing a re-add, and offers a one-click Re-add instead of misbehaving.</li>
   <li>Restore and remove no longer overwrite a newer app binary with a stale backup; the old backup is discarded instead.</li>
   <li>Managed-app version is now shown in the main window cards and the menu bar submenu.</li>
+  <li>Incompatible apps are now flagged up front: apps that bundle a system extension are blocked, and App Store apps using app groups require an explicit "manage anyway" (unsandboxed) confirmation.</li>
   <li>Faster, lighter managed-app refresh: patch checks are cached by file identity and memory-mapped, avoiding repeated full reads of large binaries on the main thread.</li>
 </ul>
