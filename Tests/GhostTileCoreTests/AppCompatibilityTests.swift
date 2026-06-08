@@ -53,12 +53,27 @@ final class AppCompatibilityTests {
         #expect(!strip.contains("keychain-access-groups"))
     }
 
-    @Test func teamIdBoundEntitlementProducesWarning() throws {
+    @Test func unsandboxStripAlsoCoversIdentityAndSandbox() {
+        let strip = AppCompatibility.entitlementsToStrip(unsandbox: true)
+        #expect(strip.contains("com.apple.security.device.camera"))
+        #expect(strip.contains("com.apple.security.application-groups"))
+        #expect(strip.contains("com.apple.application-identifier"))
+        #expect(strip.contains("com.apple.developer.team-identifier"))
+        #expect(strip.contains("com.apple.security.app-sandbox"))
+    }
+
+    @Test func applicationGroupsRequiresUnsandbox() throws {
         let app = try buildApp(entitlements: ["com.apple.security.application-groups": ["TEAMID.example.group"]])
-        try expectWarning(
-            AppCompatibility.assess(app),
-            entitlement: "com.apple.security.application-groups"
-        )
+        guard case let .requiresUnsandbox(reason) = try AppCompatibility.assess(app) else {
+            try Issue.record("Expected .requiresUnsandbox, got \(AppCompatibility.assess(app))")
+            return
+        }
+        #expect(reason.contains("app group"))
+    }
+
+    @Test func appSandboxAloneProducesWarning() throws {
+        let app = try buildApp(entitlements: ["com.apple.security.app-sandbox": true])
+        try expectWarning(AppCompatibility.assess(app), entitlement: "com.apple.security.app-sandbox")
     }
 
     // MARK: - Helpers

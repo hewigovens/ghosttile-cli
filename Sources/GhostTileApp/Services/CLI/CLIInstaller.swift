@@ -27,6 +27,17 @@ enum CLIInstaller {
         }
     }
 
+    /// Silently refresh an already-installed CLI when it differs from the bundled one; no-op if not installed.
+    static func updateIfInstalledAndStale() {
+        guard CLIPaths.isInstalled, !CLIPaths.installedIsCurrent else { return }
+        do {
+            try install()
+            Log.info("Silently updated installed CLI to \(BuildInfo.cliDisplayVersion)")
+        } catch {
+            Log.error("Silent CLI update failed: \(error)")
+        }
+    }
+
     static func uninstall() throws {
         do {
             try removeInstalledFiles()

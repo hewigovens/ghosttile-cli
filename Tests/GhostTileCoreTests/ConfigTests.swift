@@ -7,12 +7,19 @@ final class ConfigTests {
     private let tempDir: TestTempDirectory
 
     init() throws {
-        tempDir = try TestTempDirectory(prefix: "ghosttile-config-tests")
-        Config.configDirOverride = tempDir.path
+        ConfigTestIsolation.semaphore.wait()
+        do {
+            tempDir = try TestTempDirectory(prefix: "ghosttile-config-tests")
+            Config.configDirOverride = tempDir.path
+        } catch {
+            ConfigTestIsolation.semaphore.signal()
+            throw error
+        }
     }
 
     deinit {
         Config.configDirOverride = nil
+        ConfigTestIsolation.semaphore.signal()
     }
 
     @Test func loadReturnsDefaultWhenNoFile() {

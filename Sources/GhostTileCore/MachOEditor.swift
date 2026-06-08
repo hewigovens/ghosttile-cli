@@ -23,7 +23,8 @@ enum MachOEditor {
     }
 
     static func hasGhosthideLoadCommand(in binaryPath: String) throws -> Bool {
-        let data = try Data(contentsOf: URL(fileURLWithPath: binaryPath))
+        // Map, don't read: the check only touches header pages, avoiding a full load of large binaries.
+        let data = try Data(contentsOf: URL(fileURLWithPath: binaryPath), options: .mappedIfSafe)
         return try slices(in: data).contains { try sliceHasGhosthideLoadCommand(data, slice: $0) }
     }
 

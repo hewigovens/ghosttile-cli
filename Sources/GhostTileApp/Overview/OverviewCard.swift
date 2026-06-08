@@ -94,12 +94,11 @@ struct OverviewCard: View {
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.14), value: hovering)
         .contextMenu {
-            if app.isRunning {
-                if app.isHiddenFromDock {
-                    Button("Show in Dock", action: { actions.show(app) })
-                } else {
-                    Button("Hide from Dock", action: { actions.hide(app) })
-                }
+            switch app.primaryAction {
+            case .reAdd, .showInDock, .hideFromDock:
+                Button(app.primaryAction.menuTitle) { actions.perform(app.primaryAction, on: app) }
+            case .launch:
+                EmptyView()
             }
             Button("Reveal in Finder", action: { actions.reveal(app) })
             Divider()
@@ -153,35 +152,33 @@ struct OverviewCard: View {
 
     private var actionButtons: some View {
         HStack(spacing: 6) {
-            if app.isRunning {
-                Button {
-                    app.isHiddenFromDock ? actions.show(app) : actions.hide(app)
-                } label: {
-                    Image(systemName: app.isHiddenFromDock ? "eye" : "eye.slash")
-                        .font(.system(size: 11, weight: .semibold))
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
-            }
+            primaryActionButton
 
-            Button {
-                actions.reveal(app)
-            } label: {
-                Image(systemName: "folder")
-                    .font(.system(size: 11, weight: .semibold))
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
-
-            Button {
-                actions.remove(app)
-            } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 11, weight: .semibold))
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
+            iconButton("folder") { actions.reveal(app) }
+            iconButton("trash") { actions.remove(app) }
         }
+    }
+
+    /// Primary button shows only for actionable states; a not-running app (.launch) shows just reveal/remove.
+    @ViewBuilder
+    private var primaryActionButton: some View {
+        switch app.primaryAction {
+        case .reAdd, .showInDock, .hideFromDock:
+            iconButton(app.primaryAction.systemImage) {
+                actions.perform(app.primaryAction, on: app)
+            }
+        case .launch:
+            EmptyView()
+        }
+    }
+
+    private func iconButton(_ systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 11, weight: .semibold))
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(.secondary)
     }
 
     private var statusText: String {

@@ -4,4 +4,5 @@ enum HideAppOperationResult {
     case hidden
     case requiresSudo(command: String)
     case requiresWarningConfirmation([AppCompatibility.Warning])
+    case requiresUnsandboxConfirmation(reason: String)
 }

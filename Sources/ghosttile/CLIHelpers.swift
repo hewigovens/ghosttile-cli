@@ -39,19 +39,25 @@ func validateNotSIPProtected(_ app: AppInfo) throws {
     }
 }
 
-func validateCompatibility(_ app: AppInfo, acceptWarnings: Bool) throws {
+func validateCompatibility(_ app: AppInfo, options: PrepareOptions) throws {
     switch try AppManager.assessCompatibility(app) {
     case .compatible:
         return
     case let .unsupported(reason):
         throw GhostTileError(reason)
+    case let .requiresUnsandbox(reason):
+        guard options.unsandbox else {
+            throw GhostTileError("\(reason)\n\nRe-run with --unsandbox to manage it anyway (runs unsandboxed).")
+        }
+        FileHandle.standardError.write(Data("Managing \(app.name) unsandboxed (--unsandbox).\n".utf8))
+        return
     case let .warnings(warnings):
         let stderr = FileHandle.standardError
         stderr.write(Data("Compatibility warnings for \(app.name):\n".utf8))
         for warning in warnings {
             stderr.write(Data("  • \(warning.impact) (\(warning.entitlement))\n".utf8))
         }
-        if acceptWarnings {
+        if options.acceptWarnings {
             stderr.write(Data("Continuing because --accept-warnings was set.\n".utf8))
             return
         }
@@ -69,11 +75,11 @@ func validateCompatibility(_ app: AppInfo, acceptWarnings: Bool) throws {
     }
 }
 
-func prepareIfNeeded(_ app: AppInfo, force: Bool, acceptWarnings: Bool = false) throws {
+func prepareIfNeeded(_ app: AppInfo, force: Bool, options: PrepareOptions = .init()) throws {
     let shouldPrepare = try force || AppManager.needsPreparation(app)
     guard shouldPrepare else { return }
     print("Preparing \(app.name)...")
-    try AppManager.prepare(app, acceptWarnings: acceptWarnings)
+    try AppManager.prepare(app, options: options)
 }
 
 func addToConfig(_ app: AppInfo) throws {

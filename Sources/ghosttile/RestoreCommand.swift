@@ -11,15 +11,27 @@ extension GhostTile {
 
         func run() throws {
             let (bundleId, hiddenApp) = try resolveManaged(app)
-            let wasRunning = isRunning(bundleId)
 
+            guard GhosthidePatch.isApplied(to: hiddenApp.binaryPath) else {
+                print("\(hiddenApp.name) no longer has a GhostTile patch; removing from GhostTile...")
+                AppManager.discardInjection(bundleId, appPath: hiddenApp.appPath)
+                try Config.removeHidden(bundleId)
+                print("\(hiddenApp.name) removed from GhostTile.")
+                return
+            }
+
+            let wasRunning = isRunning(bundleId)
             if wasRunning {
                 print("Quitting \(hiddenApp.name)...")
                 try AppManager.quit(bundleId)
             }
 
             print("Restoring \(hiddenApp.name)...")
-            try AppManager.restoreBinary(bundleId, binaryPath: hiddenApp.binaryPath, appPath: hiddenApp.appPath)
+            try AppManager.restoreBinary(
+                bundleId,
+                binaryPath: hiddenApp.binaryPath,
+                appPath: hiddenApp.appPath
+            )
             try Config.removeHidden(bundleId)
 
             if wasRunning {

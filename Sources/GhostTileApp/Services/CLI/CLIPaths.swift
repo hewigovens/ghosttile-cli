@@ -43,16 +43,30 @@ enum CLIPaths {
         installPairExists(cli: installedCLI, dylib: installedDylib)
     }
 
-    /// Cached `--version` check; a stale installed CLI can't parse new flags like `--accept-warnings`.
+    /// Cached byte comparison vs the bundled CLI/dylib, so any change is detected without a version bump.
     static var installedIsCurrent: Bool {
         cachedInstalledIsCurrent
     }
 
     private static let cachedInstalledIsCurrent: Bool = {
-        guard isInstalled else { return false }
-        let installedVersion = try? AppManager.run(installedCLI, ["--version"])
-        return installedVersion == BuildInfo.cliDisplayVersion
+        guard isInstalled,
+              let cli = bundledCLI,
+              let dylib = bundledDylib
+        else { return false }
+        return filesAreIdentical(installedCLI, cli) && filesAreIdentical(installedDylib, dylib)
     }()
+
+    private static func filesAreIdentical(_ lhs: String, _ rhs: String) -> Bool {
+        let fileManager = FileManager.default
+        guard let lhsSize = try? fileManager.attributesOfItem(atPath: lhs)[.size] as? Int,
+              let rhsSize = try? fileManager.attributesOfItem(atPath: rhs)[.size] as? Int,
+              lhsSize == rhsSize
+        else { return false }
+        guard let lhsData = try? Data(contentsOf: URL(fileURLWithPath: lhs), options: .mappedIfSafe),
+              let rhsData = try? Data(contentsOf: URL(fileURLWithPath: rhs), options: .mappedIfSafe)
+        else { return false }
+        return lhsData == rhsData
+    }
 
     private static func bundledResource(named name: String) -> String? {
         let path = BundledResources.resourcePath(named: name)

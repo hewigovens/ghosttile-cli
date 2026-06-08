@@ -74,11 +74,7 @@ extension MainWindowView {
                                 isLoading: appViewModel.loading.contains(app.id),
                                 actions: appViewModel,
                                 onPrimaryAction: {
-                                    if app.isRunning {
-                                        appViewModel.setDockVisibility(app, hidden: !app.isHiddenFromDock)
-                                    } else {
-                                        appViewModel.activateManagedApp(app)
-                                    }
+                                    appViewModel.perform(app.primaryAction, on: app)
                                 }
                             )
                         }

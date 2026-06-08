@@ -9,6 +9,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_: Notification) {
         intentListener.start()
+        DebugBadge.apply()
+        // Keep an already-installed CLI in sync with the app (user-owned ~/.local/bin, no prompt).
+        DispatchQueue.global(qos: .utility).async {
+            CLIInstaller.updateIfInstalledAndStale()
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {

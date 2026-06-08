@@ -198,6 +198,14 @@ class AppViewModel: ObservableObject, ManagedAppActions {
         actionHandler.removeApp(app)
     }
 
+    func readd(_ app: ManagedAppItem) {
+        actionHandler.readdManagedApp(app)
+    }
+
+    func activate(_ app: ManagedAppItem) {
+        actionHandler.activateManagedApp(app)
+    }
+
     // MARK: - Additional Actions
 
     func hideRunningApp(_ app: ManagedAppItem) {

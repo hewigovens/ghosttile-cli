@@ -22,35 +22,41 @@ public enum ManagedAppStateReader {
             else { return nil }
 
             let appPath = bundleURL.path
+            let isManaged = config.hidden[bundleId] != nil
             return ManagedAppRecord(
                 bundleId: bundleId,
                 name: app.localizedName ?? bundleId,
                 appPath: appPath,
                 binaryPath: executableURL.path,
-                managed: config.hidden[bundleId] != nil,
+                managed: isManaged,
                 running: true,
                 hiddenFromDock: app.activationPolicy == .accessory,
                 pid: app.processIdentifier,
                 isSIPProtected: AppManager.isSIPProtected(appPath),
-                categoryIdentifier: bundle.infoDictionary?["LSApplicationCategoryType"] as? String
+                categoryIdentifier: bundle.infoDictionary?["LSApplicationCategoryType"] as? String,
+                requiresReAdd: isManaged && !GhosthidePatch.isApplied(to: executableURL.path),
+                version: AppVersion(bundle: bundle)
             )
         }
 
         for (bundleId, hiddenApp) in config.hidden where !runningIds.contains(bundleId) {
             let bundleURL = URL(fileURLWithPath: hiddenApp.appPath)
             let bundle = Bundle(url: bundleURL)
+            let binaryPath = bundle?.executableURL?.path ?? hiddenApp.binaryPath
             records.append(
                 ManagedAppRecord(
                     bundleId: bundleId,
                     name: hiddenApp.name,
                     appPath: hiddenApp.appPath,
-                    binaryPath: hiddenApp.binaryPath,
+                    binaryPath: binaryPath,
                     managed: true,
                     running: false,
                     hiddenFromDock: true,
                     pid: nil,
                     isSIPProtected: false,
-                    categoryIdentifier: bundle?.infoDictionary?["LSApplicationCategoryType"] as? String
+                    categoryIdentifier: bundle?.infoDictionary?["LSApplicationCategoryType"] as? String,
+                    requiresReAdd: !GhosthidePatch.isApplied(to: binaryPath),
+                    version: bundle.flatMap(AppVersion.init(bundle:))
                 )
             )
         }

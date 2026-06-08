@@ -1,10 +1,20 @@
 import Foundation
 
 enum AppRestoreManager {
-    static func restoreBinary(_ bundleId: String, binaryPath: String, appPath: String) throws {
+    static func restoreBinary(
+        _ bundleId: String,
+        binaryPath: String,
+        appPath: String
+    ) throws {
         let source = "\(FileOperations.backupPath(for: bundleId))/binary"
         guard FileManager.default.fileExists(atPath: source) else {
             Log.info("No backup found for \(bundleId), skipping restore")
+            return
+        }
+
+        guard GhosthidePatch.isApplied(to: binaryPath) else {
+            Log.info("No GhostTile patch found for \(bundleId), skipping restore")
+            discardInjection(bundleId, appPath: appPath)
             return
         }
 
@@ -23,5 +33,16 @@ enum AppRestoreManager {
 
         try? FileManager.default.removeItem(atPath: FileOperations.backupPath(for: bundleId))
         Log.info("Removed backup for \(bundleId)")
+    }
+
+    static func discardBackup(_ bundleId: String) {
+        try? FileManager.default.removeItem(atPath: FileOperations.backupPath(for: bundleId))
+        Log.info("Discarded backup for \(bundleId)")
+    }
+
+    /// Forget an updated app: remove the orphaned dylib and drop the backup (no re-sign).
+    static func discardInjection(_ bundleId: String, appPath: String) {
+        try? FileOperations.removeFile(atPath: Dylib.bundleInstallPath(forAppPath: appPath))
+        discardBackup(bundleId)
     }
 }

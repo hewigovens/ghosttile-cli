@@ -27,29 +27,47 @@ enum AppPreparationManager {
         return needs
     }
 
-    static func needsSudo(_ app: AppInfo) throws -> Bool {
-        guard try needsPreparation(app) else { return false }
+    static func needsSudo(_ app: AppInfo, forcePrepare: Bool = false) throws -> Bool {
+        guard try forcePrepare || needsPreparation(app) else { return false }
         return !FileManager.default.isWritableFile(atPath: app.binaryPath)
     }
 
-    static func backupBinary(_ app: AppInfo) throws {
+    static func backupBinary(_ app: AppInfo, refreshExisting: Bool = false) throws {
         let directory = FileOperations.backupPath(for: app.bundleId)
         let destination = "\(directory)/binary"
 
+        try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+
         if FileManager.default.fileExists(atPath: destination) {
-            Log.info("Backup already exists for \(app.name), skipping")
+            guard refreshExisting else {
+                Log.info("Backup already exists for \(app.name), skipping")
+                return
+            }
+
+            let temporaryBackup = "\(directory)/binary.\(UUID().uuidString).tmp"
+            defer { try? FileManager.default.removeItem(atPath: temporaryBackup) }
+            try FileManager.default.copyItem(atPath: app.binaryPath, toPath: temporaryBackup)
+            // Atomic swap so a failure can't leave the destination missing.
+            _ = try FileManager.default.replaceItemAt(
+                URL(fileURLWithPath: destination),
+                withItemAt: URL(fileURLWithPath: temporaryBackup)
+            )
+            Log.info("Refreshed binary backup for \(app.name) at \(destination)")
             return
         }
 
-        try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
         try FileManager.default.copyItem(atPath: app.binaryPath, toPath: destination)
         Log.info("Backed up binary for \(app.name) to \(destination)")
     }
 
-    static func prepare(_ app: AppInfo, cliPath: String = "ghosttile", acceptWarnings: Bool = false) throws {
+    static func prepare(
+        _ app: AppInfo,
+        cliPath: String = "ghosttile",
+        options: PrepareOptions = .init()
+    ) throws {
         Log.info("Preparing \(app.name) (\(app.bundleId)) at \(app.appPath)")
 
-        try backupBinary(app)
+        try backupBinary(app, refreshExisting: options.refreshBackup)
 
         let helperSourcePath = try Dylib.ensureDylib()
         let helperInstallPath = Dylib.bundleInstallPath(forAppPath: app.appPath)
@@ -57,9 +75,9 @@ enum AppPreparationManager {
         try FileOperations.createDirectory(atPath: helperDir)
         try FileOperations.replaceFile(from: helperSourcePath, to: helperInstallPath)
 
-        // Preserve original entitlements; strip TCC keys (AMFI launch kill) and add CS overrides.
+        // Strip TCC keys (AMFI launch kill) plus, when unsandboxing, the identity/sandbox keys.
         var entitlements = try extractEntitlements(app.binaryPath)
-        for key in AppCompatibility.entitlementsToStrip() {
+        for key in AppCompatibility.entitlementsToStrip(unsandbox: options.unsandbox) {
             entitlements.removeValue(forKey: key)
         }
         entitlements["com.apple.security.cs.allow-dyld-environment-variables"] = true
@@ -90,15 +108,17 @@ enum AppPreparationManager {
 
         try FileOperations.codesign(arguments: ["--force", "--sign", "-", helperInstallPath])
 
+        // Unsandboxing needs nested code re-signed too (--deep), else Apple-signed frameworks won't load.
+        var bundleArguments = ["--force", "--sign", "-", "--preserve-metadata=entitlements", app.appPath]
+        if options.unsandbox { bundleArguments.insert("--deep", at: 1) }
+
         do {
-            try FileOperations.codesign(arguments: [
-                "--force", "--sign", "-", "--preserve-metadata=entitlements", app.appPath,
-            ])
+            try FileOperations.codesign(arguments: bundleArguments)
             Log.info("Re-signed bundle for \(app.name)")
         } catch {
             Log.error("Failed to re-sign bundle for \(app.name): \(error)")
             var arguments = ["manage", app.bundleId]
-            if acceptWarnings { arguments.append("--accept-warnings") }
+            if options.acceptWarnings { arguments.append("--accept-warnings") }
             throw GhostTileError(
                 "\(app.name) requires a manual step. Run in Terminal: \(ShellCommand.format(executable: cliPath, arguments: arguments, requiresSudo: true))"
             )
