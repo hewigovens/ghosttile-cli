@@ -74,6 +74,7 @@
 7. Publish the draft GitHub release (`gh release edit v<version> --draft=false`) so the `v<version>` tag exists and the binary download URL works.
 8. Commit and push `docs/appcast.xml` + `docs/index.html` to `main` so Sparkle clients and the marketing site see the new version.
 9. Update the Homebrew tap via `just update-cask`, then commit + push `../tap/Casks/ghosttile.rb`.
+10. Update the official Homebrew/homebrew-cask fork via `just update-homebrew-cask` (edits `../../github/homebrew-cask/Casks/g/ghosttile.rb`; set `HOMEBREW_CASK_DIR` to override). Commit on the fork branch, then push and open a PR to `Homebrew/homebrew-cask` manually.
 
 `BuildInfo.cliVersion` and `BuildInfo.cliBuild` are independent from app releases and not covered by `just set-version`. Leave them unchanged for app-only releases; edit `BuildInfo.swift` by hand only when the bundled CLI behavior or support payload changes and installed users should reinstall the CLI.
 Sparkle release notes come from `releases/<version>.html`. Do not publish a release with an empty appcast description.

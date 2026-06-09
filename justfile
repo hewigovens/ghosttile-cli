@@ -282,6 +282,27 @@ update-cask:
       "$cask_path"
     echo "Updated $cask_path with version {{version}} sha256 $sha256"
 
+# Update the official Homebrew/homebrew-cask fork (../../github/homebrew-cask) with the new version + sha256. Commit + open a PR to Homebrew manually. Set HOMEBREW_CASK_DIR to override the path.
+update-homebrew-cask:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    zip_path="dist/GhostTile-{{version}}.zip"
+    if [ ! -f "$zip_path" ]; then
+        echo "Expected archive at $zip_path. Run 'just release' first." >&2
+        exit 1
+    fi
+    cask_path="${HOMEBREW_CASK_DIR:-../../github/homebrew-cask}/Casks/g/ghosttile.rb"
+    if [ ! -f "$cask_path" ]; then
+        echo "Cask not found at $cask_path. Clone the homebrew-cask fork or set HOMEBREW_CASK_DIR." >&2
+        exit 1
+    fi
+    sha256=$(shasum -a 256 "$zip_path" | cut -d' ' -f1)
+    sed -i '' \
+      -e 's/version "[^"]*"/version "{{version}}"/' \
+      -e "s/sha256 \"[^\"]*\"/sha256 \"$sha256\"/" \
+      "$cask_path"
+    echo "Updated $cask_path with version {{version}} sha256 $sha256"
+
 # Build ad-hoc signed zip + sha256 sidecar — no notarization or network, sanity check before `release`.
 release-dry-run: build
     #!/usr/bin/env bash
